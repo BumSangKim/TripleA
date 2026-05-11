@@ -1,0 +1,182 @@
+# collector.py
+# 각 데이터 소스에서 경제 지표를 수집하는 모듈
+import requests
+import logging
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from config import ECOS_KEY, FRED_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY
+
+logger = logging.getLogger(__name__)
+
+
+def get_session() -> requests.Session:
+    """재시도 로직이 포함된 HTTP 세션 반환"""
+    session = requests.Session()
+    retry = Retry(
+        total=3,
+        backoff_factor=2,  # 1초 → 2초 → 4초 대기
+        status_forcelist=[429, 500, 502, 503, 504],
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def fetch_ecos(stat_id: str, freq: str, start: str, end: str) -> list:
+    """
+    한국은행 ECOS API 호출
+    freq: 'DD'(일), 'MM'(월), 'QQ'(분기)
+    """
+    url = (
+        f"https://ecos.bok.or.kr/api/StatisticSearch/{ECOS_KEY}"
+        f"/json/kr/1/100/{stat_id}/{freq}/{start}/{end}/"
+    )
+    session = get_session()
+    try:
+        res = session.get(url, timeout=10)
+        res.raise_for_status()
+        data = res.json()
+        rows = data.get("StatisticSearch", {}).get("row", [])
+        return rows
+    except Exception as e:
+        logger.error(f"[ECOS] {stat_id} 수집 실패: {e}")
+        return []
+
+
+def fetch_kosis(stat_id: str, start_period: str) -> list:
+    """KOSIS OpenAPI 호출"""
+    from config import ECOS_KEY
+    # KOSIS는 별도 키가 없으면 공개 API 사용 (PUBLIC_DATA_API_KEY 활용)
+    import os
+    kosis_key = os.getenv("KOSIS_API_KEY") or os.getenv("PUBLIC_DATA_API_KEY")
+    url = "https://kosis.kr/openapi/Param/statisticsList.do"
+    params = {
+        "method": "getList",
+        "apiKey": kosis_key,
+        "statId": stat_id,
+        "prdSe": "M",
+        "startPrdDe": start_period,
+        "format": "json",
+        "jsonVD": "Y",
+    }
+    session = get_session()
+    try:
+        res = session.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        return res.json()
+    except Exception as e:
+        logger.error(f"[KOSIS] {stat_id} 수집 실패: {e}")
+        return []
+
+
+def fetch_krx_index(market: str = "KOSPI") -> dict:
+    """
+    KRX 공식 데이터 포털에서 지수 수집
+    market: 'KOSPI' or 'KOSDAQ'
+    """
+    url = "http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "http://data.krx.co.kr",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+    payload = {
+        "bld": "dbms/MDC/STAT/standard/MDCSTAT00101",
+        "locale": "ko_KR",
+        "mktId": "STK" if market == "KOSPI" else "KSQ",
+        "share": "1",
+        "money": "1",
+        "csvxls_isNo": "false",
+    }
+    session = get_session()
+    try:
+        res = session.post(url, data=payload, headers=headers, timeout=10)
+        res.raise_for_status()
+        return res.json()
+    except Exception as e:
+        logger.error(f"[KRX] {market} 수집 실패: {e}")
+        return {}
+
+
+def fetch_fred(series_id: str, limit: int = 30) -> list:
+    """FRED API 호출 (무료, 키 필요)"""
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": series_id,
+        "api_key": FRED_KEY,
+        "file_type": "json",
+        "sort_order": "desc",
+        "limit": limit,
+    }
+    session = get_session()
+    try:
+        res = session.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        return res.json().get("observations", [])
+    except Exception as e:
+        logger.error(f"[FRED] {series_id} 수집 실패: {e}")
+        return []
+
+
+def fetch_naver_news(query: str, display: int = 10) -> list:
+    """Naver 뉴스 검색 API (당일 실시간, 무료)"""
+    if not NAVER_ID or not NAVER_SECRET:
+        logger.warning("[NAVER] NAVER_CLIENT_ID 또는 NAVER_CLIENT_SECRET 미설정, 뉴스 수집 생략")
+        return []
+    url = "https://openapi.naver.com/v1/search/news.json"
+    headers = {
+        "X-Naver-Client-Id": NAVER_ID,
+        "X-Naver-Client-Secret": NAVER_SECRET,
+    }
+    params = {
+        "query": query,
+        "display": display,
+        "sort": "date",
+    }
+    session = get_session()
+    try:
+        res = session.get(url, headers=headers, params=params, timeout=10)
+        res.raise_for_status()
+        return res.json().get("items", [])
+    except Exception as e:
+        logger.error(f"[NAVER] '{query}' 수집 실패: {e}")
+        return []
+
+
+def fetch_rss(url: str) -> list:
+    """RSS 파싱 (완전 무료, 인증 불필요)"""
+    import feedparser
+    try:
+        feed = feedparser.parse(url)
+        return feed.entries[:10]
+    except Exception as e:
+        logger.error(f"[RSS] {url} 파싱 실패: {e}")
+        return []
+
+
+def fetch_kipris(keyword: str, page: int = 1) -> list:
+    """KIPRIS 특허청 특허 검색 API"""
+    if not KIPRIS_KEY:
+        logger.warning("[KIPRIS] KIPRIS_API_KEY 미설정, 특허 수집 생략")
+        return []
+    url = "http://plus.kipris.or.kr/openapi/rest/PatentUtilityService/applicationNumberSearchInfo"
+    params = {
+        "accessToken": KIPRIS_KEY,
+        "searchWord": keyword,
+        "pageNo": page,
+        "numOfRows": 10,
+        "descSort": "true",
+    }
+    session = get_session()
+    try:
+        res = session.get(url, params=params, timeout=15)
+        res.raise_for_status()
+        # XML 응답 파싱
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(res.text)
+        items = root.findall(".//item")
+        return [{"title": item.findtext("inventionTitle", ""), "appNo": item.findtext("applicationNumber", "")} for item in items]
+    except Exception as e:
+        logger.error(f"[KIPRIS] '{keyword}' 수집 실패: {e}")
+        return []

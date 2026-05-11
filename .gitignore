@@ -1,0 +1,44 @@
+# .gitignore
+# API 키 및 비밀 정보 - 절대 커밋 금지
+API_KEY/
+.env
+*.env
+.env.*
+!.env.example
+
+# Python 캐시
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+.mypy_cache/
+.pytest_cache/
+
+# 가상환경
+.venv/
+venv/
+env/
+ENV/
+
+# 자동 생성 파일
+*.db
+*.log
+*.sqlite3
+pipeline.log
+
+# OS 파일
+.DS_Store
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 빌드/배포
+dist/
+build/
+*.egg-info/
