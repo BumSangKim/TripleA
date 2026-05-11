@@ -44,9 +44,19 @@ def discover_chat_id() -> str | None:
 
 
 def get_chat_id() -> str | None:
-    """TELEGRAM_CHAT_ID 반환 (미설정이면 getUpdates로 발견 시도)"""
-    if TG_CHAT_ID and TG_CHAT_ID not in ("YOUR_TELEGRAM_CHAT_ID", "TEST", ""):
-        return TG_CHAT_ID
+    """TELEGRAM_CHAT_ID 반환 - 우선순위: 환경변수 > .env > getUpdates 자동발견"""
+    # 1. 실행 중 환경변수 (run.sh에서 export한 경우 포함)
+    live = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if live and live not in ("YOUR_TELEGRAM_CHAT_ID", "TEST", ""):
+        return live
+
+    # 2. .env 재로드 후 확인
+    load_dotenv(override=True)
+    from_env = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if from_env and from_env not in ("YOUR_TELEGRAM_CHAT_ID", "TEST", ""):
+        return from_env
+
+    # 3. getUpdates로 자동 발견
     discovered = discover_chat_id()
     if discovered:
         os.environ["TELEGRAM_CHAT_ID"] = discovered

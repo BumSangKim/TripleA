@@ -40,6 +40,7 @@ def _tg_send_message(text: str, parse_mode: str = "Markdown") -> bool:
     try:
         res = requests.post(url, json=payload, timeout=15)
         res.raise_for_status()
+        logger.info(f"[Telegram] 메시지 전송 완료 (chat_id={chat_id})")
         return True
     except Exception as e:
         logger.error(f"텍스트 전송 실패: {e}")
@@ -62,6 +63,7 @@ def _tg_send_photo(photo_buf: io.BytesIO, caption: str = "") -> bool:
             timeout=30,
         )
         res.raise_for_status()
+        logger.info(f"[Telegram] 차트 전송 완료")
         return True
     except Exception as e:
         logger.error(f"차트 전송 실패: {e}")
@@ -114,6 +116,7 @@ def build_message(summary: dict) -> str:
 
 def send_report(db_path: str = "economic_data.db"):
     """전체 리포트 전송: 텍스트 요약 + 차트 + CSV"""
+    logger.info("[Telegram] 리포트 전송 시작")
     summary = build_summary(db_path=db_path)
 
     # 1. 요약 텍스트 전송
