@@ -24,6 +24,14 @@ INDICATORS = {
     "DXY":          {"label": "달러인덱스(DXY·ICE)",    "unit": "index"},
 }
 
+# Hyperscaler CapEx 지표 (FMP - Deep Research S1)
+CAPEX_TICKERS = {
+    "CAPEX_MSFT":  {"label": "Microsoft CapEx",  "unit": "B USD"},
+    "CAPEX_GOOGL": {"label": "Alphabet CapEx",   "unit": "B USD"},
+    "CAPEX_META":  {"label": "Meta CapEx",        "unit": "B USD"},
+    "CAPEX_AMZN":  {"label": "Amazon CapEx",      "unit": "B USD"},
+}
+
 
 def build_summary(db_path: str = "economic_data.db") -> dict:
     """모든 지표의 최신 통계 산출"""
@@ -36,4 +44,33 @@ def build_summary(db_path: str = "economic_data.db") -> dict:
         df = clean_series(df)
         stats = compute_stats(df)
         result[key] = {**meta, **stats}
+    return result
+
+
+def build_capex_summary(db_path: str = "economic_data.db") -> dict:
+    """Hyperscaler CapEx 분기별 요약 산출 (최근 5분기)"""
+    import sqlite3
+    result = {}
+    conn = sqlite3.connect(db_path)
+    for key, meta in CAPEX_TICKERS.items():
+        rows = conn.execute(
+            "SELECT date, value FROM indicators WHERE indicator=? ORDER BY date DESC LIMIT 5",
+            (key,),
+        ).fetchall()
+        if not rows:
+            result[key] = {**meta, "quarters": [], "error": "데이터 없음"}
+            continue
+        quarters = [{"date": r[0], "capex_b": r[1]} for r in rows]
+        latest = quarters[0]["capex_b"]
+        prev   = quarters[1]["capex_b"] if len(quarters) > 1 else None
+        yoy    = quarters[4]["capex_b"] if len(quarters) >= 5 else None
+        result[key] = {
+            **meta,
+            "quarters": quarters,
+            "latest": latest,
+            "latest_date": quarters[0]["date"],
+            "qoq_pct": round((latest / prev - 1) * 100, 1) if prev else None,
+            "yoy_pct": round((latest / yoy - 1) * 100, 1) if yoy else None,
+        }
+    conn.close()
     return result

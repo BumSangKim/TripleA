@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 ECOS_KEY           = os.getenv("ECOS_API_KEY")
 FRED_KEY           = os.getenv("FRED_API_KEY")
+FMP_KEY            = os.getenv("FMP_API_KEY")   # Financial Modeling Prep
 NAVER_ID           = os.getenv("NAVER_CLIENT_ID")
 NAVER_SECRET       = os.getenv("NAVER_CLIENT_SECRET")
 KIPRIS_KEY         = os.getenv("KIPRIS_API_KEY")

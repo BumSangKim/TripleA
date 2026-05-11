@@ -93,3 +93,91 @@ def create_multi_chart(
     buf.seek(0)
     plt.close(fig)
     return buf
+
+
+def create_capex_chart(db_path: str = "economic_data.db") -> io.BytesIO:
+    """
+    Hyperscaler CapEx 분기 추이 Bar Chart (MSFT/GOOGL/META/AMZN)
+    DB에서 최근 5분기 데이터 조회하여 그룹 막대그래프 생성
+    """
+    import sqlite3
+    import numpy as np
+    import pandas as pd
+
+    TICKERS = {
+        "CAPEX_MSFT":  ("Microsoft",  "#00BCF2"),
+        "CAPEX_GOOGL": ("Alphabet",   "#34A853"),
+        "CAPEX_META":  ("Meta",       "#1877F2"),
+        "CAPEX_AMZN":  ("Amazon",     "#FF9900"),
+    }
+
+    # 각 종목별 데이터 수집
+    conn = sqlite3.connect(db_path)
+    all_quarters = set()
+    series = {}
+    for key, (name, color) in TICKERS.items():
+        rows = conn.execute(
+            "SELECT date, value FROM indicators WHERE indicator=? ORDER BY date DESC LIMIT 5",
+            (key,),
+        ).fetchall()
+        if rows:
+            data = {r[0]: r[1] for r in rows}
+            series[name] = {"data": data, "color": color}
+            all_quarters.update(data.keys())
+    conn.close()
+
+    if not series:
+        # 데이터 없으면 빈 차트
+        fig, ax = plt.subplots(figsize=(10, 4))
+        ax.text(0.5, 0.5, "CapEx 데이터 없음", ha="center", va="center", fontsize=14)
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+        buf.seek(0)
+        plt.close(fig)
+        return buf
+
+    quarters = sorted(all_quarters)  # 날짜 오름차순
+    n_q = len(quarters)
+    n_companies = len(series)
+    x = np.arange(n_q)
+    width = 0.18
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    for i, (name, info) in enumerate(series.items()):
+        vals = [info["data"].get(q, 0) for q in quarters]
+        offset = (i - n_companies / 2 + 0.5) * width
+        bars = ax.bar(x + offset, vals, width, label=name, color=info["color"], alpha=0.85)
+        # 값 레이블
+        for bar, val in zip(bars, vals):
+            if val > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.3,
+                    f"${val:.1f}B",
+                    ha="center", va="bottom", fontsize=7, fontweight="bold",
+                )
+
+    # 분기 라벨 (YYYY-MM-DD → YYYYQN 형식)
+    def to_quarter(d):
+        try:
+            m = int(d[5:7])
+            y = d[:4]
+            q = (m - 1) // 3 + 1
+            return f"{y}Q{q}"
+        except Exception:
+            return d
+
+    ax.set_xticks(x)
+    ax.set_xticklabels([to_quarter(q) for q in quarters], fontsize=9)
+    ax.set_ylabel("CapEx (십억달러, B USD)", fontsize=10)
+    ax.set_title("Hyperscaler AI CapEx 분기 추이 (Deep Research S1)", fontsize=13, fontweight="bold")
+    ax.legend(loc="upper left", fontsize=9)
+    ax.grid(axis="y", alpha=0.3, linestyle="--")
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", dpi=150, bbox_inches="tight")
+    buf.seek(0)
+    plt.close(fig)
+    return buf

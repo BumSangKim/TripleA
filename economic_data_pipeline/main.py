@@ -10,6 +10,7 @@ from collector import (
     fetch_fred,
     fetch_nyfed_pmi_sdt,
     fetch_dxy_yahoo,
+    fetch_fmp_capex,
     fetch_naver_news,
     fetch_rss,
     fetch_krx_index,
@@ -133,6 +134,27 @@ def collect_all_indicators():
         safe_store("PMI_SDT", pmi_sdt_val, "NY_FED:GSCPI", "")
     else:
         logger.info("[NY Fed] GSCPI 수집 실패 - 건너뜀")
+
+    # ── Hyperscaler AI CapEx (Deep Research S1) ─────────────────────────
+    logger.info("[FMP] Hyperscaler CapEx 수집 중 (MSFT/GOOGL/META/AMZN)...")
+    import time as _time
+    for ticker in ["MSFT", "GOOGL", "META", "AMZN"]:
+        rows = fetch_fmp_capex(ticker, limit=5)
+        for row in rows:
+            date_str = row["date"]          # e.g. "2026-03-31"
+            capex_b  = row["capex_b"]       # Billion USD (양수)
+            ind_key  = f"CAPEX_{ticker}"
+            try:
+                upsert_indicator(date_str, ind_key, capex_b, f"FMP:{ticker}", "B USD", db_path=DB_PATH)
+            except Exception as e:
+                logger.error(f"  [{ind_key}@{date_str}] 저장 오류: {e}")
+        if rows:
+            latest = rows[0]
+            logger.info(f"  [CAPEX_{ticker}] 최신: {latest['date']} = ${latest['capex_b']:.2f}B ({len(rows)}분기 저장)")
+            log_collect(f"CAPEX_{ticker}", "success", db_path=DB_PATH)
+        else:
+            log_collect(f"CAPEX_{ticker}", "fail", "FMP 수집 실패", db_path=DB_PATH)
+        _time.sleep(0.3)  # FMP rate limit
 
     # ── Naver 뉴스 헤드라인 (선택) ──────────────────────────────────
     try:

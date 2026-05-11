@@ -7,8 +7,8 @@ import pandas as pd
 import requests
 
 from config import TG_TOKEN, get_chat_id
-from summarizer import build_summary
-from chart_generator import create_multi_chart
+from summarizer import build_summary, build_capex_summary
+from chart_generator import create_multi_chart, create_capex_chart
 from database import get_latest
 
 logger = logging.getLogger(__name__)
@@ -96,6 +96,53 @@ def format_change(val) -> str:
         return "N/A"
     arrow = "▲" if val > 0 else ("▼" if val < 0 else "➡")
     return f"{arrow} {val:+.2f}%"
+
+
+def _capex_level(qoq_pct) -> str:
+    """CapEx QoQ 변화율 → Deep Research S1 Level"""
+    if qoq_pct is None:
+        return "L? (N/A)"
+    if qoq_pct >= 0:
+        return "L0 ✅"
+    elif qoq_pct >= -5:
+        return "L1 ⚠️"
+    elif qoq_pct >= -15:
+        return "L2 🔶"
+    else:
+        return "L3 🔴"
+
+
+def build_capex_message(capex_summary: dict) -> str:
+    """Hyperscaler CapEx 분기 추이 메시지"""
+    from datetime import date
+    today = date.today().strftime("%Y년 %m월 %d일")
+    lines = [f"🏗️ *Hyperscaler AI CapEx 분기 추이* ({today})\n"]
+    lines.append("_(Deep Research S1 신호 — 5분기 추이, 단위: 십억달러(B))_\n")
+
+    for key in ["CAPEX_MSFT", "CAPEX_GOOGL", "CAPEX_META", "CAPEX_AMZN"]:
+        info = capex_summary.get(key, {})
+        if "error" in info:
+            lines.append(f"• {info['label']}: ⚠️ {info['error']}")
+            continue
+        label = info["label"]
+        latest = info.get("latest")
+        latest_date = info.get("latest_date", "?")
+        qoq = info.get("qoq_pct")
+        yoy = info.get("yoy_pct")
+        quarters = info.get("quarters", [])
+
+        qoq_str = f"{qoq:+.1f}%" if qoq is not None else "N/A"
+        yoy_str = f"{yoy:+.1f}%" if yoy is not None else "N/A"
+        lv = _capex_level(qoq)
+
+        lines.append(f"*{label}* → {lv}")
+        lines.append(f"  최신({latest_date}): `${latest:.2f}B`  QoQ:{qoq_str}  YoY:{yoy_str}")
+        if quarters:
+            trend = "  추이: " + " → ".join([f"${q['capex_b']:.1f}B" for q in reversed(quarters)])
+            lines.append(trend)
+        lines.append("")
+
+    return "\n".join(lines)
 
 
 def _us10y_level(val) -> str:
@@ -211,7 +258,7 @@ def build_message(summary: dict) -> str:
     lines.append(f"  🔹 *공급망 신호 (S4)*")
     lines.append(f"    • GSCPI·PMI SDT: `{pmi_str}` → {pmi_lv}")
     lines.append(f"  🔹 *수동 확인 필요 신호*")
-    lines.append(f"    • S1 Hyperscaler AI CapEx: MSFT/GOOGL/META/AMZN IR 확인")
+    lines.append(f"    • S1 Hyperscaler CapEx: 별도 메시지 참조 ↓")
     lines.append(f"    • S2 NVIDIA GPU 수요: DC Revenue / 가이던스 확인")
     lines.append(f"    • S3 HBM 수급/가격: TrendForce/SK하이닉스/Micron 확인")
     lines.append(f"    • S5 AI 수익화: MSFT/GOOGL/PLTR 런레이트 확인")
@@ -220,7 +267,7 @@ def build_message(summary: dict) -> str:
 
 
 def send_report(db_path: str = "economic_data.db"):
-    """전체 리포트 전송: 텍스트 요약 + 차트 + CSV"""
+    """전체 리포트 전송: 텍스트 요약 + 차트 + CapEx 리포트 + CSV"""
     logger.info("[Telegram] 리포트 전송 시작")
     summary = build_summary(db_path=db_path)
 
@@ -228,14 +275,29 @@ def send_report(db_path: str = "economic_data.db"):
     message = build_message(summary)
     _tg_send_message(message)
 
-    # 2. 차트 이미지 전송
+    # 2. 주요 지표 차트 전송
     try:
         chart_buf = create_multi_chart(CHART_INDICATORS, db_path=db_path)
         _tg_send_photo(chart_buf, caption="📈 주요 지표 추이 (최근 60일)")
     except Exception as e:
         logger.error(f"차트 생성 실패: {e}")
 
-    # 3. CSV 로우데이터 전송
+    # 3. Hyperscaler CapEx 리포트 전송 (S1 신호)
+    try:
+        capex_summary = build_capex_summary(db_path=db_path)
+        has_data = any("error" not in v for v in capex_summary.values())
+        if has_data:
+            capex_msg = build_capex_message(capex_summary)
+            _tg_send_message(capex_msg)
+            # CapEx 분기 추이 차트 전송
+            capex_chart_buf = create_capex_chart(db_path=db_path)
+            _tg_send_photo(capex_chart_buf, caption="🏗️ Hyperscaler CapEx 분기 추이 (5분기)")
+        else:
+            logger.info("[Telegram] CapEx 데이터 없음 - 건너뜀")
+    except Exception as e:
+        logger.error(f"CapEx 리포트 전송 실패: {e}")
+
+    # 4. CSV 로우데이터 전송
     try:
         rows = []
         for key in summary:

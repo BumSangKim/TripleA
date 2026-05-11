@@ -5,7 +5,7 @@ import requests
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from config import ECOS_KEY, FRED_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY
+from config import ECOS_KEY, FRED_KEY, FMP_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +80,53 @@ def fetch_dxy_yahoo() -> float | None:
     except Exception as e:
         logger.error(f"[Yahoo DXY] 수집 실패: {e}")
         return None
+
+
+def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
+    """
+    Financial Modeling Prep API - 분기별 CapEx 수집
+    Hyperscaler AI CapEx 신호 (Deep Research S1): MSFT, GOOGL, META, AMZN
+    반환: [{"date": "2026-03-31", "capex_b": 30.88, "ticker": "MSFT"}, ...]
+           capex_b는 십억 달러(Billion USD) 기준 (양수)
+    limit: 최대 5 (FMP 무료 플랜 제한)
+    """
+    if not FMP_KEY:
+        logger.warning("[FMP] FMP_API_KEY 미설정 - CapEx 수집 건너뜀")
+        return []
+    limit = min(limit, 5)  # 무료 플랜 최대 5
+    session = get_session()
+    try:
+        res = session.get(
+            "https://financialmodelingprep.com/stable/cash-flow-statement",
+            params={
+                "symbol": ticker,
+                "apikey": FMP_KEY,
+                "limit": limit,
+                "period": "quarter",
+            },
+            timeout=15,
+        )
+        res.raise_for_status()
+        if not res.text:
+            logger.warning(f"[FMP] {ticker} 빈 응답")
+            return []
+        data = res.json()
+        if not isinstance(data, list):
+            logger.warning(f"[FMP] {ticker} 예상치 못한 응답: {str(data)[:80]}")
+            return []
+        result = []
+        for item in data:
+            raw = item.get("capitalExpenditure", 0) or 0
+            result.append({
+                "date": item.get("date", ""),
+                "capex_b": round(abs(raw) / 1e9, 3),
+                "ticker": ticker,
+            })
+        logger.info(f"[FMP] {ticker} CapEx {len(result)}분기 수집 완료")
+        return result
+    except Exception as e:
+        logger.error(f"[FMP] {ticker} 수집 실패: {e}")
+        return []
 
 
 def fetch_nyfed_pmi_sdt() -> float | None:
