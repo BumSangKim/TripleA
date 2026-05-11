@@ -6,7 +6,7 @@ import io
 import pandas as pd
 import requests
 
-from config import TG_TOKEN, TG_CHAT_ID
+from config import TG_TOKEN, get_chat_id
 from summarizer import build_summary
 from chart_generator import create_multi_chart
 from database import get_latest
@@ -26,9 +26,14 @@ CHART_INDICATORS = [
 
 def _tg_send_message(text: str, parse_mode: str = "Markdown") -> bool:
     """텔레그램 메시지 전송 (requests 직접 사용 - 동기 방식)"""
+    chat_id = get_chat_id()
+    if not chat_id:
+        logger.warning("TELEGRAM_CHAT_ID 없음 - 텔레그램 전송 건너뜀")
+        logger.info(f"[미전송 메시지 미리보기]\n{text[:300]}")
+        return False
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
     payload = {
-        "chat_id": TG_CHAT_ID,
+        "chat_id": chat_id,
         "text": text,
         "parse_mode": parse_mode,
     }
@@ -43,12 +48,16 @@ def _tg_send_message(text: str, parse_mode: str = "Markdown") -> bool:
 
 def _tg_send_photo(photo_buf: io.BytesIO, caption: str = "") -> bool:
     """텔레그램 사진 전송"""
+    chat_id = get_chat_id()
+    if not chat_id:
+        logger.warning("TELEGRAM_CHAT_ID 없음 - 차트 전송 건너뜀")
+        return False
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendPhoto"
     photo_buf.seek(0)
     try:
         res = requests.post(
             url,
-            data={"chat_id": TG_CHAT_ID, "caption": caption},
+            data={"chat_id": chat_id, "caption": caption},
             files={"photo": ("chart.png", photo_buf, "image/png")},
             timeout=30,
         )
@@ -61,12 +70,15 @@ def _tg_send_photo(photo_buf: io.BytesIO, caption: str = "") -> bool:
 
 def _tg_send_document(doc_buf: io.BytesIO, filename: str, caption: str = "") -> bool:
     """텔레그램 문서(파일) 전송"""
+    chat_id = get_chat_id()
+    if not chat_id:
+        return False
     url = f"https://api.telegram.org/bot{TG_TOKEN}/sendDocument"
     doc_buf.seek(0)
     try:
         res = requests.post(
             url,
-            data={"chat_id": TG_CHAT_ID, "caption": caption},
+            data={"chat_id": chat_id, "caption": caption},
             files={"document": (filename, doc_buf, "text/csv")},
             timeout=30,
         )

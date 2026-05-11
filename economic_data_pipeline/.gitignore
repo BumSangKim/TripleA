@@ -3,6 +3,7 @@
 .env
 *.env
 .env.*
+!.env.example
 
 # API_KEY 디렉토리 전체
 API_KEY/

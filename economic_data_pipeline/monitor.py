@@ -4,13 +4,13 @@ import sqlite3
 import logging
 from datetime import date
 
-from config import TG_TOKEN, TG_CHAT_ID
+from config import TG_TOKEN, get_chat_id
 import requests
 
 logger = logging.getLogger(__name__)
 
 DB_PATH = "economic_data.db"
-TOTAL_INDICATORS = 12  # summarizer.py INDICATORS 딕셔너리 항목 수
+TOTAL_INDICATORS = 15  # summarizer.py INDICATORS 딕셔너리 항목 수
 
 
 def check_data_quality(db_path: str = DB_PATH) -> dict:
@@ -49,6 +49,10 @@ def alert_if_fail(db_path: str = DB_PATH):
     """수집 실패 또는 완전성 80% 미만 시 텔레그램 관리자 알림"""
     quality = check_data_quality(db_path)
     if quality["fail_count"] > 0 or quality["completeness"] < 80:
+        chat_id = get_chat_id()
+        if not chat_id:
+            logger.warning(f"품질 경보 발생하였으나 TELEGRAM_CHAT_ID 미설정: {quality}")
+            return
         msg = (
             f"⚠️ *데이터 수집 경보*\n"
             f"• 완전성: {quality['completeness']}%\n"
@@ -59,7 +63,7 @@ def alert_if_fail(db_path: str = DB_PATH):
         try:
             requests.post(
                 url,
-                json={"chat_id": TG_CHAT_ID, "text": msg, "parse_mode": "Markdown"},
+                json={"chat_id": chat_id, "text": msg, "parse_mode": "Markdown"},
                 timeout=10,
             )
         except Exception as e:

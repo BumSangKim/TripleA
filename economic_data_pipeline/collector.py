@@ -1,5 +1,6 @@
 # collector.py
 # 각 데이터 소스에서 경제 지표를 수집하는 모듈
+# ECOS StatisticSearch 대신 KeyStatisticList 사용 (더 안정적)
 import requests
 import logging
 from requests.adapters import HTTPAdapter
@@ -23,7 +24,34 @@ def get_session() -> requests.Session:
     return session
 
 
-def fetch_ecos(stat_id: str, freq: str, start: str, end: str) -> list:
+def fetch_ecos_keystat() -> dict:
+    """
+    ECOS KeyStatisticList API 호출 - 한국은행 핵심 경제지표 전체 조회
+    StatisticSearch보다 안정적이며 CPI, PPI, 환율, 금리, 코스피, 실업률, 두바이유, 금 등 포함
+    반환: {지표명: {'value': float, 'unit': str}}
+    """
+    url = f"https://ecos.bok.or.kr/api/KeyStatisticList/{ECOS_KEY}/json/kr/1/200/"
+    session = get_session()
+    try:
+        res = session.get(url, timeout=10)
+        res.raise_for_status()
+        rows = res.json().get("KeyStatisticList", {}).get("row", [])
+        result = {}
+        for row in rows:
+            name = row.get("KEYSTAT_NAME", "").strip()
+            val = row.get("DATA_VALUE", "")
+            unit = row.get("UNIT_NAME", "")
+            try:
+                result[name] = {"value": float(str(val).replace(",", "")), "unit": unit}
+            except (ValueError, TypeError):
+                pass
+        return result
+    except Exception as e:
+        logger.error(f"[ECOS KeyStatisticList] 수집 실패: {e}")
+        return {}
+
+
+
     """
     한국은행 ECOS API 호출
     freq: 'DD'(일), 'MM'(월), 'QQ'(분기)
