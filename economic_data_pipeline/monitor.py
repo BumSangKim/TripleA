@@ -10,7 +10,7 @@ import requests
 logger = logging.getLogger(__name__)
 
 DB_PATH = "economic_data.db"
-TOTAL_INDICATORS = 17  # summarizer.py INDICATORS 딕셔너리 항목 수
+TOTAL_INDICATORS = 18  # summarizer.py INDICATORS 딕셔너리 항목 수
 
 
 def check_data_quality(db_path: str = DB_PATH) -> dict:

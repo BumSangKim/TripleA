@@ -51,6 +51,37 @@ def fetch_ecos_keystat() -> dict:
         return {}
 
 
+def fetch_dxy_yahoo() -> float | None:
+    """
+    Yahoo Finance에서 실제 DXY (ICE US Dollar Index, DX-Y.NYB) 수집
+    DTWEXBGS(달러 무역가중지수)와 구별되는 ICE 기준 달러인덱스
+    반환: 최신 종가 (float) 또는 None
+    """
+    url = "https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB"
+    headers = {"User-Agent": "Mozilla/5.0"}
+    session = get_session()
+    try:
+        res = session.get(
+            url,
+            params={"range": "5d", "interval": "1d"},
+            headers=headers,
+            timeout=10,
+        )
+        res.raise_for_status()
+        result = res.json().get("chart", {}).get("result", [{}])[0]
+        closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+        # 뒤에서부터 None이 아닌 값 찾기
+        for val in reversed(closes):
+            if val is not None:
+                logger.info(f"[Yahoo DXY] 최신값: {val:.4f}")
+                return float(val)
+        logger.warning("[Yahoo DXY] 유효 데이터 없음")
+        return None
+    except Exception as e:
+        logger.error(f"[Yahoo DXY] 수집 실패: {e}")
+        return None
+
+
 def fetch_nyfed_pmi_sdt() -> float | None:
     """
     NY Fed 글로벌 공급망 압력지수(GSCPI) 수집

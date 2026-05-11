@@ -9,6 +9,7 @@ from collector import (
     fetch_ecos_keystat,
     fetch_fred,
     fetch_nyfed_pmi_sdt,
+    fetch_dxy_yahoo,
     fetch_naver_news,
     fetch_rss,
     fetch_krx_index,
@@ -117,9 +118,13 @@ def collect_all_indicators():
     obs = fetch_fred("DGS10")
     safe_store("US10Y", _fred_val(obs), "FRED:DGS10", "%")
 
-    # 달러 무역가중지수 DXY 프록시 (Deep Research 매크로 패널: DTWEXBGS)
+    # 달러 무역가중지수 (FRED:DTWEXBGS, Broad Goods)
     obs = fetch_fred("DTWEXBGS")
     safe_store("USD_INDEX", _fred_val(obs), "FRED:DTWEXBGS", "index")
+
+    # 실제 DXY (ICE US Dollar Index, Yahoo Finance: DX-Y.NYB)
+    dxy_val = fetch_dxy_yahoo()
+    safe_store("DXY", dxy_val, "YAHOO:DX-Y.NYB", "index")
 
     # ── NY Fed 공급망 압력지수 (GSCPI · PMI Supplier Delivery Times 기반) ────
     logger.info("[NY Fed] 공급망 압력지수(GSCPI/PMI 기반) 수집 중...")

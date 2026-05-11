@@ -161,7 +161,7 @@ def build_message(summary: dict) -> str:
 
     # ── 미국 지표 ──────────────────────────────────────────
     lines.append("\n🇺🇸 *미국 지표*")
-    for key in ["US_CPI", "FED_RATE", "US10Y", "USD_INDEX"]:
+    for key in ["US_CPI", "FED_RATE", "US10Y", "DXY", "USD_INDEX"]:
         info = summary.get(key)
         if not info:
             continue
@@ -194,6 +194,10 @@ def build_message(summary: dict) -> str:
     us10y_lv = _us10y_level(us10y_val)
     us10y_str = f"{us10y_val:.2f}%" if us10y_val else "N/A"
 
+    dxy_info = summary.get("DXY")
+    dxy_val = dxy_info.get("latest") if dxy_info and "error" not in dxy_info else None
+    dxy_str = f"{dxy_val:.2f}" if dxy_val else "N/A"
+
     usd_info = summary.get("USD_INDEX")
     usd_val = usd_info.get("latest") if usd_info and "error" not in usd_info else None
     usd_str = f"{usd_val:.1f}" if usd_val else "N/A"
@@ -203,7 +207,7 @@ def build_message(summary: dict) -> str:
 
     lines.append(f"  🔹 *매크로 패널*")
     lines.append(f"    • US 10Y: `{us10y_str}` → {us10y_lv}")
-    lines.append(f"    • 달러지수(DTWEXBGS): `{usd_str}`")
+    lines.append(f"    • DXY(ICE): `{dxy_str}` / 무역가중지수(DTWEXBGS): `{usd_str}`")
     lines.append(f"  🔹 *공급망 신호 (S4)*")
     lines.append(f"    • GSCPI·PMI SDT: `{pmi_str}` → {pmi_lv}")
     lines.append(f"  🔹 *수동 확인 필요 신호*")

@@ -20,7 +20,8 @@ INDICATORS = {
     "GDP_GROWTH":   {"label": "경제성장률(전기比)",      "unit": "%"},
     "PMI_SDT":      {"label": "공급망압력(GSCPI·PMI)", "unit": "σ"},
     "US10Y":        {"label": "미국 10Y 국채금리",       "unit": "%"},
-    "USD_INDEX":    {"label": "달러 무역가중지수(DXY)", "unit": "index"},
+    "USD_INDEX":    {"label": "달러무역가중지수(DTWEXBGS)", "unit": "index"},
+    "DXY":          {"label": "달러인덱스(DXY·ICE)",    "unit": "index"},
 }
 
 
