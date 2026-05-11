@@ -20,7 +20,7 @@ CHART_INDICATORS = [
     ("CPI",      "소비자물가(CPI)"),
     ("DUBAI_OIL","두바이유"),
     ("WTI",      "WTI 국제유가"),
-    ("GOLD",     "금 가격"),
+    ("PMI_SDT",  "공급망압력(GSCPI·PMI)"),
 ]
 
 
@@ -98,19 +98,120 @@ def format_change(val) -> str:
     return f"{arrow} {val:+.2f}%"
 
 
+def _us10y_level(val) -> str:
+    """Deep Research 매크로 패널: US 10Y 금리 → Level 0-3"""
+    if val is None:
+        return "L? (N/A)"
+    if val <= 4.25:
+        return "L0 ✅"
+    elif val <= 4.60:
+        return "L1 ⚠️"
+    elif val <= 4.85:
+        return "L2 🔶"
+    else:
+        return "L3 🔴"
+
+
+def _pmi_sdt_level(val) -> str:
+    """공급망 압력지수(GSCPI·PMI) → Level 평가 (표준편차 기준)"""
+    if val is None:
+        return "L? (N/A)"
+    if val <= 1.0:
+        return "L0 ✅"
+    elif val <= 2.0:
+        return "L1 ⚠️"
+    elif val <= 3.0:
+        return "L2 🔶"
+    else:
+        return "L3 🔴"
+
+
 def build_message(summary: dict) -> str:
     from datetime import date
     today = date.today().strftime("%Y년 %m월 %d일")
     lines = [f"📊 *오늘의 경제지표 요약* ({today})\n"]
-    for key, info in summary.items():
+
+    # ── 한국 지표 ──────────────────────────────────────────
+    kr_keys = ["KOSPI", "KOSDAQ", "USD_KRW", "BASE_RATE", "BOND_3Y",
+               "CPI", "PPI", "UNEMPLOYMENT", "GDP_GROWTH"]
+    lines.append("🇰🇷 *한국 지표*")
+    for key in kr_keys:
+        info = summary.get(key)
+        if not info:
+            continue
         if "error" in info:
-            lines.append(f"• {info['label']}: ⚠️ {info['error']}")
+            lines.append(f"  • {info['label']}: ⚠️ {info['error']}")
         else:
-            latest = (
-                f"{info['latest']:,.2f} {info['unit']}" if info.get("latest") is not None else "N/A"
-            )
+            latest = f"{info['latest']:,.2f} {info['unit']}" if info.get("latest") is not None else "N/A"
             change = format_change(info.get("change_pct"))
-            lines.append(f"• {info['label']}: `{latest}` {change}")
+            lines.append(f"  • {info['label']}: `{latest}` {change}")
+
+    # ── 국제 원자재 ────────────────────────────────────────
+    lines.append("\n🛢️ *국제 원자재*")
+    for key in ["DUBAI_OIL", "WTI", "GOLD"]:
+        info = summary.get(key)
+        if not info:
+            continue
+        if "error" in info:
+            lines.append(f"  • {info['label']}: ⚠️ {info['error']}")
+        else:
+            latest = f"{info['latest']:,.2f} {info['unit']}" if info.get("latest") is not None else "N/A"
+            change = format_change(info.get("change_pct"))
+            lines.append(f"  • {info['label']}: `{latest}` {change}")
+
+    # ── 미국 지표 ──────────────────────────────────────────
+    lines.append("\n🇺🇸 *미국 지표*")
+    for key in ["US_CPI", "FED_RATE", "US10Y", "USD_INDEX"]:
+        info = summary.get(key)
+        if not info:
+            continue
+        if "error" in info:
+            lines.append(f"  • {info['label']}: ⚠️ {info['error']}")
+        else:
+            latest = f"{info['latest']:,.2f} {info['unit']}" if info.get("latest") is not None else "N/A"
+            change = format_change(info.get("change_pct"))
+            lines.append(f"  • {info['label']}: `{latest}` {change}")
+
+    # ── 공급망 ─────────────────────────────────────────────
+    pmi_info = summary.get("PMI_SDT")
+    lines.append("\n🔗 *공급망 압력 (GSCPI · PMI Supplier Delivery Times 기반)*")
+    if pmi_info and "error" not in pmi_info:
+        pmi_val = pmi_info.get("latest")
+        pmi_level = _pmi_sdt_level(pmi_val)
+        latest_str = f"{pmi_val:+.4f}σ" if pmi_val is not None else "N/A"
+        change = format_change(pmi_info.get("change_pct"))
+        lines.append(f"  • 공급망압력지수: `{latest_str}` {change} → {pmi_level}")
+        lines.append("  _(값 > 0: 평균 대비 압력 높음, 양수일수록 공급 병목 심화)_")
+    else:
+        lines.append("  • 공급망압력지수: ⚠️ 데이터 없음")
+
+    # ── Deep Research 08:30 모니터링 신호 ─────────────────
+    lines.append("\n📡 *08:30 모니터링 신호 (Deep Research 프레임워크)*")
+
+    # 매크로 자동 레벨 판정
+    us10y_info = summary.get("US10Y")
+    us10y_val = us10y_info.get("latest") if us10y_info and "error" not in us10y_info else None
+    us10y_lv = _us10y_level(us10y_val)
+    us10y_str = f"{us10y_val:.2f}%" if us10y_val else "N/A"
+
+    usd_info = summary.get("USD_INDEX")
+    usd_val = usd_info.get("latest") if usd_info and "error" not in usd_info else None
+    usd_str = f"{usd_val:.1f}" if usd_val else "N/A"
+
+    pmi_lv = _pmi_sdt_level(pmi_info.get("latest") if pmi_info and "error" not in pmi_info else None)
+    pmi_str = f"{pmi_info.get('latest'):+.2f}σ" if pmi_info and "error" not in pmi_info and pmi_info.get("latest") is not None else "N/A"
+
+    lines.append(f"  🔹 *매크로 패널*")
+    lines.append(f"    • US 10Y: `{us10y_str}` → {us10y_lv}")
+    lines.append(f"    • 달러지수(DTWEXBGS): `{usd_str}`")
+    lines.append(f"  🔹 *공급망 신호 (S4)*")
+    lines.append(f"    • GSCPI·PMI SDT: `{pmi_str}` → {pmi_lv}")
+    lines.append(f"  🔹 *수동 확인 필요 신호*")
+    lines.append(f"    • S1 Hyperscaler AI CapEx: MSFT/GOOGL/META/AMZN IR 확인")
+    lines.append(f"    • S2 NVIDIA GPU 수요: DC Revenue / 가이던스 확인")
+    lines.append(f"    • S3 HBM 수급/가격: TrendForce/SK하이닉스/Micron 확인")
+    lines.append(f"    • S5 AI 수익화: MSFT/GOOGL/PLTR 런레이트 확인")
+
     return "\n".join(lines)
 
 

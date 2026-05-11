@@ -8,6 +8,7 @@ from database import init_db, upsert_indicator, log_collect, get_previous_value
 from collector import (
     fetch_ecos_keystat,
     fetch_fred,
+    fetch_nyfed_pmi_sdt,
     fetch_naver_news,
     fetch_rss,
     fetch_krx_index,
@@ -112,13 +113,21 @@ def collect_all_indicators():
     obs = fetch_fred("FEDFUNDS")
     safe_store("FED_RATE", _fred_val(obs), "FRED:FEDFUNDS", "%")
 
-    # 공급망 압력지수 (단종 가능 - 실패해도 파이프라인 계속)
-    obs = fetch_fred("GSCPI")
-    val = _fred_val(obs)
-    if val is not None:
-        safe_store("GSCPI", val, "FRED:GSCPI", "")
+    # 미국 10Y 국채금리 (Deep Research 매크로 패널 핵심 지표)
+    obs = fetch_fred("DGS10")
+    safe_store("US10Y", _fred_val(obs), "FRED:DGS10", "%")
+
+    # 달러 무역가중지수 DXY 프록시 (Deep Research 매크로 패널: DTWEXBGS)
+    obs = fetch_fred("DTWEXBGS")
+    safe_store("USD_INDEX", _fred_val(obs), "FRED:DTWEXBGS", "index")
+
+    # ── NY Fed 공급망 압력지수 (GSCPI · PMI Supplier Delivery Times 기반) ────
+    logger.info("[NY Fed] 공급망 압력지수(GSCPI/PMI 기반) 수집 중...")
+    pmi_sdt_val = fetch_nyfed_pmi_sdt()
+    if pmi_sdt_val is not None:
+        safe_store("PMI_SDT", pmi_sdt_val, "NY_FED:GSCPI", "")
     else:
-        logger.info("[FRED] GSCPI 없음 (단종되었을 수 있음) - 건너뜀")
+        logger.info("[NY Fed] GSCPI 수집 실패 - 건너뜀")
 
     # ── Naver 뉴스 헤드라인 (선택) ──────────────────────────────────
     try:

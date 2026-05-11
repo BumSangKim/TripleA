@@ -51,6 +51,43 @@ def fetch_ecos_keystat() -> dict:
         return {}
 
 
+def fetch_nyfed_pmi_sdt() -> float | None:
+    """
+    NY Fed 글로벌 공급망 압력지수(GSCPI) 수집
+    PMI Supplier Delivery Times를 핵심 입력으로 사용하는 공급망 압력 종합지수
+    출처: https://www.newyorkfed.org/research/policy/gscpi
+    반환: 최신 GSCPI 값 (float) 또는 None
+    """
+    url = (
+        "https://www.newyorkfed.org/medialibrary/research/interactives/"
+        "gscpi/downloads/gscpi_data.xlsx"
+    )
+    session = get_session()
+    try:
+        res = session.get(url, timeout=15)
+        res.raise_for_status()
+        # 파일이 OLE2(.xls) 형식이므로 xlrd로 파싱
+        try:
+            import xlrd
+        except ImportError as e:
+            logger.error("[NY Fed GSCPI] xlrd 패키지 필요: pip install xlrd")
+            raise e
+        wb = xlrd.open_workbook(file_contents=res.content)
+        sh = wb.sheet_by_name("GSCPI Monthly Data")
+        # 마지막 유효 행에서 GSCPI 값(B열, 인덱스 1) 추출
+        for r_idx in range(sh.nrows - 1, 0, -1):
+            val = sh.cell(r_idx, 1).value
+            if val and isinstance(val, (int, float)):
+                date_str = sh.cell(r_idx, 0).value
+                logger.info(f"[NY Fed GSCPI] 최신값: {date_str} = {val:.4f}")
+                return float(val)
+        logger.warning("[NY Fed GSCPI] 유효 데이터 행 없음")
+        return None
+    except Exception as e:
+        logger.error(f"[NY Fed GSCPI] 수집 실패: {e}")
+        return None
+
+
 
     """
     한국은행 ECOS API 호출
