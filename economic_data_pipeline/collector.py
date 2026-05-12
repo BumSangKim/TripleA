@@ -65,8 +65,16 @@ def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
     """
     Yahoo Finance에서 최신 종가와 실제 날짜를 함께 반환
     반환: (날짜 "YYYY-MM-DD", 종가) 또는 None
+
+    전략:
+    1) meta.regularMarketPrice + 거래소 로컬 타임존으로 가장 최신 날짜를 구함
+    2) 완전한 일봉 close(None이 아닌 값)의 날짜와 비교
+    3) regularMarketPrice 날짜가 더 최신이면 사용, 아니면 일봉 close 사용
+       → Yahoo가 당일 일봉 close를 아직 확정하지 않아 None을 반환하는 경우 대응
     """
-    from datetime import datetime
+    from datetime import datetime, timezone
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
     headers = {"User-Agent": "Mozilla/5.0"}
     session = get_session()
@@ -79,14 +87,46 @@ def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
         )
         res.raise_for_status()
         result = res.json().get("chart", {}).get("result", [{}])[0]
+        meta   = result.get("meta", {})
         closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
         timestamps = result.get("timestamp", [])
-        # 뒤에서부터 유효 값 검색
+
+        # ── 일봉 데이터에서 가장 최근 유효 close ──────────────────────
+        last_daily_date  = None
+        last_daily_price = None
         for ts, val in zip(reversed(timestamps), reversed(closes)):
             if val is not None:
-                date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
-                logger.info(f"[Yahoo {symbol}] {date_str} = {val:.4f}")
-                return (date_str, float(val))
+                last_daily_date  = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                last_daily_price = float(val)
+                break
+
+        # ── meta.regularMarketPrice (거래소 타임존 기반 날짜) ─────────
+        rm_price = meta.get("regularMarketPrice")
+        rm_time  = meta.get("regularMarketTime")
+        tz_name  = meta.get("exchangeTimezoneName", "UTC")
+        rm_date  = None
+
+        if rm_price and rm_time:
+            try:
+                exchange_tz = ZoneInfo(tz_name)
+            except (ZoneInfoNotFoundError, KeyError):
+                exchange_tz = timezone.utc
+            rm_date = (
+                datetime.fromtimestamp(rm_time, tz=timezone.utc)
+                .astimezone(exchange_tz)
+                .strftime("%Y-%m-%d")
+            )
+
+        # ── 더 최신인 소스 선택 ───────────────────────────────────────
+        if rm_date and rm_price:
+            if last_daily_date is None or rm_date > last_daily_date:
+                logger.info(f"[Yahoo {symbol}] regularMarketPrice {rm_date} = {rm_price:.4f} (tz={tz_name})")
+                return (rm_date, float(rm_price))
+
+        if last_daily_price is not None:
+            logger.info(f"[Yahoo {symbol}] 일봉 {last_daily_date} = {last_daily_price:.4f}")
+            return (last_daily_date, last_daily_price)
+
         logger.warning(f"[Yahoo {symbol}] 유효 데이터 없음")
         return None
     except Exception as e:

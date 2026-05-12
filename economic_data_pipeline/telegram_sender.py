@@ -258,7 +258,7 @@ def build_message(summary: dict) -> str:
     lines.append(f"  🔹 *공급망 신호 (S4)*")
     lines.append(f"    • GSCPI·PMI SDT: `{pmi_str}` → {pmi_lv}")
     lines.append(f"  🔹 *수동 확인 필요 신호*")
-    lines.append(f"    • S1 Hyperscaler CapEx: 별도 메시지 참조 ↓")
+    lines.append(f"    • S1 Hyperscaler CapEx: 아래 참조 ↓")
     lines.append(f"    • S2 NVIDIA GPU 수요: DC Revenue / 가이던스 확인")
     lines.append(f"    • S3 HBM 수급/가격: TrendForce/SK하이닉스/Micron 확인")
     lines.append(f"    • S5 AI 수익화: MSFT/GOOGL/PLTR 런레이트 확인")
@@ -271,9 +271,27 @@ def send_report(db_path: str = "economic_data.db"):
     logger.info("[Telegram] 리포트 전송 시작")
     summary = build_summary(db_path=db_path)
 
-    # 1. 요약 텍스트 전송
-    message = build_message(summary)
-    _tg_send_message(message)
+    # 1. 경제지표 요약 + CapEx 합쳐서 1개 메시지로 전송
+    econ_msg = build_message(summary)
+    try:
+        capex_summary = build_capex_summary(db_path=db_path)
+        has_capex = any("error" not in v for v in capex_summary.values())
+    except Exception as e:
+        logger.error(f"CapEx 요약 생성 실패: {e}")
+        capex_summary = {}
+        has_capex = False
+
+    if has_capex:
+        capex_section = build_capex_message(capex_summary)
+        combined_msg = econ_msg + "\n\n" + "─" * 20 + "\n\n" + capex_section
+    else:
+        combined_msg = econ_msg
+
+    # 텔레그램 4096자 제한 처리
+    if len(combined_msg) > 4000:
+        combined_msg = combined_msg[:4000] + "\n...(이하 생략)"
+
+    _tg_send_message(combined_msg)
 
     # 2. 주요 지표 차트 전송
     try:
@@ -282,20 +300,13 @@ def send_report(db_path: str = "economic_data.db"):
     except Exception as e:
         logger.error(f"차트 생성 실패: {e}")
 
-    # 3. Hyperscaler CapEx 리포트 전송 (S1 신호)
-    try:
-        capex_summary = build_capex_summary(db_path=db_path)
-        has_data = any("error" not in v for v in capex_summary.values())
-        if has_data:
-            capex_msg = build_capex_message(capex_summary)
-            _tg_send_message(capex_msg)
-            # CapEx 분기 추이 차트 전송
+    # 3. CapEx 분기 추이 차트 전송
+    if has_capex:
+        try:
             capex_chart_buf = create_capex_chart(db_path=db_path)
             _tg_send_photo(capex_chart_buf, caption="🏗️ Hyperscaler CapEx 분기 추이 (5분기)")
-        else:
-            logger.info("[Telegram] CapEx 데이터 없음 - 건너뜀")
-    except Exception as e:
-        logger.error(f"CapEx 리포트 전송 실패: {e}")
+        except Exception as e:
+            logger.error(f"CapEx 차트 전송 실패: {e}")
 
     # 4. CSV 로우데이터 전송
     try:
