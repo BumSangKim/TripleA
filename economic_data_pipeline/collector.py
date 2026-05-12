@@ -57,7 +57,17 @@ def fetch_dxy_yahoo() -> float | None:
     DTWEXBGS(달러 무역가중지수)와 구별되는 ICE 기준 달러인덱스
     반환: 최신 종가 (float) 또는 None
     """
-    url = "https://query1.finance.yahoo.com/v8/finance/chart/DX-Y.NYB"
+    val = fetch_yahoo_quote("DX-Y.NYB")
+    return val[1] if val else None
+
+
+def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
+    """
+    Yahoo Finance에서 최신 종가와 실제 날짜를 함께 반환
+    반환: (날짜 "YYYY-MM-DD", 종가) 또는 None
+    """
+    from datetime import datetime
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
     headers = {"User-Agent": "Mozilla/5.0"}
     session = get_session()
     try:
@@ -70,15 +80,17 @@ def fetch_dxy_yahoo() -> float | None:
         res.raise_for_status()
         result = res.json().get("chart", {}).get("result", [{}])[0]
         closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
-        # 뒤에서부터 None이 아닌 값 찾기
-        for val in reversed(closes):
+        timestamps = result.get("timestamp", [])
+        # 뒤에서부터 유효 값 검색
+        for ts, val in zip(reversed(timestamps), reversed(closes)):
             if val is not None:
-                logger.info(f"[Yahoo DXY] 최신값: {val:.4f}")
-                return float(val)
-        logger.warning("[Yahoo DXY] 유효 데이터 없음")
+                date_str = datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
+                logger.info(f"[Yahoo {symbol}] {date_str} = {val:.4f}")
+                return (date_str, float(val))
+        logger.warning(f"[Yahoo {symbol}] 유효 데이터 없음")
         return None
     except Exception as e:
-        logger.error(f"[Yahoo DXY] 수집 실패: {e}")
+        logger.error(f"[Yahoo {symbol}] 수집 실패: {e}")
         return None
 
 

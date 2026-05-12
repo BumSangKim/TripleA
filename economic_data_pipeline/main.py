@@ -10,6 +10,7 @@ from collector import (
     fetch_fred,
     fetch_nyfed_pmi_sdt,
     fetch_dxy_yahoo,
+    fetch_yahoo_quote,
     fetch_fmp_capex,
     fetch_naver_news,
     fetch_rss,
@@ -34,24 +35,30 @@ DB_PATH = "economic_data.db"
 TODAY_ISO = date.today().isoformat()
 
 # ECOS KeyStatisticList 지표명 -> (내부키, 단위) 매핑
+# 실시간 가격(KOSPI/KOSDAQ/금/원유)은 Yahoo Finance에서 별도 수집
 ECOS_KEY_MAP = {
-    "소비자물가지수":                        ("CPI",          "%"),
-    "생산자물가지수":                        ("PPI",          "%"),
+    "소비자물가지수":                        ("CPI",          "index"),
+    "생산자물가지수":                        ("PPI",          "index"),
     "원/달러 환율(종가)":                    ("USD_KRW",      "원"),
     "한국은행 기준금리":                     ("BASE_RATE",    "%"),
-    "코스피지수":                            ("KOSPI",        "pt"),
     "실업률":                                ("UNEMPLOYMENT", "%"),
-    "Dubai유(현물)":                         ("DUBAI_OIL",    "USD/bbl"),
-    "금":                                    ("GOLD",         "USD/oz"),
     "국고채수익률(3년)":                     ("BOND_3Y",      "%"),
     "경제성장률(실질, 계절조정 전기대비)":   ("GDP_GROWTH",   "%"),
-    "코스닥지수":                            ("KOSDAQ",       "pt"),
     "소비자심리지수":                        ("CSI",          ""),
 }
 
+# Yahoo Finance에서 실시간 수집할 지표 (실제 날짜 사용)
+YAHOO_QUOTE_MAP = {
+    "^KS11":   ("KOSPI",     "pt",      "Yahoo:^KS11"),
+    "^KQ11":   ("KOSDAQ",    "pt",      "Yahoo:^KQ11"),
+    "GC=F":    ("GOLD",      "USD/oz",  "Yahoo:GC=F"),
+    "BZ=F":    ("DUBAI_OIL", "USD/bbl", "Yahoo:BZ=F"),
+}
 
-def safe_store(indicator: str, value, source: str, unit: str = ""):
-    """수집값 저장 실패 시 전일값으로 대체"""
+
+def safe_store(indicator: str, value, source: str, unit: str = "", date_str: str = None):
+    """수집값 저장 실패 시 전일값으로 대체. date_str 미지정 시 TODAY_ISO 사용"""
+    store_date = date_str or TODAY_ISO
     if value is None:
         fallback = get_previous_value(indicator, db_path=DB_PATH)
         logger.warning(f"[{indicator}] 수집 실패 -> 전일값 대체: {fallback}")
@@ -62,8 +69,8 @@ def safe_store(indicator: str, value, source: str, unit: str = ""):
 
     if value is not None:
         try:
-            upsert_indicator(TODAY_ISO, indicator, float(value), source, unit, db_path=DB_PATH)
-            logger.info(f"  [{indicator}] {float(value):.4f} {unit} 저장 완료")
+            upsert_indicator(store_date, indicator, float(value), source, unit, db_path=DB_PATH)
+            logger.info(f"  [{indicator}] {float(value):.4f} {unit} ({store_date}) 저장 완료")
         except Exception as e:
             logger.error(f"  [{indicator}] 저장 오류: {e}")
 
@@ -82,11 +89,25 @@ def _fred_val(obs: list):
     return None
 
 
+def _fred_date_val(obs: list) -> tuple[str, float] | None:
+    """FRED observations에서 실제 관측 날짜와 값을 함께 반환 (날짜, 값)"""
+    if not obs:
+        return None
+    for item in obs:
+        raw = str(item.get("value", "")).strip()
+        if raw and raw != ".":
+            try:
+                return (item["date"], float(raw))
+            except (ValueError, KeyError):
+                continue
+    return None
+
+
 def collect_all_indicators():
     logger.info("=" * 60)
     logger.info(f"데이터 수집 시작: {TODAY_ISO}")
 
-    # ── 한국은행 ECOS KeyStatisticList ──────────────────────────────
+    # ── 한국은행 ECOS KeyStatisticList (월/분기 지표) ───────────────
     logger.info("[ECOS] KeyStatisticList 수집 중...")
     keystat = fetch_ecos_keystat()
     if keystat:
@@ -94,38 +115,88 @@ def collect_all_indicators():
         for kor_name, (eng_key, unit) in ECOS_KEY_MAP.items():
             item = keystat.get(kor_name)
             val = item["value"] if item else None
-            safe_store(eng_key, val, f"ECOS:KeyStatisticList", unit)
+            safe_store(eng_key, val, "ECOS:KeyStatisticList", unit)
     else:
         logger.error("[ECOS] KeyStatisticList 수집 완전 실패")
         for _, (eng_key, unit) in ECOS_KEY_MAP.items():
             safe_store(eng_key, None, "ECOS:fallback", unit)
 
+    # ── Yahoo Finance 실시간 가격 (KOSPI/KOSDAQ/금/두바이유) ─────────
+    logger.info("[Yahoo] 실시간 가격 수집 중 (KOSPI/KOSDAQ/GOLD/DUBAI_OIL)...")
+    for symbol, (ind_key, unit, source) in YAHOO_QUOTE_MAP.items():
+        result = fetch_yahoo_quote(symbol)
+        if result:
+            actual_date, val = result
+            safe_store(ind_key, val, source, unit, date_str=actual_date)
+        else:
+            # Yahoo 실패 시 ECOS 값으로 대체 (fallback)
+            ecos_fallbacks = {
+                "KOSPI":     "코스피지수",
+                "KOSDAQ":    "코스닥지수",
+                "GOLD":      "금",
+                "DUBAI_OIL": "Dubai유(현물)",
+            }
+            fb_name = ecos_fallbacks.get(ind_key)
+            fb_val = keystat.get(fb_name, {}).get("value") if keystat and fb_name else None
+            safe_store(ind_key, fb_val, f"ECOS:fallback({symbol})", unit)
+
     # ── FRED 미국 지표 ──────────────────────────────────────────────
     logger.info("[FRED] 미국 경제지표 수집 중...")
 
-    # WTI 국제유가
+    # WTI 국제유가 - Yahoo(최신) vs FRED(공식, 1-2일 지연)
     obs = fetch_fred("DCOILWTICO")
-    safe_store("WTI", _fred_val(obs), "FRED:DCOILWTICO", "USD/bbl")
+    fred_wti = _fred_date_val(obs)   # (date, value)
+    yahoo_wti = fetch_yahoo_quote("CL=F")
+    # 더 최신 날짜의 소스 사용
+    if yahoo_wti and (fred_wti is None or yahoo_wti[0] >= fred_wti[0]):
+        safe_store("WTI", yahoo_wti[1], "Yahoo:CL=F", "USD/bbl", date_str=yahoo_wti[0])
+    elif fred_wti:
+        safe_store("WTI", fred_wti[1], "FRED:DCOILWTICO", "USD/bbl", date_str=fred_wti[0])
+    else:
+        safe_store("WTI", None, "FRED:DCOILWTICO", "USD/bbl")
 
-    # 미국 CPI
+    # 미국 CPI (월별 지표 - 실제 관측 날짜 사용)
     obs = fetch_fred("CPIAUCSL")
-    safe_store("US_CPI", _fred_val(obs), "FRED:CPIAUCSL", "index")
+    fred_cpi = _fred_date_val(obs)
+    if fred_cpi:
+        safe_store("US_CPI", fred_cpi[1], "FRED:CPIAUCSL", "index", date_str=fred_cpi[0])
+    else:
+        safe_store("US_CPI", None, "FRED:CPIAUCSL", "index")
 
-    # 미국 기준금리
+    # 미국 기준금리 (월별 - 실제 관측 날짜 사용)
     obs = fetch_fred("FEDFUNDS")
-    safe_store("FED_RATE", _fred_val(obs), "FRED:FEDFUNDS", "%")
+    fred_fedfunds = _fred_date_val(obs)
+    if fred_fedfunds:
+        safe_store("FED_RATE", fred_fedfunds[1], "FRED:FEDFUNDS", "%", date_str=fred_fedfunds[0])
+    else:
+        safe_store("FED_RATE", None, "FRED:FEDFUNDS", "%")
 
-    # 미국 10Y 국채금리 (Deep Research 매크로 패널 핵심 지표)
+    # 미국 10Y 국채금리 - Yahoo(최신 거래일) vs FRED(공식, 1일 지연)
     obs = fetch_fred("DGS10")
-    safe_store("US10Y", _fred_val(obs), "FRED:DGS10", "%")
+    fred_us10y = _fred_date_val(obs)
+    yahoo_us10y = fetch_yahoo_quote("^TNX")
+    if yahoo_us10y and (fred_us10y is None or yahoo_us10y[0] >= fred_us10y[0]):
+        val = yahoo_us10y[1] / 10 if yahoo_us10y[1] > 10 else yahoo_us10y[1]
+        safe_store("US10Y", val, "Yahoo:^TNX", "%", date_str=yahoo_us10y[0])
+    elif fred_us10y:
+        safe_store("US10Y", fred_us10y[1], "FRED:DGS10", "%", date_str=fred_us10y[0])
+    else:
+        safe_store("US10Y", None, "FRED:DGS10", "%")
 
-    # 달러 무역가중지수 (FRED:DTWEXBGS, Broad Goods)
+    # 달러 무역가중지수 (FRED:DTWEXBGS, 주별)
     obs = fetch_fred("DTWEXBGS")
-    safe_store("USD_INDEX", _fred_val(obs), "FRED:DTWEXBGS", "index")
+    fred_dtwex = _fred_date_val(obs)
+    if fred_dtwex:
+        safe_store("USD_INDEX", fred_dtwex[1], "FRED:DTWEXBGS", "index", date_str=fred_dtwex[0])
+    else:
+        safe_store("USD_INDEX", None, "FRED:DTWEXBGS", "index")
 
     # 실제 DXY (ICE US Dollar Index, Yahoo Finance: DX-Y.NYB)
-    dxy_val = fetch_dxy_yahoo()
-    safe_store("DXY", dxy_val, "YAHOO:DX-Y.NYB", "index")
+    dxy_result = fetch_yahoo_quote("DX-Y.NYB")
+    if dxy_result:
+        safe_store("DXY", dxy_result[1], "YAHOO:DX-Y.NYB", "index", date_str=dxy_result[0])
+    else:
+        safe_store("DXY", None, "YAHOO:DX-Y.NYB", "index")
 
     # ── NY Fed 공급망 압력지수 (GSCPI · PMI Supplier Delivery Times 기반) ────
     logger.info("[NY Fed] 공급망 압력지수(GSCPI/PMI 기반) 수집 중...")
