@@ -1,5 +1,11 @@
 #!/bin/bash
 # start_scheduler.sh - 스케줄러 백그라운드 실행 (매일 08:00/08:20/08:30 자동 실행)
+#
+# ⚠️  절전 모드(덮개 닫힘) 주의사항
+# - 맥북 덮개를 닫으면 이 스케줄러는 일시 정지(suspended)됩니다.
+# - caffeinate 옵션으로 sleep을 방지하거나, install_launchd.sh로 launchd에 등록하세요.
+#   옵션 A (간단):  덮개를 열어두거나 전원을 연결한 상태로 사용
+#   옵션 B (권장):  ./install_launchd.sh  → macOS 서비스로 등록, 재부팅 후에도 자동 실행
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
