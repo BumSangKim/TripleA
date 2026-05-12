@@ -311,3 +311,38 @@ def send_report(db_path: str = "economic_data.db"):
             _tg_send_document(csv_buf, "daily_indicators.csv", caption="📋 원시 데이터 (CSV)")
     except Exception as e:
         logger.error(f"CSV 생성 실패: {e}")
+
+
+def send_ir_summaries(filings_with_summaries: list[dict]):
+    """
+    신규 IR 파일링 요약을 개별 메시지로 텔레그램 전송
+    filings_with_summaries: [{"ticker", "company", "date", "form", "accession", "summary"}, ...]
+    """
+    if not filings_with_summaries:
+        return
+
+    logger.info(f"[Telegram] IR 요약 {len(filings_with_summaries)}건 전송 시작")
+
+    for f in filings_with_summaries:
+        ticker   = f.get("ticker", "")
+        company  = f.get("company", ticker)
+        date_str = f.get("date", "")
+        form     = f.get("form", "8-K")
+        summary  = f.get("summary", "요약 없음")
+
+        # Markdown 이스케이프 처리
+        summary_safe = summary.replace("_", "\\_").replace("*", "\\*").replace("`", "\\`")
+
+        text = (
+            f"📋 *{company} ({ticker}) IR 요약*\n"
+            f"📅 공시일: {date_str}  \\[{form}\\]\n"
+            f"{'─' * 30}\n"
+            f"{summary_safe}"
+        )
+
+        # 4096자 텔레그램 제한 처리
+        if len(text) > 4000:
+            text = text[:4000] + "\n...(이하 생략)"
+
+        _tg_send_message(text)
+        logger.info(f"[Telegram] IR 요약 전송 완료: {ticker} {date_str}")

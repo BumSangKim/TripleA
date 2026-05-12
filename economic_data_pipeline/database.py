@@ -32,8 +32,52 @@ def init_db(db_path: str = DB_PATH):
             created   TEXT DEFAULT (datetime('now', 'localtime'))
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ir_filings (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            accession TEXT NOT NULL UNIQUE,
+            ticker    TEXT NOT NULL,
+            company   TEXT,
+            date      TEXT,
+            form      TEXT,
+            summary   TEXT,
+            seen_at   TEXT DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_date ON indicators(date)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_indicator ON indicators(indicator)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ir_filings_ticker ON ir_filings(ticker)")
+    conn.commit()
+    conn.close()
+
+
+def is_filing_seen(accession: str, db_path: str = DB_PATH) -> bool:
+    """해당 accession 번호가 이미 DB에 있는지 확인"""
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT 1 FROM ir_filings WHERE accession=?", (accession,)
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
+def save_ir_filing(filing: dict, summary: str, db_path: str = DB_PATH):
+    """IR 파일링 및 요약 저장"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO ir_filings (accession, ticker, company, date, form, summary)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            filing["accession"],
+            filing["ticker"],
+            filing["company"],
+            filing["date"],
+            filing["form"],
+            summary,
+        ),
+    )
     conn.commit()
     conn.close()
 

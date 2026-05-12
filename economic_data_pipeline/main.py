@@ -17,7 +17,7 @@ from collector import (
     fetch_kosis,
 )
 from summarizer import build_summary
-from telegram_sender import send_report
+from telegram_sender import send_report, send_ir_summaries
 from monitor import alert_if_fail
 
 logging.basicConfig(
@@ -175,3 +175,35 @@ if __name__ == "__main__":
     summary = build_summary(db_path=DB_PATH)
     send_report(db_path=DB_PATH)
     alert_if_fail(db_path=DB_PATH)
+
+    # ── IR 스크래핑 및 Gemini 요약 ────────────────────────────────
+    logger.info("[IR] 신규 8-K 파일링 확인 중 (MSFT/AMZN/META/GOOGL)...")
+    try:
+        from ir_scraper import get_new_filings, fetch_filing_text
+        from gemini_client import summarize_ir
+        from database import save_ir_filing
+
+        new_filings = get_new_filings(db_path=DB_PATH)
+        if not new_filings:
+            logger.info("[IR] 신규 파일링 없음 - IR 요약 건너뜀")
+        else:
+            logger.info(f"[IR] 신규 파일링 {len(new_filings)}건 발견 - Gemini 요약 시작")
+            summarized = []
+            for f in new_filings:
+                try:
+                    text = fetch_filing_text(f["accession"], f["cik"], f["doc"])
+                    if not text:
+                        logger.warning(f"[IR] 문서 내용 없음: {f['ticker']} {f['date']}")
+                        continue
+                    summary_text = summarize_ir(f["company"], f["date"], text)
+                    save_ir_filing(f, summary_text, db_path=DB_PATH)
+                    summarized.append({**f, "summary": summary_text})
+                    logger.info(f"[IR] 요약 완료: {f['ticker']} {f['date']}")
+                except Exception as e:
+                    logger.error(f"[IR] 오류 ({f['ticker']} {f['date']}): {e}")
+
+            send_ir_summaries(summarized)
+            logger.info(f"[IR] 텔레그램 전송 완료: {len(summarized)}건")
+
+    except Exception as e:
+        logger.error(f"[IR] 전체 플로우 오류: {e}")

@@ -7,3 +7,5 @@ python-dotenv>=1.0.0
 feedparser>=6.0.0
 ruptures>=1.1.7
 xlrd>=2.0.1
+beautifulsoup4>=4.12.0
+google-genai>=1.0.0
