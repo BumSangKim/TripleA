@@ -10,9 +10,10 @@ DB_PATH = "economic_data.db"
 
 def _migrate_columns(conn: sqlite3.Connection):
     """기존 DB에 누락된 컬럼을 안전하게 추가 (idempotent)"""
+    # ALTER TABLE ADD COLUMN 은 함수형 DEFAULT를 지원하지 않으므로 단순 타입만 사용
     migrations = [
         ("indicators", "observed_date", "TEXT"),
-        ("indicators", "collected_at",  "TEXT DEFAULT (datetime('now','localtime'))"),
+        ("indicators", "collected_at",  "TEXT"),   # DEFAULT 표현식 제거 (SQLite 제한)
         ("indicators", "frequency",     "TEXT"),
         ("indicators", "is_stale",      "INTEGER DEFAULT 0"),
         ("indicators", "source_detail", "TEXT"),
@@ -20,6 +21,7 @@ def _migrate_columns(conn: sqlite3.Connection):
     for table, col, col_def in migrations:
         try:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+            conn.commit()
         except sqlite3.OperationalError:
             pass  # 이미 존재하는 컬럼 → 무시
 
