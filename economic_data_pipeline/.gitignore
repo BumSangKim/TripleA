@@ -26,6 +26,7 @@ ENV/
 *.db
 *.log
 *.sqlite3
+.scheduler.pid
 
 # OS 파일
 .DS_Store

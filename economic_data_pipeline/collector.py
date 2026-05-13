@@ -218,14 +218,24 @@ def fetch_nyfed_pmi_sdt() -> float | None:
         return None
 
 
-
+def fetch_ecos_statistic_search(
+    stat_id: str,
+    freq: str,
+    start: str,
+    end: str,
+    item_code: str = "",
+) -> list:
     """
-    한국은행 ECOS API 호출
+    한국은행 ECOS StatisticSearch API 호출
+    주의: API 불안정이 잦으므로 KeyStatisticList(fetch_ecos_keystat) 사용 권장
     freq: 'DD'(일), 'MM'(월), 'QQ'(분기)
+    item_code: 세부 항목 코드 (생략 가능)
+    반환: row 리스트 [{"TIME": "...", "DATA_VALUE": "..."}, ...]
     """
+    suffix = f"/{item_code}" if item_code else "/"
     url = (
         f"https://ecos.bok.or.kr/api/StatisticSearch/{ECOS_KEY}"
-        f"/json/kr/1/100/{stat_id}/{freq}/{start}/{end}/"
+        f"/json/kr/1/100/{stat_id}/{freq}/{start}/{end}{suffix}"
     )
     session = get_session()
     try:
@@ -235,7 +245,7 @@ def fetch_nyfed_pmi_sdt() -> float | None:
         rows = data.get("StatisticSearch", {}).get("row", [])
         return rows
     except Exception as e:
-        logger.error(f"[ECOS] {stat_id} 수집 실패: {e}")
+        logger.error(f"[ECOS StatisticSearch] {stat_id} 수집 실패: {e}")
         return []
 
 
@@ -375,3 +385,119 @@ def fetch_kipris(keyword: str, page: int = 1) -> list:
     except Exception as e:
         logger.error(f"[KIPRIS] '{keyword}' 수집 실패: {e}")
         return []
+
+
+# ── P2: 전력 병목 레이어 ─────────────────────────────────────────────────────
+
+def fetch_ercot_grid_status() -> dict | None:
+    """
+    ERCOT (텍사스 전력망) 실시간 공개 데이터 수집
+    - 현재 부하(MW), 공급 예비율(Reserve Margin %)
+    출처: ERCOT Real-Time Grid Status (공개 JSON)
+    반환: {"load_mw": float, "capacity_mw": float, "reserve_margin_pct": float, "timestamp": str}
+    """
+    url = "https://www.ercot.com/api/1/services/read/dashboards/supply-demand.json"
+    session = get_session()
+    try:
+        res = session.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+        res.raise_for_status()
+        data = res.json()
+        # ERCOT 대시보드 응답 파싱
+        current = data.get("currentDemand", {})
+        load_mw = current.get("demand")
+        capacity_mw = current.get("capacity")
+        if load_mw and capacity_mw and float(capacity_mw) > 0:
+            reserve_margin_pct = round(
+                (float(capacity_mw) - float(load_mw)) / float(capacity_mw) * 100, 2
+            )
+            result = {
+                "load_mw": float(load_mw),
+                "capacity_mw": float(capacity_mw),
+                "reserve_margin_pct": reserve_margin_pct,
+                "timestamp": data.get("lastUpdated", ""),
+            }
+            logger.info(f"[ERCOT] 부하={load_mw}MW, 예비율={reserve_margin_pct}%")
+            return result
+    except Exception as e:
+        logger.warning(f"[ERCOT] 수집 실패 (공식 API 변경 가능): {e}")
+    return None
+
+
+def fetch_pjm_load() -> dict | None:
+    """
+    PJM (미국 동부 전력망) 공개 데이터 수집
+    - PJM 최신 실시간 부하(MW)
+    출처: PJM Data Miner 2 공개 API
+    반환: {"load_mw": float, "datetime_utc": str, "zone": "PJM"}
+    """
+    url = "https://api.pjm.com/api/v1/inst_load"
+    params = {"fields": "datetime_beginning_utc,area_load", "sort": "datetime_beginning_utc desc", "rowCount": 1}
+    session = get_session()
+    try:
+        res = session.get(
+            url, params=params,
+            headers={"Ocp-Apim-Subscription-Key": "", "User-Agent": "Mozilla/5.0"},
+            timeout=15,
+        )
+        if res.status_code == 401:
+            # PJM API는 구독키 필요 → 공개 대안: EIA API 사용
+            return _fetch_eia_power()
+        res.raise_for_status()
+        items = res.json().get("items", [])
+        if items:
+            row = items[0]
+            load_mw = float(row.get("area_load", 0))
+            logger.info(f"[PJM] 부하={load_mw}MW")
+            return {
+                "load_mw": load_mw,
+                "datetime_utc": row.get("datetime_beginning_utc", ""),
+                "zone": "PJM",
+            }
+    except Exception as e:
+        logger.warning(f"[PJM] 수집 실패: {e}")
+    return None
+
+
+def _fetch_eia_power() -> dict | None:
+    """
+    EIA (미국 에너지청) 전력 수요 데이터 — PJM 대안
+    FRED 시리즈 ELEC.CONS_TOT.RES.US.A 또는 EIA API
+    """
+    if not FRED_KEY:
+        return None
+    url = "https://api.stlouisfed.org/fred/series/observations"
+    params = {
+        "series_id": "ELEC.GEN.ALL-US-99.M",
+        "api_key": FRED_KEY,
+        "file_type": "json",
+        "sort_order": "desc",
+        "limit": 3,
+    }
+    session = get_session()
+    try:
+        res = session.get(url, params=params, timeout=10)
+        res.raise_for_status()
+        obs = res.json().get("observations", [])
+        for o in obs:
+            if o["value"] != ".":
+                logger.info(f"[EIA via FRED] US 발전량: {o['date']} = {o['value']} GWh")
+                return {"load_mw": None, "generation_gwh": float(o["value"]), "datetime_utc": o["date"], "zone": "US"}
+    except Exception as e:
+        logger.warning(f"[EIA] 수집 실패: {e}")
+    return None
+
+
+def fetch_utility_capex(tickers: list[str] | None = None) -> list[dict]:
+    """
+    전력 유틸리티 기업 분기별 CapEx 수집 (FMP 사용)
+    기본 대상: NEE(넥스트에라), DUK(듀크에너지), SO(서던컴퍼니)
+    반환: [{"ticker": str, "date": str, "capex_b": float}, ...]
+    """
+    if tickers is None:
+        tickers = ["NEE", "DUK", "SO"]
+    results = []
+    for ticker in tickers:
+        data = fetch_fmp_capex(ticker, limit=4)
+        results.extend(data)
+    return results
+

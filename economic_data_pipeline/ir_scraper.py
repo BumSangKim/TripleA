@@ -1,5 +1,6 @@
 # ir_scraper.py
-# SEC EDGAR에서 MSFT/AMZN/META/GOOGL 분기별 8-K IR 자료 스크래핑
+# SEC EDGAR에서 Hyperscaler + AI 반도체 병목 기업 IR 자료 스크래핑
+# 대상: MSFT/AMZN/META/GOOGL (AI CapEx) + NVDA/MU + TSMC(20-F) + 삼성/SK하이닉스(뉴스 키워드)
 import requests
 import time
 import logging
@@ -8,18 +9,38 @@ from database import DB_PATH
 
 logger = logging.getLogger(__name__)
 
+# ── AI 병목 레이어 기업 CIK 매핑 ─────────────────────────────────────────────
 COMPANY_CIKS = {
+    # Hyperscaler (AI CapEx S1)
     "MSFT":  "0000789019",
     "AMZN":  "0001018724",
     "META":  "0001326801",
     "GOOGL": "0001652044",
+    # AI 반도체 병목 (S2/S3)
+    "NVDA":  "0001045810",   # NVIDIA — GPU 수요 지표
+    "MU":    "0000723125",   # Micron — HBM 수급
+    "TSMC":  "0001046179",   # TSMC (20-F, 연간 보고서도 포함)
+    "AMD":   "0000002488",   # AMD
+    "INTC":  "0000050863",   # Intel
 }
 COMPANY_NAMES = {
     "MSFT":  "마이크로소프트",
     "AMZN":  "아마존",
     "META":  "메타",
     "GOOGL": "구글(알파벳)",
+    "NVDA":  "NVIDIA",
+    "MU":    "마이크론",
+    "TSMC":  "TSMC",
+    "AMD":   "AMD",
+    "INTC":  "인텔",
 }
+
+# AI 병목 관련 키워드 (요약 시 중요도 강조용)
+AI_BOTTLENECK_KEYWORDS = [
+    "data center", "datacenter", "ai infrastructure", "gpu", "hbm", "high bandwidth memory",
+    "capital expenditure", "capex", "hyperscaler", "inference", "training",
+    "supply constraint", "demand", "backlog", "compute",
+]
 
 # SEC EDGAR 요구 User-Agent
 HEADERS = {
@@ -36,9 +57,20 @@ def fetch_recent_8k(ticker: str, limit: int = 5) -> list[dict]:
     Returns: [{"accession": str, "date": str, "form": str, "doc": str, "ticker": str, "company": str}]
     """
     cik = COMPANY_CIKS.get(ticker)
+def fetch_recent_8k(ticker: str, limit: int = 5) -> list[dict]:
+    """
+    SEC EDGAR에서 특정 기업의 최근 8-K(또는 20-F) 파일링 목록 반환.
+    TSMC는 20-F(연간)도 포함.
+    Returns: [{"accession": str, "date": str, "form": str, "doc": str,
+               "ticker": str, "company": str, "cik": str}]
+    """
+    cik = COMPANY_CIKS.get(ticker)
     if not cik:
         logger.warning(f"[IR] 알 수 없는 ticker: {ticker}")
         return []
+
+    # TSMC는 20-F 연간 보고서도 포함
+    target_forms = {"8-K", "8-K/A", "20-F"} if ticker == "TSMC" else {"8-K", "8-K/A"}
 
     url = f"https://data.sec.gov/submissions/CIK{cik}.json"
     try:
@@ -57,18 +89,18 @@ def fetch_recent_8k(ticker: str, limit: int = 5) -> list[dict]:
 
     filings = []
     for i, form in enumerate(forms):
-        if form in ("8-K", "8-K/A") and len(filings) < limit:
+        if form in target_forms and len(filings) < limit:
             filings.append({
                 "accession": accns[i],
                 "date":      dates[i],
                 "form":      form,
                 "doc":       pdocs[i],
                 "ticker":    ticker,
-                "company":   COMPANY_NAMES[ticker],
+                "company":   COMPANY_NAMES.get(ticker, ticker),
                 "cik":       cik,
             })
 
-    logger.info(f"[IR] {ticker} 8-K {len(filings)}건 조회")
+    logger.info(f"[IR] {ticker} {'/'.join(target_forms)} {len(filings)}건 조회")
     return filings
 
 
@@ -149,9 +181,14 @@ def fetch_filing_text(accession: str, cik: str, primary_doc: str) -> str:
         return ""
 
 
-def get_new_filings(db_path: str = DB_PATH) -> list[dict]:
+def get_new_filings(
+    db_path: str = DB_PATH,
+    tickers: list[str] | None = None,
+) -> list[dict]:
     """
-    DB에 없는 신규 8-K 파일링만 반환
+    DB에 없는 신규 파일링만 반환.
+    tickers 미지정 시 모든 COMPANY_CIKS 대상.
+    AI 병목 신호 강화를 위해 NVDA/MU/TSMC/AMD/INTC 포함.
     """
     import sqlite3
 
@@ -162,8 +199,9 @@ def get_new_filings(db_path: str = DB_PATH) -> list[dict]:
     )
     conn.close()
 
+    scan_tickers = tickers or list(COMPANY_CIKS.keys())
     new_filings = []
-    for ticker in COMPANY_CIKS:
+    for ticker in scan_tickers:
         filings = fetch_recent_8k(ticker, limit=5)
         for f in filings:
             if f["accession"] not in seen:

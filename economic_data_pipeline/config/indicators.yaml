@@ -1,0 +1,311 @@
+# config/indicators.yaml
+# 단일 출처 지표 메타데이터 정의
+# 모든 모듈(summarizer, monitor, telegram_sender)이 이 파일을 참조한다.
+#
+# 필드 설명:
+#   label        : 텔레그램·차트에 표시할 한국어 레이블
+#   unit         : 값 단위
+#   frequency    : daily | weekly | monthly | quarterly
+#   stale_days   : 이 일수 이상 업데이트 없으면 stale로 간주
+#   source       : 주 수집 소스 (정보용)
+#   layer        : macro | korea | commodity | us | supply_chain | ai_bottleneck | power | equity
+#   chart        : true이면 기본 차트에 포함
+
+# ── 한국 매크로 ─────────────────────────────────────────────────────────────
+indicators:
+  CPI:
+    label: "소비자물가지수"
+    unit: "pt(2020=100)"
+    frequency: monthly
+    stale_days: 40
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: true
+
+  PPI:
+    label: "생산자물가지수"
+    unit: "pt(2020=100)"
+    frequency: monthly
+    stale_days: 40
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+  USD_KRW:
+    label: "원/달러 환율"
+    unit: "원"
+    frequency: daily
+    stale_days: 3
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: true
+
+  BASE_RATE:
+    label: "한국 기준금리"
+    unit: "%"
+    frequency: monthly
+    stale_days: 40
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+  KOSPI:
+    label: "코스피"
+    unit: "pt"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:^KS11"
+    layer: korea
+    chart: true
+
+  KOSDAQ:
+    label: "코스닥"
+    unit: "pt"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:^KQ11"
+    layer: korea
+    chart: false
+
+  UNEMPLOYMENT:
+    label: "실업률"
+    unit: "%"
+    frequency: monthly
+    stale_days: 40
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+  BOND_3Y:
+    label: "국고채(3년)"
+    unit: "%"
+    frequency: daily
+    stale_days: 3
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+  GDP_GROWTH:
+    label: "경제성장률(전기比)"
+    unit: "%"
+    frequency: quarterly
+    stale_days: 100
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+  CSI:
+    label: "소비자심리지수"
+    unit: ""
+    frequency: monthly
+    stale_days: 40
+    source: "ECOS:KeyStatisticList"
+    layer: korea
+    chart: false
+
+# ── 국제 원자재 ─────────────────────────────────────────────────────────────
+  DUBAI_OIL:
+    label: "두바이유"
+    unit: "USD/bbl"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:BZ=F"
+    layer: commodity
+    chart: true
+
+  GOLD:
+    label: "금 가격"
+    unit: "USD/oz"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:GC=F"
+    layer: commodity
+    chart: true
+
+  WTI:
+    label: "WTI 국제유가"
+    unit: "USD/bbl"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:CL=F / FRED:DCOILWTICO"
+    layer: commodity
+    chart: true
+
+# ── 미국 매크로 ─────────────────────────────────────────────────────────────
+  US_CPI:
+    label: "미국 CPI"
+    unit: "index"
+    frequency: monthly
+    stale_days: 40
+    source: "FRED:CPIAUCSL"
+    layer: us
+    chart: false
+
+  FED_RATE:
+    label: "미국 기준금리"
+    unit: "%"
+    frequency: monthly
+    stale_days: 40
+    source: "FRED:FEDFUNDS"
+    layer: us
+    chart: false
+
+  US10Y:
+    label: "미국 10Y 국채금리"
+    unit: "%"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:^TNX / FRED:DGS10"
+    layer: us
+    chart: false
+
+  DXY:
+    label: "달러인덱스(DXY·ICE)"
+    unit: "index"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:DX-Y.NYB"
+    layer: us
+    chart: false
+
+  USD_INDEX:
+    label: "달러무역가중지수(DTWEXBGS)"
+    unit: "index"
+    frequency: weekly
+    stale_days: 10
+    source: "FRED:DTWEXBGS"
+    layer: us
+    chart: false
+
+# ── 공급망 ─────────────────────────────────────────────────────────────────
+  PMI_SDT:
+    label: "공급망압력(GSCPI·PMI)"
+    unit: "σ"
+    frequency: monthly
+    stale_days: 40
+    source: "NY_FED:GSCPI"
+    layer: supply_chain
+    chart: true
+
+# ── Hyperscaler CapEx (AI 병목 S1) ──────────────────────────────────────────
+  CAPEX_MSFT:
+    label: "Microsoft CapEx"
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    source: "FMP:MSFT"
+    layer: ai_bottleneck
+    chart: false
+
+  CAPEX_GOOGL:
+    label: "Alphabet CapEx"
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    source: "FMP:GOOGL"
+    layer: ai_bottleneck
+    chart: false
+
+  CAPEX_META:
+    label: "Meta CapEx"
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    source: "FMP:META"
+    layer: ai_bottleneck
+    chart: false
+
+  CAPEX_AMZN:
+    label: "Amazon CapEx"
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    source: "FMP:AMZN"
+    layer: ai_bottleneck
+    chart: false
+
+# ── 반도체·AI 섹터 ETF (자본 흐름 P2) ──────────────────────────────────────
+  SMH:
+    label: "반도체 ETF (SMH)"
+    unit: "USD"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:SMH"
+    layer: equity
+    chart: false
+
+  SOXX:
+    label: "반도체 ETF (SOXX)"
+    unit: "USD"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:SOXX"
+    layer: equity
+    chart: false
+
+  XLU:
+    label: "유틸리티 ETF (XLU)"
+    unit: "USD"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:XLU"
+    layer: power
+    chart: false
+
+  SPY:
+    label: "S&P500 ETF (SPY)"
+    unit: "USD"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:SPY"
+    layer: equity
+    chart: false
+
+  QQQ:
+    label: "나스닥100 ETF (QQQ)"
+    unit: "USD"
+    frequency: daily
+    stale_days: 3
+    source: "Yahoo:QQQ"
+    layer: equity
+    chart: false
+
+# ── 상대강도 파생 지표 ────────────────────────────────────────────────────────
+  RS_SMH_SPY:
+    label: "반도체/S&P500 상대강도"
+    unit: "ratio"
+    frequency: daily
+    stale_days: 3
+    source: "derived:SMH/SPY"
+    layer: equity
+    chart: false
+
+  RS_XLU_SPY:
+    label: "유틸리티/S&P500 상대강도"
+    unit: "ratio"
+    frequency: daily
+    stale_days: 3
+    source: "derived:XLU/SPY"
+    layer: power
+    chart: false
+
+# ── 이벤트 일정 (참조용) ─────────────────────────────────────────────────────
+economic_events:
+  - name: US_CPI
+    description: "미국 소비자물가지수 발표"
+    country: US
+  - name: NFP
+    description: "비농업 고용지수 발표"
+    country: US
+  - name: PCE
+    description: "개인소비지출 물가지수 발표"
+    country: US
+  - name: FOMC
+    description: "FOMC 기준금리 결정"
+    country: US
+  - name: KR_CPI
+    description: "한국 소비자물가지수 발표"
+    country: KR
+  - name: KR_GDP
+    description: "한국 GDP 속보치 발표"
+    country: KR

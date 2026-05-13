@@ -1,37 +1,106 @@
 # database.py
 # SQLite 기반 경제지표 저장소 - CRUD 및 로그 관리
+import json
 import sqlite3
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 
 DB_PATH = "economic_data.db"
 
 
+def _migrate_columns(conn: sqlite3.Connection):
+    """기존 DB에 누락된 컬럼을 안전하게 추가 (idempotent)"""
+    migrations = [
+        ("indicators", "observed_date", "TEXT"),
+        ("indicators", "collected_at",  "TEXT DEFAULT (datetime('now','localtime'))"),
+        ("indicators", "frequency",     "TEXT"),
+        ("indicators", "is_stale",      "INTEGER DEFAULT 0"),
+        ("indicators", "source_detail", "TEXT"),
+    ]
+    for table, col, col_def in migrations:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+        except sqlite3.OperationalError:
+            pass  # 이미 존재하는 컬럼 → 무시
+
+
 def init_db(db_path: str = DB_PATH):
-    """테이블 초기화"""
+    """테이블 초기화 및 스키마 마이그레이션"""
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+
+    # ── 핵심 지표 테이블 ────────────────────────────────────────────
     conn.execute("""
         CREATE TABLE IF NOT EXISTS indicators (
-            id        INTEGER PRIMARY KEY AUTOINCREMENT,
-            date      TEXT NOT NULL,
-            indicator TEXT NOT NULL,
-            value     REAL,
-            source    TEXT,
-            unit      TEXT,
-            updated   TEXT DEFAULT (datetime('now', 'localtime')),
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            date          TEXT NOT NULL,       -- 데이터 기준일 (YYYY-MM-DD)
+            indicator     TEXT NOT NULL,
+            value         REAL,
+            source        TEXT,
+            unit          TEXT,
+            observed_date TEXT,                -- API가 보고한 실제 관측 날짜
+            collected_at  TEXT DEFAULT (datetime('now','localtime')),
+            frequency     TEXT,                -- 'daily' | 'weekly' | 'monthly' | 'quarterly'
+            is_stale      INTEGER DEFAULT 0,   -- 1: 전일값 대체 (실제 수집 실패)
+            source_detail TEXT,                -- 원본 API 응답 키/경로 등
+            updated       TEXT DEFAULT (datetime('now','localtime')),
             UNIQUE(date, indicator)
         )
     """)
+
+    # ── 기존 DB 스키마 마이그레이션 (새 컬럼 추가) ─────────────────
+    _migrate_columns(conn)
+
+    # ── 수집 로그 (기존 collect_log 유지) ──────────────────────────
     conn.execute("""
         CREATE TABLE IF NOT EXISTS collect_log (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
             run_date  TEXT,
             indicator TEXT,
-            status    TEXT,   -- 'success' or 'fail'
+            status    TEXT,   -- 'success' | 'fail'
             message   TEXT,
             created   TEXT DEFAULT (datetime('now', 'localtime'))
         )
     """)
+
+    # ── Collector 실행 결과 테이블 (P1) ────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS collector_runs (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_at       TEXT DEFAULT (datetime('now','localtime')),
+            collector    TEXT NOT NULL,        -- e.g. 'ecos_keystat', 'fred', 'yahoo'
+            status       TEXT NOT NULL,        -- 'ok' | 'partial' | 'fail'
+            items_ok     INTEGER DEFAULT 0,
+            items_fail   INTEGER DEFAULT 0,
+            duration_ms  INTEGER,
+            error_msg    TEXT
+        )
+    """)
+
+    # ── API 원본 응답 저장 (P1) ─────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS raw_observations (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            collected_at TEXT DEFAULT (datetime('now','localtime')),
+            source      TEXT NOT NULL,         -- e.g. 'FRED:CPIAUCSL'
+            indicator   TEXT,
+            raw_json    TEXT NOT NULL,         -- JSON 직렬화된 원본 응답
+            obs_date    TEXT                   -- 관측 날짜 (알 수 있는 경우)
+        )
+    """)
+
+    # ── 텔레그램 발송 이력 (P1: 중복 방지) ─────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS report_runs (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            report_date TEXT NOT NULL UNIQUE,  -- YYYY-MM-DD (하루 1회 제한)
+            sent_at     TEXT DEFAULT (datetime('now','localtime')),
+            status      TEXT,                  -- 'ok' | 'fail'
+            message_len INTEGER
+        )
+    """)
+
+    # ── IR 파일링 테이블 (기존 유지) ────────────────────────────────
     conn.execute("""
         CREATE TABLE IF NOT EXISTS ir_filings (
             id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,9 +113,42 @@ def init_db(db_path: str = DB_PATH):
             seen_at   TEXT DEFAULT (datetime('now', 'localtime'))
         )
     """)
+
+    # ── 경제 이벤트 일정 (P2) ───────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS economic_events (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_date  TEXT NOT NULL,         -- 발표 예정일
+            event_time  TEXT,                  -- 발표 예정 시간 (UTC)
+            event_name  TEXT NOT NULL,         -- 'US_CPI', 'NFP', 'PCE', 'FOMC'
+            country     TEXT DEFAULT 'US',
+            description TEXT,
+            created_at  TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(event_date, event_name)
+        )
+    """)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS event_releases (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            event_id     INTEGER REFERENCES economic_events(id),
+            released_at  TEXT DEFAULT (datetime('now','localtime')),
+            actual       REAL,
+            forecast     REAL,
+            previous     REAL,
+            surprise     REAL,    -- actual - forecast
+            unit         TEXT,
+            source       TEXT
+        )
+    """)
+
+    # ── 인덱스 ────────────────────────────────────────────────────
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_date ON indicators(date)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_indicator ON indicators(indicator)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_stale ON indicators(is_stale)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ir_filings_ticker ON ir_filings(ticker)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_obs_source ON raw_observations(source)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_events_date ON economic_events(event_date)")
     conn.commit()
     conn.close()
 
@@ -89,19 +191,29 @@ def upsert_indicator(
     source: str,
     unit: str = "",
     db_path: str = DB_PATH,
+    is_stale: int = 0,
+    frequency: str = None,
+    source_detail: str = None,
+    observed_date: str = None,
 ):
-    """지표 저장 (중복 시 업데이트)"""
+    """지표 저장 (중복 시 업데이트). is_stale=1이면 전일 대체값임을 표시."""
     conn = sqlite3.connect(db_path)
     conn.execute(
         """
-        INSERT INTO indicators (date, indicator, value, source, unit)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO indicators
+            (date, indicator, value, source, unit, is_stale, frequency, source_detail, observed_date, collected_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now','localtime'))
         ON CONFLICT(date, indicator) DO UPDATE SET
-            value  = excluded.value,
-            source = excluded.source,
-            updated = datetime('now', 'localtime')
+            value        = excluded.value,
+            source       = excluded.source,
+            is_stale     = excluded.is_stale,
+            frequency    = COALESCE(excluded.frequency, frequency),
+            source_detail= COALESCE(excluded.source_detail, source_detail),
+            observed_date= COALESCE(excluded.observed_date, observed_date),
+            collected_at = excluded.collected_at,
+            updated      = datetime('now','localtime')
         """,
-        (date_str, indicator, value, source, unit),
+        (date_str, indicator, value, source, unit, is_stale, frequency, source_detail, observed_date),
     )
     conn.commit()
     conn.close()
@@ -159,3 +271,160 @@ def get_collect_stats(run_date: str = None, db_path: str = DB_PATH) -> dict:
     ).fetchall()
     conn.close()
     return dict(logs)
+
+
+# ── Collector 실행 기록 ──────────────────────────────────────────────────────
+
+def log_collector_run(
+    collector: str,
+    status: str,
+    items_ok: int = 0,
+    items_fail: int = 0,
+    duration_ms: int = None,
+    error_msg: str = None,
+    db_path: str = DB_PATH,
+):
+    """collector 실행 결과를 collector_runs 테이블에 기록"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO collector_runs (collector, status, items_ok, items_fail, duration_ms, error_msg)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (collector, status, items_ok, items_fail, duration_ms, error_msg),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ── 원본 응답 저장 ──────────────────────────────────────────────────────────
+
+def save_raw_observation(
+    source: str,
+    raw_data,
+    indicator: str = None,
+    obs_date: str = None,
+    db_path: str = DB_PATH,
+):
+    """API 원본 응답을 JSON으로 raw_observations 테이블에 저장"""
+    try:
+        raw_json = json.dumps(raw_data, ensure_ascii=False, default=str)
+    except Exception:
+        raw_json = str(raw_data)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO raw_observations (source, indicator, raw_json, obs_date)
+        VALUES (?, ?, ?, ?)
+        """,
+        (source, indicator, raw_json, obs_date),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ── 보고서 발송 이력 ─────────────────────────────────────────────────────────
+
+def is_report_sent_today(db_path: str = DB_PATH) -> bool:
+    """오늘 날짜로 보고서가 이미 발송됐는지 확인"""
+    today = date.today().isoformat()
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT 1 FROM report_runs WHERE report_date=? AND status='ok'", (today,)
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
+def mark_report_sent(message_len: int = 0, status: str = "ok", db_path: str = DB_PATH):
+    """오늘 날짜로 보고서 발송 성공을 기록 (중복 방지)"""
+    today = date.today().isoformat()
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO report_runs (report_date, status, message_len)
+        VALUES (?, ?, ?)
+        """,
+        (today, status, message_len),
+    )
+    conn.commit()
+    conn.close()
+
+
+# ── 경제 이벤트 관리 ─────────────────────────────────────────────────────────
+
+def upsert_economic_event(
+    event_date: str,
+    event_name: str,
+    event_time: str = None,
+    country: str = "US",
+    description: str = None,
+    db_path: str = DB_PATH,
+) -> int:
+    """경제 이벤트 일정 저장. 이미 존재하면 description만 업데이트. 행 id 반환."""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO economic_events (event_date, event_name, event_time, country, description)
+        VALUES (?, ?, ?, ?, ?)
+        ON CONFLICT(event_date, event_name) DO UPDATE SET
+            description = COALESCE(excluded.description, description),
+            event_time  = COALESCE(excluded.event_time, event_time)
+        """,
+        (event_date, event_name, event_time, country, description),
+    )
+    row_id = conn.execute(
+        "SELECT id FROM economic_events WHERE event_date=? AND event_name=?",
+        (event_date, event_name),
+    ).fetchone()[0]
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def save_event_release(
+    event_id: int,
+    actual: float = None,
+    forecast: float = None,
+    previous: float = None,
+    unit: str = None,
+    source: str = None,
+    db_path: str = DB_PATH,
+):
+    """경제 이벤트 실제 발표값 저장"""
+    surprise = None
+    if actual is not None and forecast is not None:
+        surprise = round(actual - forecast, 4)
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO event_releases (event_id, actual, forecast, previous, surprise, unit, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (event_id, actual, forecast, previous, surprise, unit, source),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_upcoming_events(days_ahead: int = 7, db_path: str = DB_PATH) -> list[dict]:
+    """향후 n일 내 예정된 경제 이벤트 목록 반환"""
+    from datetime import timedelta
+    today = date.today().isoformat()
+    end_date = (date.today() + timedelta(days=days_ahead)).isoformat()
+    conn = sqlite3.connect(db_path)
+    rows = conn.execute(
+        """
+        SELECT e.id, e.event_date, e.event_time, e.event_name, e.country, e.description,
+               r.actual, r.forecast, r.previous, r.surprise
+        FROM economic_events e
+        LEFT JOIN event_releases r ON r.event_id = e.id
+        WHERE e.event_date BETWEEN ? AND ?
+        ORDER BY e.event_date, e.event_time
+        """,
+        (today, end_date),
+    ).fetchall()
+    conn.close()
+    cols = ["id", "event_date", "event_time", "event_name", "country", "description",
+            "actual", "forecast", "previous", "surprise"]
+    return [dict(zip(cols, r)) for r in rows]

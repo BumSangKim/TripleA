@@ -25,6 +25,7 @@ ENV/
 *.log
 *.sqlite3
 pipeline.log
+.scheduler.pid
 
 # OS 파일
 .DS_Store
