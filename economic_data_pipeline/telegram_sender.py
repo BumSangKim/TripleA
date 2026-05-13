@@ -667,6 +667,40 @@ def build_message(summary: dict) -> str:
     return "\n".join(lines)
 
 
+def send_api_alert(errors: dict[str, str]) -> bool:
+    """
+    API 인증/만료 오류를 텔레그램으로 즉시 알림
+    errors: {API이름: 오류 상세} (collector.get_api_errors() 반환값)
+    """
+    if not errors:
+        return False
+
+    from datetime import datetime
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    lines = [f"🚨 *API 인증 오류 감지* ({now})"]
+    lines.append("")
+
+    api_labels = {
+        "ECOS":  "한국은행 ECOS",
+        "FRED":  "FRED (St. Louis Fed)",
+        "FMP":   "Financial Modeling Prep",
+        "NAVER": "Naver 뉴스 API",
+        "KOSIS": "KOSIS 통계청",
+    }
+
+    for api_name, detail in errors.items():
+        label = api_labels.get(api_name, api_name)
+        lines.append(f"🔑 *{label}*")
+        lines.append(f"   └ {detail}")
+        lines.append("")
+
+    lines.append("⚠️ API 키 만료 여부를 확인하고 `.env` 파일을 업데이트하세요.")
+    msg = "\n".join(lines)
+
+    logger.warning(f"[Telegram] API 오류 알림 전송: {list(errors.keys())}")
+    return _tg_send_message(msg)
+
+
 def send_report(db_path: str = "economic_data.db"):
     """전체 리포트 전송: 텍스트 요약 + 차트 + CapEx 리포트 + CSV"""
     logger.info("[Telegram] 리포트 전송 시작")

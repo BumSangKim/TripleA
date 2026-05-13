@@ -16,9 +16,11 @@ from collector import (
     fetch_rss,
     fetch_krx_index,
     fetch_kosis,
+    get_api_errors,
+    clear_api_errors,
 )
 from summarizer import build_summary
-from telegram_sender import send_report, send_ir_summaries
+from telegram_sender import send_report, send_ir_summaries, send_api_alert
 from monitor import alert_if_fail
 
 logging.basicConfig(
@@ -128,6 +130,7 @@ def _fred_date_val(obs: list) -> tuple[str, float] | None:
 def collect_all_indicators():
     logger.info("=" * 60)
     logger.info(f"데이터 수집 시작: {date.today().isoformat()}")
+    clear_api_errors()  # 이전 실행 오류 초기화
 
     # ── 한국은행 ECOS KeyStatisticList (월/분기 지표) ───────────────
     logger.info("[ECOS] KeyStatisticList 수집 중...")
@@ -278,6 +281,12 @@ def collect_all_indicators():
 
     logger.info("=" * 60)
     logger.info("전체 수집 완료")
+
+    # ── API 인증/만료 오류 텔레그램 알림 ────────────────────────────
+    errors = get_api_errors()
+    if errors:
+        logger.warning(f"[API 오류] {len(errors)}개 API 인증 오류 발생 → 텔레그램 알림 전송")
+        send_api_alert(errors)
 
 
 if __name__ == "__main__":

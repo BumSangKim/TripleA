@@ -9,6 +9,25 @@ from config import ECOS_KEY, FRED_KEY, FMP_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_K
 
 logger = logging.getLogger(__name__)
 
+# 수집 실행 중 발생한 API 인증/만료 오류를 누적 (키: API 이름, 값: 오류 상세)
+_api_errors: dict[str, str] = {}
+
+
+def get_api_errors() -> dict[str, str]:
+    """현재까지 누적된 API 인증/만료 오류 반환"""
+    return dict(_api_errors)
+
+
+def clear_api_errors() -> None:
+    """누적 오류 초기화 (매 파이프라인 실행 시작 시 호출)"""
+    _api_errors.clear()
+
+
+def _record_auth_error(api_name: str, detail: str) -> None:
+    """401/403 등 인증 오류 기록"""
+    _api_errors[api_name] = detail
+    logger.error(f"[API 인증 오류] {api_name}: {detail}")
+
 
 def get_session() -> requests.Session:
     """재시도 로직이 포함된 HTTP 세션 반환"""
@@ -34,8 +53,17 @@ def fetch_ecos_keystat() -> dict:
     session = get_session()
     try:
         res = session.get(url, timeout=10)
+        if res.status_code in (401, 403):
+            _record_auth_error("ECOS", f"HTTP {res.status_code} - API 키 만료 또는 인증 실패")
+            return {}
         res.raise_for_status()
-        rows = res.json().get("KeyStatisticList", {}).get("row", [])
+        data = res.json()
+        # ECOS는 인증 오류 시 HTTP 200 + RESULT.CODE="ERROR-300" 반환
+        err_code = data.get("RESULT", {}).get("CODE", "")
+        if err_code and err_code.startswith("ERROR"):
+            _record_auth_error("ECOS", f"응답 오류 코드 {err_code}: {data.get('RESULT',{}).get('MESSAGE','')}")
+            return {}
+        rows = data.get("KeyStatisticList", {}).get("row", [])
         result = {}
         for row in rows:
             name = row.get("KEYSTAT_NAME", "").strip()
@@ -158,11 +186,20 @@ def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
             },
             timeout=15,
         )
+        if res.status_code in (401, 403):
+            _record_auth_error("FMP", f"{ticker}: HTTP {res.status_code} - API 키 만료 또는 플랜 초과")
+            return []
         res.raise_for_status()
         if not res.text:
             logger.warning(f"[FMP] {ticker} 빈 응답")
             return []
         data = res.json()
+        # FMP는 인증 실패 시 {"Error Message": "..."} 형태로 반환
+        if isinstance(data, dict) and ("Error Message" in data or "message" in data):
+            msg = data.get("Error Message") or data.get("message", "알 수 없는 오류")
+            if any(kw in msg.lower() for kw in ("invalid", "not authorized", "premium", "limit")):
+                _record_auth_error("FMP", f"{ticker}: {msg}")
+            return []
         if not isinstance(data, list):
             logger.warning(f"[FMP] {ticker} 예상치 못한 응답: {str(data)[:80]}")
             return []
@@ -317,8 +354,18 @@ def fetch_fred(series_id: str, limit: int = 30) -> list:
     session = get_session()
     try:
         res = session.get(url, params=params, timeout=10)
+        if res.status_code in (400, 401, 403):
+            body = res.json() if res.text else {}
+            msg = body.get("error_message", f"HTTP {res.status_code}")
+            _record_auth_error("FRED", f"{series_id}: {msg}")
+            return []
         res.raise_for_status()
-        return res.json().get("observations", [])
+        data = res.json()
+        # FRED는 API 키 오류 시 error_code 필드 포함
+        if "error_code" in data:
+            _record_auth_error("FRED", f"{series_id}: {data.get('error_message', data['error_code'])}")
+            return []
+        return data.get("observations", [])
     except Exception as e:
         logger.error(f"[FRED] {series_id} 수집 실패: {e}")
         return []
@@ -342,6 +389,11 @@ def fetch_naver_news(query: str, display: int = 10) -> list:
     session = get_session()
     try:
         res = session.get(url, headers=headers, params=params, timeout=10)
+        if res.status_code in (401, 403):
+            body = res.json() if res.text else {}
+            err_msg = body.get("errorMessage", f"HTTP {res.status_code}")
+            _record_auth_error("NAVER", f"{err_msg} (errorCode={body.get('errorCode','?')})")
+            return []
         res.raise_for_status()
         return res.json().get("items", [])
     except Exception as e:
