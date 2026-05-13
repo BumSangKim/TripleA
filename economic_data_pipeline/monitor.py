@@ -72,8 +72,13 @@ def check_data_quality(db_path: str = DB_PATH) -> dict:
     for indicator in tracked:
         stale_days = get_stale_days(indicator, meta)
         cutoff = (today - timedelta(days=stale_days)).isoformat()
+        # collected_at 우선 체크: FRED 월별 지표는 date가 관측기간 1일(예: 2026-04-01)이라
+        # stale_days를 초과할 수 있음. 실제로 최근 수집했으면 fresh로 간주.
         row = conn.execute(
-            "SELECT MAX(date) FROM indicators WHERE indicator=? AND date >= ?",
+            """SELECT MAX(COALESCE(date(collected_at), date))
+               FROM indicators
+               WHERE indicator=?
+                 AND COALESCE(date(collected_at), date) >= ?""",
             (indicator, cutoff),
         ).fetchone()
         if row and row[0]:
