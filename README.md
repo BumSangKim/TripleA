@@ -11,27 +11,41 @@
 | 저장소 | SQLite (WAL 모드) |
 | 스케줄러 | APScheduler |
 | 전송 채널 | 텔레그램 봇 |
-| 대시보드 | Streamlit (`streamlit run dashboard.py`) |
-| 테스트 | pytest — 101개 통과 |
+| 대시보드 | Streamlit (`PYTHONPATH=.. streamlit run ../quant_trading_system/monitoring/dashboard.py`) |
+| 테스트 | pytest — 105개 통과 |
 
 ### 🏗️ 아키텍처
 
+```mermaid
+graph LR
+    MarketData["시장 데이터<br/>(시세, 오더북)"] --> DB[(SQLite/PostgreSQL-ready DB)]
+    NewsData["뉴스/IR/소셜 데이터"] --> DB
+    DB --> Preprocess["전처리·피처 엔지니어링"]
+    Preprocess --> Features["피처셋"]
+    Features --> Strategy["전략 엔진"]
+    Strategy --> Signal["매매 신호"]
+    Signal --> Risk["리스크 관리"]
+    Risk --> Orders["주문 실행 모듈"]
+    Orders --> Exchange["브로커/거래소 API"]
+    Strategy --> Logger["로깅 & 모니터링"]
+    Logger --> Dashboard["모니터링 대시보드"]
 ```
-[ 데이터 수집 ]          [ 피처 엔지니어링 ]       [ 신호 생성 ]
-   collector.py     →    transforms/           →   strategies/
-   - ECOS/FRED/Yahoo      - technical_indicators     - golden_cross
-   - KIS OHLCV            - relative_strength        - rsi_signal
-   - ERCOT/PJM                                       - macd_signal
-         ↓                       ↓                        ↓
-   [ SQLite DB ]           [ features 테이블 ]      [ signals 테이블 ]
-   indicators              RSI / SMA / MACD          BUY / SELL 신호
-   market_data             볼린저 밴드               텔레그램 알림
-         ↓
-   [ 분석 레이어 ]
-   ir_scraper + Gemini AI (SEC 8-K 요약)
-   monitor.py (품질 감시)
-   dashboard.py (Streamlit 대시보드)
-```
+
+핵심 코드는 `quant_trading_system/` 패키지에 기능별로 분리되어 있습니다.
+
+| 디렉터리/파일 | 역할 |
+|---|---|
+| `quant_trading_system/data/` | ECOS/FRED/Yahoo/FMP/SEC/뉴스/IR 등 데이터 수집 |
+| `quant_trading_system/db/` | DB 스키마, 저장/조회, 주문·신호·원본 응답 기록 |
+| `quant_trading_system/features/` | 전처리, 상대강도, 기술적 지표, 피처 파이프라인 |
+| `quant_trading_system/strategies/` | 신호 생성 전략과 공통 `Strategy` 인터페이스 |
+| `quant_trading_system/risk/` | 주문 수량·포지션 한도 검사 |
+| `quant_trading_system/execution/` | 브로커 추상화, paper broker, 주문 실행 |
+| `quant_trading_system/monitoring/` | 텔레그램 리포트, 품질 모니터링, 차트, 대시보드, 스케줄러 |
+| `quant_trading_system/agents/` | Gemini/LLM 기반 IR 요약 보조 |
+| `quant_trading_system/config/` | `indicators.yaml`, `economic_events.yaml` |
+| `config.yaml` | 비밀값이 아닌 파이프라인/리스크/실행 설정 |
+| `economic_data_pipeline/` | `.env`, SQLite DB, 로그, 실행 스크립트 등 운영 런타임 |
 
 ### 수집 지표
 
@@ -157,7 +171,7 @@ KIS_ISDEMO=false                      # 모의투자: true
 
 ```bash
 cd economic_data_pipeline
-python main.py
+python -m quant_trading_system.main
 ```
 
 수집 → DB 저장 → 요약 → 텔레그램 전송이 순서대로 실행됩니다.
@@ -168,7 +182,7 @@ python main.py
 
 ```bash
 cd economic_data_pipeline
-python scheduler.py
+python -m quant_trading_system.monitoring.scheduler
 ```
 
 스케줄표:
@@ -188,7 +202,7 @@ python scheduler.py
 #### nohup 방식 (간단)
 
 ```bash
-nohup python scheduler.py > scheduler_out.log 2>&1 &
+nohup python -m quant_trading_system.monitoring.scheduler > scheduler_out.log 2>&1 &
 echo $!   # PID 확인
 ```
 
@@ -211,7 +225,8 @@ After=network.target
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/TripleA/economic_data_pipeline
-ExecStart=/home/ubuntu/TripleA/economic_data_pipeline/.venv/bin/python scheduler.py
+Environment=PYTHONPATH=/home/ubuntu/TripleA
+ExecStart=/home/ubuntu/TripleA/economic_data_pipeline/.venv/bin/python -m quant_trading_system.monitoring.scheduler
 Restart=on-failure
 RestartSec=60
 
@@ -242,7 +257,8 @@ sudo systemctl status economic-pipeline
     <key>ProgramArguments</key>
     <array>
         <string>/Users/bumsangkim/Dev/TripleA/economic_data_pipeline/.venv/bin/python</string>
-        <string>/Users/bumsangkim/Dev/TripleA/economic_data_pipeline/scheduler.py</string>
+        <string>-m</string>
+        <string>quant_trading_system.monitoring.scheduler</string>
     </array>
     <key>WorkingDirectory</key>
     <string>/Users/bumsangkim/Dev/TripleA/economic_data_pipeline</string>
@@ -254,6 +270,11 @@ sudo systemctl status economic-pipeline
     <string>/Users/bumsangkim/Dev/TripleA/economic_data_pipeline/pipeline.log</string>
     <key>StandardErrorPath</key>
     <string>/Users/bumsangkim/Dev/TripleA/economic_data_pipeline/pipeline.log</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>/Users/bumsangkim/Dev/TripleA</string>
+    </dict>
 </dict>
 </plist>
 ```
@@ -268,34 +289,28 @@ launchctl start com.economic-pipeline
 ## 📁 프로젝트 구조
 
 ```
-economic_data_pipeline/
-├── .env                 # API 키 (Git 제외 - .gitignore에 포함)
-├── .env.example         # API 키 템플릿
-├── .gitignore
-├── requirements.txt
-├── config.py            # 환경변수 로드
-├── collector.py         # API 수집 모듈 (재시도·타임아웃 포함)
-├── database.py          # SQLite CRUD
-├── preprocessor.py      # 정제·이상치 처리·통계 산출
-├── summarizer.py        # 지표 요약
-├── chart_generator.py   # Matplotlib 차트 생성
-├── telegram_sender.py   # 텔레그램 전송 (신호 알림 포함)
-├── monitor.py           # 품질 모니터링
-├── dashboard.py         # Streamlit 대시보드
-├── transforms/
-│   ├── technical_indicators.py  # RSI·SMA·EMA·MACD·볼린저 밴드
-│   └── relative_strength.py     # SMH/SPY 상대강도
-├── strategies/
-│   ├── __init__.py           # run_all_strategies()
-│   ├── base.py               # BaseStrategy 추상 클래스
-│   ├── golden_cross.py       # SMA5/SMA20 크로스
-│   ├── rsi_signal.py         # RSI 과매수·과매도
-│   └── macd_signal.py        # MACD 모멘텀
-├── main.py              # 수동 실행 진입점
-├── scheduler.py         # APScheduler 자동 실행
-├── economic_data.db     # SQLite DB (자동 생성)
-├── tests/               # pytest 101개 테스트
-└── pipeline.log         # 실행 로그 (자동 생성)
+TripleA/
+├── config.yaml
+├── quant_trading_system/
+│   ├── agents/          # LLM/Gemini 보조 분석
+│   ├── config/          # indicators.yaml, economic_events.yaml, env settings
+│   ├── data/            # 외부 API/크롤러 수집
+│   ├── db/              # DB schema, persistence, query helpers
+│   ├── execution/       # broker client, paper broker, order executor
+│   ├── features/        # preprocess, technical indicators, relative strength
+│   ├── monitoring/      # Telegram, quality checks, charts, dashboard, scheduler
+│   ├── risk/            # position/order risk limits
+│   ├── strategies/      # Strategy interface and alpha signals
+│   └── main.py          # pipeline orchestration
+├── economic_data_pipeline/
+│   ├── .env
+│   ├── requirements.txt
+│   ├── run.sh
+│   ├── start_scheduler.sh
+│   ├── economic_data.db
+│   ├── pipeline.log
+│   └── tests/
+└── DevelopLog/
 ```
 
 ---

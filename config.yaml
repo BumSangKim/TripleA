@@ -1,0 +1,28 @@
+app:
+  name: TripleA
+  timezone: Asia/Seoul
+
+paths:
+  database: data/economic_data.db
+  indicators: config/indicators.yaml
+  economic_events: config/economic_events.yaml
+
+pipeline:
+  stages:
+    - data_collection
+    - preprocessing
+    - feature_engineering
+    - strategy_engine
+    - risk_management
+    - order_execution
+    - monitoring
+
+execution:
+  default_broker: paper
+  enable_live_trading: false
+
+risk:
+  default:
+    max_order_notional: 10000
+    max_position_notional: 50000
+

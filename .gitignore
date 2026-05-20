@@ -24,8 +24,17 @@ ENV/
 *.db
 *.log
 *.sqlite3
-pipeline.log
+data/pipeline.log
 .scheduler.pid
+
+# data/ 런타임 파일 (DB, 로그) — .gitkeep만 추적
+data/*.db
+data/*.log
+data/*.sqlite3
+
+# 구 디렉토리 (제거 후에도 OS 캐시에 남을 수 있음)
+economic_data_pipeline/
+quant_trading_system/
 
 # OS 파일
 .DS_Store
