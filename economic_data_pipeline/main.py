@@ -26,7 +26,7 @@ from collector import (
     clear_api_errors,
 )
 from summarizer import build_summary
-from telegram_sender import send_report, send_ir_summaries, send_api_alert
+from telegram_sender import send_report, send_ir_summaries, send_api_alert, send_signal_alerts
 from monitor import alert_if_fail
 
 logging.basicConfig(
@@ -387,6 +387,47 @@ def collect_all_indicators():
     if errors:
         logger.warning(f"[API 오류] {len(errors)}개 API 인증 오류 발생 → 텔레그램 알림 전송")
         send_api_alert(errors)
+
+    # ── 기술적 지표 피처 계산 + 매매 신호 생성 ───────────────────────
+    logger.info("[Quant] 기술적 지표 피처 계산 및 매매 신호 생성 중...")
+    try:
+        from transforms.technical_indicators import compute_all_features
+        from strategies import run_all_strategies
+        from database import save_features, save_signal, mark_signal_notified
+
+        # 주요 지표 피처 저장
+        for ind in ["KOSPI", "KOSDAQ", "GOLD", "WTI", "USD_KRW", "US500", "SMH", "SPY"]:
+            features = compute_all_features(ind, DB_PATH)
+            if features:
+                save_features(features, DB_PATH)
+                logger.info(
+                    f"  [{ind}] RSI={features.get('rsi14')}, "
+                    f"MA={features.get('ma_signal')}, MACD={features.get('macd_bias')}"
+                )
+
+        # 전략 실행 → 신호 생성 → DB 저장 → 텔레그램 전송
+        signals = run_all_strategies(db_path=DB_PATH)
+        if signals:
+            stored_signals = []
+            for sig in signals:
+                sid = save_signal(
+                    indicator=sig["indicator"],
+                    signal_type=sig["signal_type"],
+                    strategy=sig["strategy"],
+                    confidence=sig["confidence"],
+                    price=sig.get("price"),
+                    detail=sig.get("detail"),
+                    db_path=DB_PATH,
+                )
+                stored_signals.append({**sig, "_id": sid})
+            n_sent = send_signal_alerts(signals)
+            for sig in stored_signals:
+                mark_signal_notified(sig["_id"], DB_PATH)
+            logger.info(f"[Quant] 신호 {len(signals)}건 생성, {n_sent}건 텔레그램 전송 완료")
+        else:
+            logger.info("[Quant] 매매 신호 없음")
+    except Exception as e:
+        logger.error(f"[Quant] 피처/신호 계산 오류: {e}")
 
 
 if __name__ == "__main__":

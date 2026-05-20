@@ -17,6 +17,9 @@ NAVER_SECRET       = os.getenv("NAVER_CLIENT_SECRET")
 KIPRIS_KEY         = os.getenv("KIPRIS_API_KEY")
 TG_TOKEN           = os.getenv("TELEGRAM_BOT_TOKEN")
 TG_CHAT_ID         = os.getenv("TELEGRAM_CHAT_ID")
+KIS_APP_KEY        = os.getenv("KIS_APP_KEY")    # 한국투자증권 앱 키
+KIS_APP_SECRET     = os.getenv("KIS_APP_SECRET")  # 한국투자증권 시크릿
+KIS_ISDEMO         = os.getenv("KIS_ISDEMO", "false").lower() == "true"  # 모의투자 여부
 
 
 def discover_chat_id() -> str | None:

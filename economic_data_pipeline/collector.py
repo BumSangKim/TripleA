@@ -7,7 +7,7 @@ import requests
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from config import ECOS_KEY, FRED_KEY, FMP_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY
+from config import ECOS_KEY, FRED_KEY, FMP_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY, KIS_APP_KEY, KIS_APP_SECRET, KIS_ISDEMO
 from database import DB_PATH as DEFAULT_DB_PATH, mask_sensitive_url, save_raw_observation
 
 logger = logging.getLogger(__name__)
@@ -778,3 +778,114 @@ def fetch_utility_capex(tickers: list[str] | None = None) -> list[dict]:
         data = fetch_fmp_capex(ticker, limit=4)
         results.extend(data)
     return results
+
+
+# ── 한국투자증권 KIS OpenAPI ─────────────────────────────────────────────────
+
+_KIS_BASE_REAL = "https://openapi.koreainvestment.com:9443"
+_KIS_BASE_DEMO = "https://openapivts.koreainvestment.com:29443"
+_kis_access_token: dict = {}   # 토큰 캐시 {token, expires_at}
+
+
+def _kis_base() -> str:
+    return _KIS_BASE_DEMO if KIS_ISDEMO else _KIS_BASE_REAL
+
+
+def _get_kis_token() -> str | None:
+    """KIS OAuth2 접근 토큰 발급 (캐시 유지)."""
+    import time
+    if not KIS_APP_KEY or not KIS_APP_SECRET:
+        logger.warning("[KIS] KIS_APP_KEY / KIS_APP_SECRET 설정 안 됨")
+        return None
+    now = time.time()
+    if _kis_access_token.get("token") and _kis_access_token.get("expires_at", 0) > now + 60:
+        return _kis_access_token["token"]
+    try:
+        res = requests.post(
+            f"{_kis_base()}/oauth2/tokenP",
+            json={"grant_type": "client_credentials", "appkey": KIS_APP_KEY, "appsecret": KIS_APP_SECRET},
+            timeout=10,
+        )
+        res.raise_for_status()
+        data = res.json()
+        token = data.get("access_token")
+        if not token:
+            logger.error(f"[KIS] 토큰 발급 실패: {data.get('msg1', 'unknown')}")
+            return None
+        expires_in = int(data.get("expires_in", 86400))
+        _kis_access_token["token"] = token
+        _kis_access_token["expires_at"] = now + expires_in
+        logger.info("[KIS] 액세스 토큰 발급 완료")
+        return token
+    except Exception as e:
+        logger.error(f"[KIS] 토큰 요청 오류: {_sanitize_error(e)}")
+        _record_auth_error("KIS", str(e))
+        return None
+
+
+def fetch_kis_ohlcv(
+    symbol: str,
+    period: str = "D",
+    count: int = 100,
+    db_path: str = DEFAULT_DB_PATH,
+) -> list[dict]:
+    """
+    KIS OpenAPI로 국내 상장 주식·지수 일별 OHLCV 조회.
+    period: "D"=일, "W"=주, "M"=월
+    반환: [{"date": "YYYY-MM-DD", "open": float, "high": float, "low": float,
+             "close": float, "volume": int}, ...] 최신순
+    """
+    token = _get_kis_token()
+    if not token:
+        return []
+
+    from datetime import date
+    today = date.today().strftime("%Y%m%d")
+    start = "19900101"  # 충분히 과거로 설정 (count로 제한)
+
+    tr_id = "FHKST01010400"  # 국내 주식 기간별 시세
+    headers = {
+        "Content-Type": "application/json; charset=utf-8",
+        "authorization": f"Bearer {token}",
+        "appkey": KIS_APP_KEY,
+        "appsecret": KIS_APP_SECRET,
+        "tr_id": tr_id,
+        "custtype": "P",
+    }
+    params = {
+        "fid_cond_mrkt_div_code": "J",
+        "fid_input_iscd": symbol,
+        "fid_input_date_1": start,
+        "fid_input_date_2": today,
+        "fid_period_div_code": period,
+        "fid_org_adj_prc": "0",  # 수정주가 미사용
+    }
+    url = f"{_kis_base()}/uapi/domestic-stock/v1/quotations/inquire-daily-price"
+    try:
+        res = get_session().get(url, headers=headers, params=params, timeout=10)
+        if res.status_code in (401, 403):
+            _record_auth_error("KIS", f"HTTP {res.status_code}: {res.text[:200]}")
+            return []
+        res.raise_for_status()
+        items = res.json().get("output", [])
+        if not items:
+            logger.warning(f"[KIS] {symbol} OHLCV 데이터 없음")
+            return []
+        results = []
+        for item in items[:count]:
+            try:
+                results.append({
+                    "date":   item["stck_bsop_date"][:4] + "-" + item["stck_bsop_date"][4:6] + "-" + item["stck_bsop_date"][6:],
+                    "open":   float(item["stck_oprc"]),
+                    "high":   float(item["stck_hgpr"]),
+                    "low":    float(item["stck_lwpr"]),
+                    "close":  float(item["stck_clpr"]),
+                    "volume": int(item["acml_vol"]),
+                })
+            except (KeyError, ValueError):
+                continue
+        logger.info(f"[KIS] {symbol} OHLCV {len(results)}건 수집")
+        return results
+    except Exception as e:
+        logger.error(f"[KIS] {symbol} 조회 오류: {_sanitize_error(e)}")
+        return []

@@ -181,6 +181,62 @@ def init_db(db_path: str = DB_PATH):
     """)
 
     # ── 인덱스 ────────────────────────────────────────────────────
+    # ── OHLCV 시장 데이터 (KIS/Yahoo 실시간/일봉) ──────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS market_data (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol     TEXT NOT NULL,          -- e.g. '005930', '^KS11', 'GC=F'
+            date       TEXT NOT NULL,
+            open       REAL,
+            high       REAL,
+            low        REAL,
+            close      REAL NOT NULL,
+            volume     REAL,
+            source     TEXT,                   -- 'KIS' | 'Yahoo' | 'ECOS'
+            created_at TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(symbol, date)
+        )
+    """)
+
+    # ── 기술적 지표 피처 스냅샷 ──────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS features (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            indicator    TEXT NOT NULL,
+            computed_at  TEXT DEFAULT (datetime('now','localtime')),
+            sma5         REAL,
+            sma20        REAL,
+            ema12        REAL,
+            rsi14        REAL,
+            macd         REAL,
+            macd_signal  REAL,
+            macd_hist    REAL,
+            bb_upper     REAL,
+            bb_middle    REAL,
+            bb_lower     REAL,
+            bb_bandwidth REAL,
+            n_obs        INTEGER,
+            rsi_signal   TEXT,  -- OVERBOUGHT | OVERSOLD | NEUTRAL
+            ma_signal    TEXT,  -- GOLDEN_CROSS | DEAD_CROSS
+            macd_bias    TEXT   -- BULLISH | BEARISH
+        )
+    """)
+
+    # ── 매매 신호 테이블 ─────────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS signals (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at   TEXT DEFAULT (datetime('now','localtime')),
+            indicator    TEXT NOT NULL,
+            signal_type  TEXT NOT NULL,        -- 'BUY' | 'SELL' | 'HOLD'
+            strategy     TEXT,                 -- 'golden_cross' | 'rsi' | 'macd'
+            confidence   REAL,                 -- 0.0 ~ 1.0
+            price        REAL,
+            detail       TEXT,                 -- 판단 근거 (JSON)
+            notified     INTEGER DEFAULT 0     -- 텔레그램 전송 여부
+        )
+    """)
+
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_date ON indicators(date)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_indicator ON indicators(indicator)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_stale ON indicators(is_stale)")
@@ -188,6 +244,9 @@ def init_db(db_path: str = DB_PATH):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ir_keyword_ticker ON ir_keyword_mentions(ticker)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_obs_source ON raw_observations(source)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_events_date ON economic_events(event_date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_market_data_symbol ON market_data(symbol, date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_features_indicator ON features(indicator)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_signals_created ON signals(created_at)")
     conn.commit()
     conn.close()
 
@@ -570,3 +629,110 @@ def save_ir_keyword_mentions(
         )
     conn.commit()
     conn.close()
+
+
+# ── 기술적 지표 피처 저장 ────────────────────────────────────────────────────
+
+def save_features(features: dict, db_path: str = DB_PATH) -> None:
+    """기술적 지표 피처 스냅샷 저장."""
+    if not features or not features.get("indicator"):
+        return
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO features
+            (indicator, sma5, sma20, ema12, rsi14, macd, macd_signal, macd_hist,
+             bb_upper, bb_middle, bb_lower, bb_bandwidth, n_obs,
+             rsi_signal, ma_signal, macd_bias)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            features.get("indicator"), features.get("sma5"), features.get("sma20"),
+            features.get("ema12"), features.get("rsi14"), features.get("macd"),
+            features.get("macd_signal"), features.get("macd_hist"),
+            features.get("bb_upper"), features.get("bb_middle"), features.get("bb_lower"),
+            features.get("bb_bandwidth"), features.get("n_obs"),
+            features.get("rsi_signal"), features.get("ma_signal"), features.get("macd_bias"),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_signal(
+    indicator: str,
+    signal_type: str,
+    strategy: str,
+    confidence: float,
+    price: float = None,
+    detail: str = None,
+    db_path: str = DB_PATH,
+) -> int:
+    """매매 신호 저장. 저장된 row id 반환."""
+    conn = sqlite3.connect(db_path)
+    cur = conn.execute(
+        """
+        INSERT INTO signals (indicator, signal_type, strategy, confidence, price, detail)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (indicator, signal_type, strategy, round(confidence, 4), price, detail),
+    )
+    row_id = cur.lastrowid
+    conn.commit()
+    conn.close()
+    return row_id
+
+
+def mark_signal_notified(signal_id: int, db_path: str = DB_PATH) -> None:
+    """텔레그램 전송 완료 표시."""
+    conn = sqlite3.connect(db_path)
+    conn.execute("UPDATE signals SET notified=1 WHERE id=?", (signal_id,))
+    conn.commit()
+    conn.close()
+
+
+def get_unnotified_signals(db_path: str = DB_PATH) -> list[dict]:
+    """아직 텔레그램으로 전송하지 않은 신호 목록."""
+    conn = sqlite3.connect(db_path)
+    rows = conn.execute(
+        """
+        SELECT id, indicator, signal_type, strategy, confidence, price, detail, created_at
+        FROM signals WHERE notified = 0
+        ORDER BY created_at DESC
+        """,
+    ).fetchall()
+    conn.close()
+    cols = ["id", "indicator", "signal_type", "strategy", "confidence", "price", "detail", "created_at"]
+    return [dict(zip(cols, r)) for r in rows]
+
+
+def upsert_market_data(
+    symbol: str,
+    date_str: str,
+    close: float,
+    open_: float = None,
+    high: float = None,
+    low: float = None,
+    volume: float = None,
+    source: str = None,
+    db_path: str = DB_PATH,
+) -> None:
+    """OHLCV 시장 데이터 upsert."""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO market_data (symbol, date, open, high, low, close, volume, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(symbol, date) DO UPDATE SET
+            open   = COALESCE(excluded.open,   open),
+            high   = COALESCE(excluded.high,   high),
+            low    = COALESCE(excluded.low,    low),
+            close  = excluded.close,
+            volume = COALESCE(excluded.volume, volume),
+            source = excluded.source
+        """,
+        (symbol, date_str, open_, high, low, close, volume, source),
+    )
+    conn.commit()
+    conn.close()
+

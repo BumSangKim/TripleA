@@ -23,6 +23,11 @@ from database import (
     get_upcoming_events,
     mask_sensitive_data,
     save_ir_keyword_mentions,
+    save_features,
+    save_signal,
+    mark_signal_notified,
+    get_unnotified_signals,
+    upsert_market_data,
 )
 
 
@@ -227,3 +232,90 @@ class TestIrKeywordMentions:
         ).fetchall()
         conn.close()
         assert rows == [("CoWoS", 1), ("HBM", 3)]
+
+
+class TestSaveFeatures:
+    def _make_features(self, indicator="KOSPI"):
+        return {
+            "indicator": indicator, "sma5": 100.0, "sma20": 98.0, "ema12": 101.0,
+            "rsi14": 55.0, "macd": 0.5, "macd_signal": 0.3, "macd_hist": 0.2,
+            "bb_upper": 110.0, "bb_middle": 100.0, "bb_lower": 90.0,
+            "bb_bandwidth": 20.0, "n_obs": 60,
+            "rsi_signal": "NEUTRAL", "ma_signal": "GOLDEN_CROSS", "macd_bias": "BULLISH",
+        }
+
+    def test_save_and_read_back(self, tmp_db):
+        save_features(self._make_features(), db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        row = conn.execute("SELECT indicator, rsi14 FROM features WHERE indicator='KOSPI'").fetchone()
+        conn.close()
+        assert row is not None
+        assert row[0] == "KOSPI"
+        assert row[1] == pytest.approx(55.0)
+
+    def test_no_indicator_skipped(self, tmp_db):
+        save_features({}, db_path=tmp_db)  # should not raise
+        conn = sqlite3.connect(tmp_db)
+        cnt = conn.execute("SELECT COUNT(*) FROM features").fetchone()[0]
+        conn.close()
+        assert cnt == 0
+
+    def test_multiple_saves_accumulate(self, tmp_db):
+        save_features(self._make_features("GOLD"), db_path=tmp_db)
+        save_features(self._make_features("KOSPI"), db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        cnt = conn.execute("SELECT COUNT(*) FROM features").fetchone()[0]
+        conn.close()
+        assert cnt == 2
+
+
+class TestSaveSignal:
+    def test_save_and_returns_id(self, tmp_db):
+        sid = save_signal("KOSPI", "BUY", "golden_cross", 0.75, 2600.0, "테스트", db_path=tmp_db)
+        assert isinstance(sid, int)
+        assert sid > 0
+
+    def test_signal_written_to_db(self, tmp_db):
+        save_signal("GOLD", "SELL", "rsi_signal", 0.8, 3000.0, "RSI 80", db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        row = conn.execute(
+            "SELECT indicator, signal_type, strategy, confidence FROM signals WHERE indicator='GOLD'"
+        ).fetchone()
+        conn.close()
+        assert row is not None
+        assert row[1] == "SELL"
+        assert row[2] == "rsi_signal"
+
+    def test_mark_signal_notified(self, tmp_db):
+        sid = save_signal("USD_KRW", "BUY", "macd_signal", 0.6, db_path=tmp_db)
+        unnotified_before = get_unnotified_signals(db_path=tmp_db)
+        assert any(s["id"] == sid for s in unnotified_before)
+        mark_signal_notified(sid, db_path=tmp_db)
+        unnotified_after = get_unnotified_signals(db_path=tmp_db)
+        assert all(s["id"] != sid for s in unnotified_after)
+
+
+class TestUpsertMarketData:
+    def test_basic_insert(self, tmp_db):
+        upsert_market_data("005930", "2024-01-02", 75000.0, 74000.0, 76000.0, 73000.0, 1000000, "KIS", db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        row = conn.execute("SELECT close FROM market_data WHERE symbol='005930'").fetchone()
+        conn.close()
+        assert row is not None
+        assert row[0] == pytest.approx(75000.0)
+
+    def test_upsert_updates_close(self, tmp_db):
+        upsert_market_data("005930", "2024-01-02", 75000.0, db_path=tmp_db)
+        upsert_market_data("005930", "2024-01-02", 77000.0, db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        row = conn.execute("SELECT close FROM market_data WHERE symbol='005930'").fetchone()
+        conn.close()
+        assert row[0] == pytest.approx(77000.0)
+
+    def test_different_dates_separate_rows(self, tmp_db):
+        upsert_market_data("005930", "2024-01-02", 75000.0, db_path=tmp_db)
+        upsert_market_data("005930", "2024-01-03", 76000.0, db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        cnt = conn.execute("SELECT COUNT(*) FROM market_data WHERE symbol='005930'").fetchone()[0]
+        conn.close()
+        assert cnt == 2

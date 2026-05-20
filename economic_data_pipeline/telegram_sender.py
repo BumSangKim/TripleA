@@ -380,3 +380,32 @@ def send_api_alert(errors: dict[str, str]) -> bool:
         lines.append("")
     lines.append("API 키 만료 여부를 확인하고 `.env` 파일을 업데이트하세요.")
     return _tg_send_message("\n".join(lines))
+
+
+def send_signal_alerts(signals: list[dict]) -> int:
+    """
+    매매 신호 목록을 텔레그램으로 전송.
+    반환: 전송된 신호 수
+    """
+    if not signals:
+        return 0
+
+    from datetime import datetime
+
+    EMOJI = {"BUY": "🟢", "SELL": "🔴", "HOLD": "🟡"}
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    lines = [f"*퀀트 신호 알림* ({now})", ""]
+
+    for sig in signals:
+        emoji = EMOJI.get(sig.get("signal_type", "HOLD"), "⚪")
+        conf_pct = round((sig.get("confidence") or 0) * 100)
+        lines.append(
+            f"{emoji} *{sig['indicator']}* {sig['signal_type']} "
+            f"(신뢰도 {conf_pct}%)"
+        )
+        if sig.get("detail"):
+            lines.append(f"   └ {sig['detail']}")
+
+    _tg_send_message("\n".join(lines))
+    logger.info(f"[Telegram] 퀀트 신호 {len(signals)}건 전송 완료")
+    return len(signals)

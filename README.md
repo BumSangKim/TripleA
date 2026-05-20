@@ -1,18 +1,42 @@
-# TripleA - 자동화 경제지표 데이터 수집·요약 시스템
+# TripleA - 자동화 퀀트 모니터링 시스템
 
-매일 **08:30**에 주요 경제지표를 수집·분석하여 **텔레그램**으로 자동 전송하는 파이프라인입니다.
+매일 **08:30**에 주요 경제지표를 수집·분석하고, **기술적 지표 기반 매매 신호**를 생성하여 **텔레그램**으로 자동 전송하는 통합 투자 모니터링 파이프라인입니다.
 
 ## 📋 시스템 개요
 
 | 항목 | 내용 |
 |------|------|
 | 전송 시각 | 매일 08:30 (Asia/Seoul) |
-| 데이터 소스 | 한국은행 ECOS, KOSIS, KRX, FRED, Naver 뉴스, RSS, KIPRIS |
-| 저장소 | SQLite (기본) |
+| 데이터 소스 | 한국은행 ECOS, KOSIS, KRX, FRED, Yahoo Finance, KIS OpenAPI, Naver 뉴스, KIPRIS |
+| 저장소 | SQLite (WAL 모드) |
 | 스케줄러 | APScheduler |
 | 전송 채널 | 텔레그램 봇 |
+| 대시보드 | Streamlit (`streamlit run dashboard.py`) |
+| 테스트 | pytest — 101개 통과 |
+
+### 🏗️ 아키텍처
+
+```
+[ 데이터 수집 ]          [ 피처 엔지니어링 ]       [ 신호 생성 ]
+   collector.py     →    transforms/           →   strategies/
+   - ECOS/FRED/Yahoo      - technical_indicators     - golden_cross
+   - KIS OHLCV            - relative_strength        - rsi_signal
+   - ERCOT/PJM                                       - macd_signal
+         ↓                       ↓                        ↓
+   [ SQLite DB ]           [ features 테이블 ]      [ signals 테이블 ]
+   indicators              RSI / SMA / MACD          BUY / SELL 신호
+   market_data             볼린저 밴드               텔레그램 알림
+         ↓
+   [ 분석 레이어 ]
+   ir_scraper + Gemini AI (SEC 8-K 요약)
+   monitor.py (품질 감시)
+   dashboard.py (Streamlit 대시보드)
+```
 
 ### 수집 지표
+
+<details>
+<summary>한국 지표 (ECOS · KOSIS · Yahoo)</summary>
 
 | 지표 | 출처 | 주기 | 상태 |
 |------|------|------|------|
@@ -27,10 +51,25 @@
 | 경제성장률(전기比) | 한국은행 ECOS | 분기 | ✅ |
 | 소비자심리지수 | 한국은행 ECOS | 월간 | ✅ |
 | 실업률 | 한국은행 ECOS | 월간 | ✅ |
-| 금 가격 | 한국은행 ECOS | 일간 | ✅ |
-| WTI 국제유가 | FRED | 일간 | ✅ |
+| 금 가격 | Yahoo Finance | 일간 | ✅ |
+
+</details>
+
+<details>
+<summary>미국 지표 (FRED · Yahoo)</summary>
+
+| 지표 | 출처 | 주기 | 상태 |
+|------|------|------|------|
+| WTI 국제유가 | Yahoo Finance / FRED | 일간 | ✅ |
 | 미국 CPI | FRED | 월간 | ✅ |
 | 미국 기준금리 | FRED | 월간 | ✅ |
+| 미국 10년물 국채 (US10Y) | Yahoo / FRED | 일간 | ✅ |
+| 달러 인덱스 (DXY) | Yahoo Finance | 일간 | ✅ |
+| S&P 500 ETF (SPY) | Yahoo Finance | 일간 | ✅ |
+| 반도체 ETF (SMH) | Yahoo Finance | 일간 | ✅ |
+| Hyperscaler CapEx | FMP | 분기 | ✅ |
+
+</details>
 
 > **참고**: ECOS `StatisticSearch` API는 불안정하여 `KeyStatisticList` API를 대신 사용합니다 (더 빠르고 안정적).
 
@@ -83,6 +122,9 @@ ECOS_API_KEY=발급받은_ECOS_키
 FRED_API_KEY=발급받은_FRED_키
 TELEGRAM_BOT_TOKEN=텔레그램_봇_토큰
 TELEGRAM_CHAT_ID=수신할_채팅_ID
+KIS_APP_KEY=한국투자증권_앱키         # OHLCV 조회용
+KIS_APP_SECRET=한국투자증권_시크릿
+KIS_ISDEMO=false                      # 모의투자: true
 ```
 
 #### 필수 API 키 발급처
@@ -91,8 +133,9 @@ TELEGRAM_CHAT_ID=수신할_채팅_ID
 |-----|----------|------|
 | 한국은행 ECOS | https://ecos.bok.or.kr/api/ | 회원가입 후 발급 (무료) |
 | FRED | https://fred.stlouisfed.org/docs/api/ | 이메일 인증 후 발급 (무료) |
-| Naver 뉴스 | https://developers.naver.com | 애플리케이션 등록 필요 (선택) |
-| KIPRIS | https://plus.kipris.or.kr | 특허청 회원가입 필요 (선택) |
+| KIS OpenAPI | https://apiportal.koreainvestment.com | 증권계좌 필요 |
+| Naver 뉴스 | https://developers.naver.com | 애플리케이션 등록 (선택) |
+| KIPRIS | https://plus.kipris.or.kr | 특허청 회원가입 (선택) |
 
 #### 텔레그램 봇 & 채팅 ID 얻는 방법
 
@@ -121,7 +164,7 @@ python main.py
 
 ---
 
-### 4. 스케줄러 실행 (매일 자동化)
+### 4. 스케줄러 실행 (매일 자동화)
 
 ```bash
 cd economic_data_pipeline
@@ -236,11 +279,22 @@ economic_data_pipeline/
 ├── preprocessor.py      # 정제·이상치 처리·통계 산출
 ├── summarizer.py        # 지표 요약
 ├── chart_generator.py   # Matplotlib 차트 생성
-├── telegram_sender.py   # 텔레그램 전송
+├── telegram_sender.py   # 텔레그램 전송 (신호 알림 포함)
 ├── monitor.py           # 품질 모니터링
+├── dashboard.py         # Streamlit 대시보드
+├── transforms/
+│   ├── technical_indicators.py  # RSI·SMA·EMA·MACD·볼린저 밴드
+│   └── relative_strength.py     # SMH/SPY 상대강도
+├── strategies/
+│   ├── __init__.py           # run_all_strategies()
+│   ├── base.py               # BaseStrategy 추상 클래스
+│   ├── golden_cross.py       # SMA5/SMA20 크로스
+│   ├── rsi_signal.py         # RSI 과매수·과매도
+│   └── macd_signal.py        # MACD 모멘텀
 ├── main.py              # 수동 실행 진입점
 ├── scheduler.py         # APScheduler 자동 실행
 ├── economic_data.db     # SQLite DB (자동 생성)
+├── tests/               # pytest 101개 테스트
 └── pipeline.log         # 실행 로그 (자동 생성)
 ```
 
@@ -279,17 +333,38 @@ economic_data_pipeline/
 tail -f pipeline.log
 ```
 
-### 수집 현황 조회 (SQLite)
+### 매매 신호 조회 (SQLite)
+
+```bash
+sqlite3 economic_data.db "SELECT created_at,indicator,signal_type,strategy,confidence FROM signals ORDER BY created_at DESC LIMIT 20;"
+```
+
+### 기술적 지표 피처 조회
+
+```bash
+sqlite3 economic_data.db "SELECT indicator,rsi14,ma_signal,macd_bias,bb_bandwidth FROM features ORDER BY computed_at DESC LIMIT 10;"
+```
+
+### 수집 현황 조회
 
 ```bash
 sqlite3 economic_data.db "SELECT indicator, date, value FROM indicators ORDER BY date DESC LIMIT 20;"
-```
-
-### 수집 성공률 조회
-
-```bash
 sqlite3 economic_data.db "SELECT status, COUNT(*) FROM collect_log WHERE run_date=date('now') GROUP BY status;"
 ```
+
+---
+
+## ⚠️ 신규 API 필요 항목
+
+현재 구조에서 다음 기능을 추가하려면 별도 API 등록 또는 인프라가 필요합니다.
+
+| 기능 | 필요 사항 |
+|------|----------|
+| **KIS 실제 주문 집행** | 현재 조회 전용. 주문 실행은 증권사 모의투자·실전 계좌 별도 설정 필요 |
+| **Upbit 암호화폐 거래** | https://upbit.com/service_center/open_api_guide 별도 등록 필요 |
+| **실시간 WebSocket 스트림** | KIS·Upbit 웹소켓 권한 별도 확인 필요 |
+| **PostgreSQL 마이그레이션** | 현재 SQLite → 운영 DB 전환 시 서버 필요 |
+| **Docker 컨테이너화** | Docker Desktop 설치 + Dockerfile 작성 필요 |
 
 ---
 
@@ -305,24 +380,17 @@ sqlite3 economic_data.db "SELECT status, COUNT(*) FROM collect_log WHERE run_dat
 | `python-dotenv` | 환경변수 관리 |
 | `feedparser` | RSS 파싱 |
 | `ruptures` | 변화점 탐지 |
+| `streamlit` | 대시보드 UI |
+| `google-genai` | Gemini AI IR 요약 |
+| `beautifulsoup4` | SEC 문서 파싱 |
 
 ---
 
 ## ⚠️ 주의사항
 
 1. **`.env` 파일은 절대 Git에 커밋하지 마세요.** `.gitignore`에 이미 포함되어 있습니다.
-2. `TELEGRAM_CHAT_ID`가 없어도 파이프라인은 실행됩니다. 봇에 `/start`를 보내면 자동 발견됩니다.
-3. ECOS `StatisticSearch` API는 현재 불안정 — `KeyStatisticList` API를 대신 사용합니다.
-4. FRED `GSCPI` 시리즈는 단종되어 건너뜁니다.
-5. Naver 뉴스 API는 별도 발급이 필요하며 미설정 시 자동으로 건너뜁니다.
+2. `KIS_APP_KEY` / `KIS_APP_SECRET`은 현재 **조회(OHLCV) 전용**으로 사용됩니다. 실제 주문 실행 코드는 포함되어 있지 않습니다.
+3. 매매 신호는 **참고용**이며 실제 투자 결정에 직접 사용하지 마세요.
+4. ECOS `StatisticSearch` API는 불안정하여 `KeyStatisticList` API를 대신 사용합니다.
+5. `TELEGRAM_CHAT_ID`가 없어도 파이프라인은 실행됩니다. 봇에 `/start`를 보내면 자동 발견됩니다.
 6. 변화율(▲▼)은 DB에 전일 데이터가 쌓인 2일차부터 표시됩니다.
-
----
-
-## 📈 고도화 제안
-
-- **변화점 탐지**: `ruptures` 라이브러리로 급격한 추세 변화 자동 감지
-- **ML 예측**: Prophet 또는 ARIMA로 CPI·환율 단기 예측
-- **감성 분석**: KR-FinBERT 한국어 모델로 뉴스 감성 지수 산출
-- **대시보드**: Grafana + SQLite 연동 실시간 대시보드
-- **Gemini AI 요약**: Gemini API를 활용한 자연어 경제 브리핑 생성
