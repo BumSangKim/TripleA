@@ -1,0 +1,91 @@
+# config/economic_events.yaml
+# 주요 미국 매크로 발표 이벤트 정의
+
+events:
+  - id: CPI
+    name: CPI
+    label: "CPI"
+    country: US
+    unit: "%"
+    interpretation_group: inflation
+    description: "Consumer Price Index"
+
+  - id: CORE_CPI
+    name: Core CPI
+    label: "Core CPI"
+    country: US
+    unit: "%"
+    interpretation_group: inflation
+    description: "Core Consumer Price Index"
+
+  - id: PPI
+    name: PPI
+    label: "PPI"
+    country: US
+    unit: "%"
+    interpretation_group: inflation
+    description: "Producer Price Index"
+
+  - id: NFP
+    name: NFP
+    label: "NFP"
+    country: US
+    unit: "K"
+    interpretation_group: labor
+    description: "Nonfarm Payrolls"
+
+  - id: UNEMPLOYMENT_RATE
+    name: Unemployment Rate
+    label: "Unemployment Rate"
+    country: US
+    unit: "%"
+    interpretation_group: unemployment
+    description: "Civilian Unemployment Rate"
+
+  - id: AVERAGE_HOURLY_EARNINGS
+    name: Average Hourly Earnings
+    label: "Average Hourly Earnings"
+    country: US
+    unit: "%"
+    interpretation_group: wages
+    description: "Average Hourly Earnings"
+
+  - id: PCE
+    name: PCE
+    label: "PCE"
+    country: US
+    unit: "%"
+    interpretation_group: inflation
+    description: "Personal Consumption Expenditures Price Index"
+
+  - id: FOMC
+    name: FOMC
+    label: "FOMC"
+    country: US
+    unit: "%"
+    interpretation_group: policy
+    description: "FOMC rate decision"
+
+  - id: GDP
+    name: GDP
+    label: "GDP"
+    country: US
+    unit: "%"
+    interpretation_group: growth
+    description: "Gross Domestic Product"
+
+  - id: ISM
+    name: ISM
+    label: "ISM"
+    country: US
+    unit: "index"
+    interpretation_group: growth
+    description: "ISM Manufacturing PMI"
+
+  - id: JOLTS
+    name: JOLTS
+    label: "JOLTS"
+    country: US
+    unit: "M"
+    interpretation_group: labor
+    description: "Job Openings and Labor Turnover Survey"

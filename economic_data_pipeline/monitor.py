@@ -3,6 +3,7 @@
 # 완전성 계산: date=today 기준이 아니라 indicator별 stale_days 기준 사용
 import sqlite3
 import logging
+import calendar
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -47,68 +48,144 @@ def get_stale_days(indicator: str, meta: dict) -> int:
     return _DEFAULT_STALE_DAYS.get(freq, 3)
 
 
-def check_data_quality(db_path: str = DB_PATH) -> dict:
+def _tracked_indicators(conn: sqlite3.Connection, meta: dict) -> list[str]:
+    """관측 최신성을 볼 지표 목록."""
+    tracked = [
+        k for k, v in meta.items()
+        if v.get("layer") not in ("ai_bottleneck",) and not k.startswith("CAPEX_")
+    ]
+    if tracked:
+        return tracked
+    rows = conn.execute("SELECT DISTINCT indicator FROM indicators").fetchall()
+    return [r[0] for r in rows]
+
+
+def _period_end(date_str: str, frequency: str) -> str:
+    """월간/분기 관측치가 기간 첫날로 들어와도 기간 말일 기준으로 stale 판정."""
+    if not date_str:
+        return date_str
+    try:
+        d = date.fromisoformat(date_str[:10])
+    except ValueError:
+        return date_str
+    if frequency == "monthly":
+        last_day = calendar.monthrange(d.year, d.month)[1]
+        return d.replace(day=last_day).isoformat()
+    if frequency == "quarterly":
+        quarter_end_month = ((d.month - 1) // 3 + 1) * 3
+        last_day = calendar.monthrange(d.year, quarter_end_month)[1]
+        return d.replace(month=quarter_end_month, day=last_day).isoformat()
+    return d.isoformat()
+
+
+def observation_quality(db_path: str = DB_PATH) -> dict:
     """
-    데이터 품질 지표 산출 (P0 fix: stale_days 기준)
-    - 완전성: indicator별 stale_days 이내에 데이터가 있으면 fresh로 간주
-    - 수집 성공률: 오늘 수집 로그 기준
+    지표 관측 최신성 산출.
+    observed_date가 있으면 우선 사용하고, 없으면 date를 사용한다. collected_at은
+    수집 시점이라 월간/분기 관측치의 최신성 판단에는 쓰지 않는다.
     """
     meta = _load_indicator_meta()
     today = date.today()
     conn = sqlite3.connect(db_path)
 
-    # 추적할 지표 목록: CapEx·파생 제외한 핵심 경제지표
-    tracked = [k for k, v in meta.items()
-               if v.get("layer") not in ("ai_bottleneck",) and not k.startswith("CAPEX_")]
-    if not tracked:
-        # YAML 로드 실패 fallback
-        tracked = conn.execute(
-            "SELECT DISTINCT indicator FROM indicators"
-        ).fetchall()
-        tracked = [r[0] for r in tracked]
-
+    tracked = _tracked_indicators(conn, meta)
     fresh_count = 0
     stale_indicators = []
     for indicator in tracked:
         stale_days = get_stale_days(indicator, meta)
+        frequency = meta.get(indicator, {}).get("frequency", "daily")
         cutoff = (today - timedelta(days=stale_days)).isoformat()
-        # collected_at 우선 체크: FRED 월별 지표는 date가 관측기간 1일(예: 2026-04-01)이라
-        # stale_days를 초과할 수 있음. 실제로 최근 수집했으면 fresh로 간주.
         row = conn.execute(
-            """SELECT MAX(COALESCE(date(collected_at), date))
+            """SELECT MAX(COALESCE(date(observed_date), date))
                FROM indicators
                WHERE indicator=?
-                 AND COALESCE(date(collected_at), date) >= ?""",
-            (indicator, cutoff),
+                 AND COALESCE(is_stale, 0)=0""",
+            (indicator,),
         ).fetchone()
-        if row and row[0]:
+        latest_period_end = _period_end(row[0], frequency) if row and row[0] else None
+        if latest_period_end and latest_period_end >= cutoff:
             fresh_count += 1
         else:
             stale_indicators.append(indicator)
 
     total_tracked = len(tracked)
+    conn.close()
 
-    # 오늘 수집 로그
+    return {
+        "completeness":     round(fresh_count / total_tracked * 100, 1) if total_tracked else 0,
+        "fresh_count":      fresh_count,
+        "total_tracked":    total_tracked,
+        "stale_indicators": stale_indicators,
+    }
+
+
+def collection_quality(db_path: str = DB_PATH) -> dict:
+    """
+    오늘 수집 실행 성공률 산출.
+    collector_runs가 있으면 source 단위 실행 결과를 우선 사용하고, 없으면 기존
+    collect_log를 fallback으로 사용한다.
+    """
+    today = date.today()
+    conn = sqlite3.connect(db_path)
     today_str = today.isoformat()
+
+    runs = conn.execute(
+        """
+        SELECT cr.status, COUNT(*)
+        FROM collector_runs cr
+        JOIN (
+            SELECT collector, MAX(run_at) AS latest_run_at
+            FROM collector_runs
+            WHERE date(run_at)=?
+            GROUP BY collector
+        ) latest
+          ON latest.collector = cr.collector
+         AND latest.latest_run_at = cr.run_at
+        GROUP BY cr.status
+        """,
+        (today_str,),
+    ).fetchall()
+    if runs:
+        conn.close()
+        counts = {status: count for status, count in runs}
+        success = counts.get("success", 0) + counts.get("ok", 0)
+        fail = counts.get("fail", 0) + counts.get("error", 0)
+        partial = counts.get("partial", 0)
+        total = success + fail + partial
+        return {
+            "success_rate": round(success / total * 100, 1) if total else 0,
+            "success_count": success,
+            "fail_count": fail + partial,
+            "partial_count": partial,
+            "total_runs": total,
+            "source": "collector_runs",
+        }
+
     logs = conn.execute(
         "SELECT status, COUNT(*) FROM collect_log WHERE run_date=? GROUP BY status",
         (today_str,),
     ).fetchall()
     conn.close()
-
     log_dict = dict(logs)
     success = log_dict.get("success", 0)
     fail    = log_dict.get("fail", 0)
     total   = success + fail
 
     return {
-        "completeness":    round(fresh_count / total_tracked * 100, 1) if total_tracked else 0,
-        "fresh_count":     fresh_count,
-        "total_tracked":   total_tracked,
-        "stale_indicators": stale_indicators,
         "success_rate":    round(success / total * 100, 1) if total else 0,
+        "success_count":   success,
         "fail_count":      fail,
+        "partial_count":   0,
+        "total_runs":      total,
+        "source":          "collect_log",
     }
+
+
+def check_data_quality(db_path: str = DB_PATH) -> dict:
+    """수집 성공률과 관측 최신성을 합친 하위 호환 품질 지표."""
+    quality = observation_quality(db_path=db_path)
+    quality.update(collection_quality(db_path=db_path))
+    return quality
 
 
 def alert_if_fail(db_path: str = DB_PATH):
@@ -119,7 +196,10 @@ def alert_if_fail(db_path: str = DB_PATH):
         if not chat_id:
             logger.warning(f"품질 경보 발생하였으나 TELEGRAM_CHAT_ID 미설정: {quality}")
             return
-        stale_list = ", ".join(quality["stale_indicators"][:5]) or "없음"
+        def _md_escape(text: str) -> str:
+            return str(text).replace("_", "\\_")
+
+        stale_list = ", ".join(_md_escape(x) for x in quality["stale_indicators"][:5]) or "없음"
         msg = (
             f"⚠️ *데이터 수집 경보*\n"
             f"• 완전성: {quality['completeness']}% ({quality['fresh_count']}/{quality['total_tracked']})\n"
@@ -139,4 +219,3 @@ def alert_if_fail(db_path: str = DB_PATH):
         logger.warning(f"품질 경보 발송: {quality}")
     else:
         logger.info(f"품질 정상: 완전성={quality['completeness']}% ({quality['fresh_count']}/{quality['total_tracked']})")
-

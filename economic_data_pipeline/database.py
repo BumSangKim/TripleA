@@ -1,7 +1,11 @@
 # database.py
 # SQLite 기반 경제지표 저장소 - CRUD 및 로그 관리
 import json
+import re
 import sqlite3
+from copy import deepcopy
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 import pandas as pd
 from datetime import date, datetime
 
@@ -24,6 +28,18 @@ def _migrate_columns(conn: sqlite3.Connection):
             conn.commit()
         except sqlite3.OperationalError:
             pass  # 이미 존재하는 컬럼 → 무시
+
+    extra_migrations = [
+        ("collector_runs", "finished_at", "TEXT"),
+        ("event_releases", "revised", "REAL"),
+        ("event_releases", "interpretation", "TEXT"),
+    ]
+    for table, col, col_def in extra_migrations:
+        try:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
 
 
 def init_db(db_path: str = DB_PATH):
@@ -75,6 +91,7 @@ def init_db(db_path: str = DB_PATH):
             items_ok     INTEGER DEFAULT 0,
             items_fail   INTEGER DEFAULT 0,
             duration_ms  INTEGER,
+            finished_at   TEXT,
             error_msg    TEXT
         )
     """)
@@ -138,9 +155,28 @@ def init_db(db_path: str = DB_PATH):
             actual       REAL,
             forecast     REAL,
             previous     REAL,
+            revised      REAL,
             surprise     REAL,    -- actual - forecast
+            interpretation TEXT,   -- hawkish | dovish | neutral
             unit         TEXT,
             source       TEXT
+        )
+    """)
+
+    # 기존 event_releases 테이블에 새 컬럼 보강
+    _migrate_columns(conn)
+
+    # ── IR 키워드 멘션 저장 (AI 병목) ──────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS ir_keyword_mentions (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            accession      TEXT NOT NULL,
+            ticker         TEXT NOT NULL,
+            filing_date    TEXT,
+            keyword        TEXT NOT NULL,
+            mention_count  INTEGER DEFAULT 0,
+            created_at     TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(accession, keyword)
         )
     """)
 
@@ -149,6 +185,7 @@ def init_db(db_path: str = DB_PATH):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_indicator ON indicators(indicator)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_stale ON indicators(is_stale)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_ir_filings_ticker ON ir_filings(ticker)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_ir_keyword_ticker ON ir_keyword_mentions(ticker)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_raw_obs_source ON raw_observations(source)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_events_date ON economic_events(event_date)")
     conn.commit()
@@ -283,6 +320,8 @@ def log_collector_run(
     items_ok: int = 0,
     items_fail: int = 0,
     duration_ms: int = None,
+    started_at: str = None,
+    finished_at: str = None,
     error_msg: str = None,
     db_path: str = DB_PATH,
 ):
@@ -290,16 +329,60 @@ def log_collector_run(
     conn = sqlite3.connect(db_path)
     conn.execute(
         """
-        INSERT INTO collector_runs (collector, status, items_ok, items_fail, duration_ms, error_msg)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO collector_runs
+            (run_at, collector, status, items_ok, items_fail, duration_ms, finished_at, error_msg)
+        VALUES (COALESCE(?, datetime('now','localtime')), ?, ?, ?, ?, ?, ?, ?)
         """,
-        (collector, status, items_ok, items_fail, duration_ms, error_msg),
+        (started_at, collector, status, items_ok, items_fail, duration_ms, finished_at, error_msg),
     )
     conn.commit()
     conn.close()
 
 
 # ── 원본 응답 저장 ──────────────────────────────────────────────────────────
+
+_SECRET_KEY_RE = re.compile(
+    r"^(api[_-]?key|apikey|access[_-]?token|accesstoken|token|secret|client[_-]?secret|auth|authorization|key)$",
+    re.I,
+)
+
+
+def mask_sensitive_url(url: str) -> str:
+    """URL query string 안의 API 키성 파라미터를 마스킹한다."""
+    try:
+        parts = urlsplit(url)
+    except Exception:
+        return url
+    if not parts.query:
+        return url
+    changed = False
+    pairs = []
+    for key, value in parse_qsl(parts.query, keep_blank_values=True):
+        if _SECRET_KEY_RE.search(key):
+            pairs.append((key, "***MASKED***"))
+            changed = True
+        else:
+            pairs.append((key, value))
+    if not changed:
+        return url
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(pairs), parts.fragment))
+
+
+def mask_sensitive_data(data):
+    """API 키/토큰/시크릿처럼 보이는 값은 raw 저장 전에 마스킹한다."""
+    if isinstance(data, dict):
+        return {
+            key: "***MASKED***" if _SECRET_KEY_RE.search(str(key)) else mask_sensitive_data(value)
+            for key, value in data.items()
+        }
+    if isinstance(data, list):
+        return [mask_sensitive_data(item) for item in data]
+    if isinstance(data, tuple):
+        return tuple(mask_sensitive_data(item) for item in data)
+    if isinstance(data, str):
+        return mask_sensitive_url(data)
+    return data
+
 
 def save_raw_observation(
     source: str,
@@ -309,10 +392,11 @@ def save_raw_observation(
     db_path: str = DB_PATH,
 ):
     """API 원본 응답을 JSON으로 raw_observations 테이블에 저장"""
+    raw_data = mask_sensitive_data(deepcopy(raw_data))
     try:
         raw_json = json.dumps(raw_data, ensure_ascii=False, default=str)
     except Exception:
-        raw_json = str(raw_data)
+        raw_json = str(mask_sensitive_data(raw_data))
     conn = sqlite3.connect(db_path)
     conn.execute(
         """
@@ -389,8 +473,10 @@ def save_event_release(
     actual: float = None,
     forecast: float = None,
     previous: float = None,
+    revised: float = None,
     unit: str = None,
     source: str = None,
+    event_name: str = None,
     db_path: str = DB_PATH,
 ):
     """경제 이벤트 실제 발표값 저장"""
@@ -398,15 +484,39 @@ def save_event_release(
     if actual is not None and forecast is not None:
         surprise = round(actual - forecast, 4)
     conn = sqlite3.connect(db_path)
+    if event_name is None and event_id is not None:
+        row = conn.execute("SELECT event_name FROM economic_events WHERE id=?", (event_id,)).fetchone()
+        event_name = row[0] if row else None
+    interpretation = interpret_event_surprise(event_name, surprise)
     conn.execute(
         """
-        INSERT INTO event_releases (event_id, actual, forecast, previous, surprise, unit, source)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO event_releases
+            (event_id, actual, forecast, previous, revised, surprise, interpretation, unit, source)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (event_id, actual, forecast, previous, surprise, unit, source),
+        (event_id, actual, forecast, previous, revised, surprise, interpretation, unit, source),
     )
     conn.commit()
     conn.close()
+
+
+def interpret_event_surprise(event_name: str = None, surprise: float = None) -> str | None:
+    """서프라이즈 방향을 금리 관점으로 해석한다."""
+    if surprise is None or not event_name:
+        return None
+    if surprise == 0:
+        return "neutral"
+    name = event_name.lower()
+    is_inflation_or_wage = any(
+        token in name
+        for token in ("cpi", "pce", "ppi", "average_hourly_earnings", "hourly", "wage", "earnings")
+    )
+    is_unemployment = "unemployment" in name or "jobless" in name
+    if is_inflation_or_wage:
+        return "hawkish" if surprise > 0 else "dovish"
+    if is_unemployment:
+        return "dovish" if surprise > 0 else "hawkish"
+    return None
 
 
 def get_upcoming_events(days_ahead: int = 7, db_path: str = DB_PATH) -> list[dict]:
@@ -418,7 +528,7 @@ def get_upcoming_events(days_ahead: int = 7, db_path: str = DB_PATH) -> list[dic
     rows = conn.execute(
         """
         SELECT e.id, e.event_date, e.event_time, e.event_name, e.country, e.description,
-               r.actual, r.forecast, r.previous, r.surprise
+               r.actual, r.forecast, r.previous, r.revised, r.surprise, r.interpretation
         FROM economic_events e
         LEFT JOIN event_releases r ON r.event_id = e.id
         WHERE e.event_date BETWEEN ? AND ?
@@ -428,5 +538,35 @@ def get_upcoming_events(days_ahead: int = 7, db_path: str = DB_PATH) -> list[dic
     ).fetchall()
     conn.close()
     cols = ["id", "event_date", "event_time", "event_name", "country", "description",
-            "actual", "forecast", "previous", "surprise"]
+            "actual", "forecast", "previous", "revised", "surprise", "interpretation"]
     return [dict(zip(cols, r)) for r in rows]
+
+
+def save_ir_keyword_mentions(
+    filing: dict,
+    keyword_counts: dict[str, int],
+    db_path: str = DB_PATH,
+):
+    """파일링별 AI 병목 키워드 등장 횟수 저장."""
+    if not filing or not keyword_counts:
+        return
+    accession = filing.get("accession")
+    ticker = filing.get("ticker")
+    if not accession or not ticker:
+        return
+    conn = sqlite3.connect(db_path)
+    for keyword, count in keyword_counts.items():
+        conn.execute(
+            """
+            INSERT INTO ir_keyword_mentions
+                (accession, ticker, filing_date, keyword, mention_count)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(accession, keyword) DO UPDATE SET
+                ticker = excluded.ticker,
+                filing_date = excluded.filing_date,
+                mention_count = excluded.mention_count
+            """,
+            (accession, ticker, filing.get("date"), keyword, int(count)),
+        )
+    conn.commit()
+    conn.close()

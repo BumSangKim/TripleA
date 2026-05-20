@@ -1,311 +1,444 @@
 # config/indicators.yaml
 # 단일 출처 지표 메타데이터 정의
-# 모든 모듈(summarizer, monitor, telegram_sender)이 이 파일을 참조한다.
 #
-# 필드 설명:
-#   label        : 텔레그램·차트에 표시할 한국어 레이블
-#   unit         : 값 단위
-#   frequency    : daily | weekly | monthly | quarterly
-#   stale_days   : 이 일수 이상 업데이트 없으면 stale로 간주
-#   source       : 주 수집 소스 (정보용)
-#   layer        : macro | korea | commodity | us | supply_chain | ai_bottleneck | power | equity
-#   chart        : true이면 기본 차트에 포함
+# 필수 필드:
+#   id, label, source_type, symbol, unit, frequency, stale_days, layer, report_section
+#
+# source_type:
+#   ecos_keystat | yahoo_quote | fred | hybrid_market_fred | nyfed_gscpi |
+#   fmp_capex | ercot_grid | pjm_load | derived
 
-# ── 한국 매크로 ─────────────────────────────────────────────────────────────
 indicators:
   CPI:
+    id: CPI
     label: "소비자물가지수"
+    source_type: ecos_keystat
+    symbol: "소비자물가지수"
     unit: "pt(2020=100)"
     frequency: monthly
     stale_days: 40
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: true
 
   PPI:
+    id: PPI
     label: "생산자물가지수"
+    source_type: ecos_keystat
+    symbol: "생산자물가지수"
     unit: "pt(2020=100)"
     frequency: monthly
     stale_days: 40
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
   USD_KRW:
+    id: USD_KRW
     label: "원/달러 환율"
+    source_type: ecos_keystat
+    symbol: "원/달러 환율(종가)"
     unit: "원"
     frequency: daily
     stale_days: 3
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: true
 
   BASE_RATE:
+    id: BASE_RATE
     label: "한국 기준금리"
+    source_type: ecos_keystat
+    symbol: "한국은행 기준금리"
     unit: "%"
     frequency: monthly
     stale_days: 40
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
   KOSPI:
+    id: KOSPI
     label: "코스피"
+    source_type: yahoo_quote
+    symbol: "^KS11"
     unit: "pt"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:^KS11"
     layer: korea
+    report_section: "자본 흐름"
     chart: true
 
   KOSDAQ:
+    id: KOSDAQ
     label: "코스닥"
+    source_type: yahoo_quote
+    symbol: "^KQ11"
     unit: "pt"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:^KQ11"
     layer: korea
+    report_section: "자본 흐름"
     chart: false
 
   UNEMPLOYMENT:
+    id: UNEMPLOYMENT
     label: "실업률"
+    source_type: ecos_keystat
+    symbol: "실업률"
     unit: "%"
     frequency: monthly
     stale_days: 40
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
   BOND_3Y:
+    id: BOND_3Y
     label: "국고채(3년)"
+    source_type: ecos_keystat
+    symbol: "국고채수익률(3년)"
     unit: "%"
     frequency: daily
     stale_days: 3
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
   GDP_GROWTH:
+    id: GDP_GROWTH
     label: "경제성장률(전기比)"
+    source_type: ecos_keystat
+    symbol: "경제성장률(실질, 계절조정 전기대비)"
     unit: "%"
     frequency: quarterly
     stale_days: 100
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
   CSI:
+    id: CSI
     label: "소비자심리지수"
+    source_type: ecos_keystat
+    symbol: "소비자심리지수"
     unit: ""
     frequency: monthly
     stale_days: 40
-    source: "ECOS:KeyStatisticList"
     layer: korea
+    report_section: "매크로 유동성"
     chart: false
 
-# ── 국제 원자재 ─────────────────────────────────────────────────────────────
   DUBAI_OIL:
+    id: DUBAI_OIL
     label: "두바이유"
+    source_type: yahoo_quote
+    symbol: "BZ=F"
     unit: "USD/bbl"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:BZ=F"
     layer: commodity
+    report_section: "매크로 유동성"
     chart: true
 
   GOLD:
+    id: GOLD
     label: "금 가격"
+    source_type: yahoo_quote
+    symbol: "GC=F"
     unit: "USD/oz"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:GC=F"
     layer: commodity
+    report_section: "매크로 유동성"
     chart: true
 
   WTI:
+    id: WTI
     label: "WTI 국제유가"
+    source_type: hybrid_market_fred
+    symbol: "CL=F"
+    fred_symbol: DCOILWTICO
     unit: "USD/bbl"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:CL=F / FRED:DCOILWTICO"
     layer: commodity
+    report_section: "매크로 유동성"
     chart: true
 
-# ── 미국 매크로 ─────────────────────────────────────────────────────────────
   US_CPI:
+    id: US_CPI
     label: "미국 CPI"
+    source_type: fred
+    symbol: CPIAUCSL
     unit: "index"
     frequency: monthly
     stale_days: 40
-    source: "FRED:CPIAUCSL"
     layer: us
+    report_section: "매크로 유동성"
     chart: false
 
   FED_RATE:
+    id: FED_RATE
     label: "미국 기준금리"
+    source_type: fred
+    symbol: FEDFUNDS
     unit: "%"
     frequency: monthly
     stale_days: 40
-    source: "FRED:FEDFUNDS"
     layer: us
+    report_section: "매크로 유동성"
     chart: false
 
   US10Y:
+    id: US10Y
     label: "미국 10Y 국채금리"
+    source_type: hybrid_market_fred
+    symbol: "^TNX"
+    fred_symbol: DGS10
     unit: "%"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:^TNX / FRED:DGS10"
     layer: us
+    report_section: "매크로 유동성"
     chart: false
 
   DXY:
+    id: DXY
     label: "달러인덱스(DXY·ICE)"
+    source_type: yahoo_quote
+    symbol: "DX-Y.NYB"
     unit: "index"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:DX-Y.NYB"
     layer: us
+    report_section: "매크로 유동성"
     chart: false
 
   USD_INDEX:
+    id: USD_INDEX
     label: "달러무역가중지수(DTWEXBGS)"
+    source_type: fred
+    symbol: DTWEXBGS
     unit: "index"
     frequency: weekly
     stale_days: 10
-    source: "FRED:DTWEXBGS"
     layer: us
+    report_section: "매크로 유동성"
     chart: false
 
-# ── 공급망 ─────────────────────────────────────────────────────────────────
   PMI_SDT:
+    id: PMI_SDT
     label: "공급망압력(GSCPI·PMI)"
+    source_type: nyfed_gscpi
+    symbol: GSCPI
     unit: "σ"
     frequency: monthly
     stale_days: 40
-    source: "NY_FED:GSCPI"
     layer: supply_chain
+    report_section: "AI 병목"
     chart: true
 
-# ── Hyperscaler CapEx (AI 병목 S1) ──────────────────────────────────────────
   CAPEX_MSFT:
+    id: CAPEX_MSFT
     label: "Microsoft CapEx"
+    source_type: fmp_capex
+    symbol: MSFT
     unit: "B USD"
     frequency: quarterly
     stale_days: 100
-    source: "FMP:MSFT"
     layer: ai_bottleneck
+    report_section: "AI 병목"
     chart: false
 
   CAPEX_GOOGL:
+    id: CAPEX_GOOGL
     label: "Alphabet CapEx"
+    source_type: fmp_capex
+    symbol: GOOGL
     unit: "B USD"
     frequency: quarterly
     stale_days: 100
-    source: "FMP:GOOGL"
     layer: ai_bottleneck
+    report_section: "AI 병목"
     chart: false
 
   CAPEX_META:
+    id: CAPEX_META
     label: "Meta CapEx"
+    source_type: fmp_capex
+    symbol: META
     unit: "B USD"
     frequency: quarterly
     stale_days: 100
-    source: "FMP:META"
     layer: ai_bottleneck
+    report_section: "AI 병목"
     chart: false
 
   CAPEX_AMZN:
+    id: CAPEX_AMZN
     label: "Amazon CapEx"
+    source_type: fmp_capex
+    symbol: AMZN
     unit: "B USD"
     frequency: quarterly
     stale_days: 100
-    source: "FMP:AMZN"
     layer: ai_bottleneck
+    report_section: "AI 병목"
     chart: false
 
-# ── 반도체·AI 섹터 ETF (자본 흐름 P2) ──────────────────────────────────────
   SMH:
+    id: SMH
     label: "반도체 ETF (SMH)"
+    source_type: yahoo_quote
+    symbol: SMH
     unit: "USD"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:SMH"
     layer: equity
+    report_section: "자본 흐름"
     chart: false
 
   SOXX:
+    id: SOXX
     label: "반도체 ETF (SOXX)"
+    source_type: yahoo_quote
+    symbol: SOXX
     unit: "USD"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:SOXX"
     layer: equity
+    report_section: "자본 흐름"
     chart: false
 
   XLU:
+    id: XLU
     label: "유틸리티 ETF (XLU)"
+    source_type: yahoo_quote
+    symbol: XLU
     unit: "USD"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:XLU"
     layer: power
+    report_section: "전력 병목"
     chart: false
 
   SPY:
+    id: SPY
     label: "S&P500 ETF (SPY)"
+    source_type: yahoo_quote
+    symbol: SPY
     unit: "USD"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:SPY"
     layer: equity
+    report_section: "자본 흐름"
     chart: false
 
   QQQ:
+    id: QQQ
     label: "나스닥100 ETF (QQQ)"
+    source_type: yahoo_quote
+    symbol: QQQ
     unit: "USD"
     frequency: daily
     stale_days: 3
-    source: "Yahoo:QQQ"
     layer: equity
+    report_section: "자본 흐름"
     chart: false
 
-# ── 상대강도 파생 지표 ────────────────────────────────────────────────────────
   RS_SMH_SPY:
+    id: RS_SMH_SPY
     label: "반도체/S&P500 상대강도"
+    source_type: derived
+    symbol: SMH/SPY
     unit: "ratio"
     frequency: daily
     stale_days: 3
-    source: "derived:SMH/SPY"
     layer: equity
+    report_section: "자본 흐름"
     chart: false
 
   RS_XLU_SPY:
+    id: RS_XLU_SPY
     label: "유틸리티/S&P500 상대강도"
+    source_type: derived
+    symbol: XLU/SPY
     unit: "ratio"
     frequency: daily
     stale_days: 3
-    source: "derived:XLU/SPY"
     layer: power
+    report_section: "전력 병목"
     chart: false
 
-# ── 이벤트 일정 (참조용) ─────────────────────────────────────────────────────
-economic_events:
-  - name: US_CPI
-    description: "미국 소비자물가지수 발표"
-    country: US
-  - name: NFP
-    description: "비농업 고용지수 발표"
-    country: US
-  - name: PCE
-    description: "개인소비지출 물가지수 발표"
-    country: US
-  - name: FOMC
-    description: "FOMC 기준금리 결정"
-    country: US
-  - name: KR_CPI
-    description: "한국 소비자물가지수 발표"
-    country: KR
-  - name: KR_GDP
-    description: "한국 GDP 속보치 발표"
-    country: KR
+  ERCOT_LOAD_MW:
+    id: ERCOT_LOAD_MW
+    label: "ERCOT 전력 부하"
+    source_type: ercot_grid
+    symbol: load_mw
+    unit: "MW"
+    frequency: daily
+    stale_days: 3
+    layer: power
+    report_section: "전력 병목"
+    chart: false
+
+  ERCOT_RESERVE_MARGIN:
+    id: ERCOT_RESERVE_MARGIN
+    label: "ERCOT 예비율"
+    source_type: ercot_grid
+    symbol: reserve_margin_pct
+    unit: "%"
+    frequency: daily
+    stale_days: 3
+    layer: power
+    report_section: "전력 병목"
+    chart: false
+
+  PJM_LOAD_MW:
+    id: PJM_LOAD_MW
+    label: "PJM 전력 부하"
+    source_type: pjm_load
+    symbol: load_mw
+    unit: "MW"
+    frequency: daily
+    stale_days: 3
+    layer: power
+    report_section: "전력 병목"
+    chart: false
+
+  CAPEX_NEE:
+    id: CAPEX_NEE
+    label: "NextEra Energy CapEx"
+    source_type: fmp_capex
+    symbol: NEE
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    layer: power
+    report_section: "전력 병목"
+    chart: false
+
+  CAPEX_DUK:
+    id: CAPEX_DUK
+    label: "Duke Energy CapEx"
+    source_type: fmp_capex
+    symbol: DUK
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    layer: power
+    report_section: "전력 병목"
+    chart: false
+
+  CAPEX_SO:
+    id: CAPEX_SO
+    label: "Southern Company CapEx"
+    source_type: fmp_capex
+    symbol: SO
+    unit: "B USD"
+    frequency: quarterly
+    stale_days: 100
+    layer: power
+    report_section: "전력 병목"
+    chart: false

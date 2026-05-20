@@ -1,10 +1,14 @@
 # main.py
 # 파이프라인 통합 진입점 - 수집 → 저장 → 요약 → 전송
 import logging
-from datetime import date
+import time
+from contextlib import contextmanager
+from datetime import date, datetime
+from pathlib import Path
 
+import yaml
 from config import validate_config
-from database import init_db, upsert_indicator, log_collect, get_previous_value
+from database import init_db, upsert_indicator, log_collect, get_previous_value, log_collector_run
 from collector import (
     fetch_ecos_keystat,
     fetch_fred,
@@ -12,6 +16,8 @@ from collector import (
     fetch_dxy_yahoo,
     fetch_yahoo_quote,
     fetch_fmp_capex,
+    fetch_ercot_grid_status,
+    fetch_pjm_load,
     fetch_naver_news,
     fetch_rss,
     fetch_krx_index,
@@ -34,35 +40,64 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DB_PATH = "economic_data.db"
+INDICATORS_YAML = Path(__file__).parent / "config" / "indicators.yaml"
 
-# ECOS KeyStatisticList 지표명 -> (내부키, 단위, 주기) 매핑
-# 실시간 가격(KOSPI/KOSDAQ/금/원유)은 Yahoo Finance에서 별도 수집
-# (한국어 지표명) -> (내부키, 단위, 수집주기)
-ECOS_KEY_MAP = {
-    "소비자물가지수":                        ("CPI",          "index",  "monthly"),
-    "생산자물가지수":                        ("PPI",          "index",  "monthly"),
-    "원/달러 환율(종가)":                    ("USD_KRW",      "원",     "daily"),
-    "한국은행 기준금리":                     ("BASE_RATE",    "%",      "monthly"),
-    "실업률":                                ("UNEMPLOYMENT", "%",      "monthly"),
-    "국고채수익률(3년)":                     ("BOND_3Y",      "%",      "daily"),
-    "경제성장률(실질, 계절조정 전기대비)":   ("GDP_GROWTH",   "%",      "quarterly"),
-    "소비자심리지수":                        ("CSI",          "",       "monthly"),
-}
 
-# Yahoo Finance에서 실시간 수집할 지표 (실제 날짜 사용)
-# (심볼) -> (내부키, 단위, 소스 레이블, 수집주기)
-YAHOO_QUOTE_MAP = {
-    "^KS11":   ("KOSPI",     "pt",      "Yahoo:^KS11",    "daily"),
-    "^KQ11":   ("KOSDAQ",    "pt",      "Yahoo:^KQ11",    "daily"),
-    "GC=F":    ("GOLD",      "USD/oz",  "Yahoo:GC=F",     "daily"),
-    "BZ=F":    ("DUBAI_OIL", "USD/bbl", "Yahoo:BZ=F",     "daily"),
-    # ── P2: 섹터 ETF / 자본 흐름 ──────────────────────────────
-    "SMH":     ("SMH",       "USD",     "Yahoo:SMH",      "daily"),
-    "SOXX":    ("SOXX",      "USD",     "Yahoo:SOXX",     "daily"),
-    "XLU":     ("XLU",       "USD",     "Yahoo:XLU",      "daily"),
-    "SPY":     ("SPY",       "USD",     "Yahoo:SPY",      "daily"),
-    "QQQ":     ("QQQ",       "USD",     "Yahoo:QQQ",      "daily"),
-}
+def load_indicator_meta() -> dict:
+    """indicators.yaml을 단일 지표 메타데이터 출처로 사용한다."""
+    try:
+        with open(INDICATORS_YAML, encoding="utf-8") as f:
+            return yaml.safe_load(f).get("indicators", {})
+    except Exception as e:
+        logger.error(f"indicators.yaml 로드 실패: {e}")
+        return {}
+
+
+def indicators_by_source(source_type: str, meta: dict = None) -> dict:
+    meta = meta or load_indicator_meta()
+    return {
+        key: value
+        for key, value in meta.items()
+        if value.get("source_type") == source_type
+    }
+
+
+@contextmanager
+def collector_run(collector: str):
+    """source별 실행 시작/종료/성공/실패/소요시간 기록."""
+    started = datetime.now()
+    counts = {"ok": 0, "fail": 0}
+    error_msg = None
+
+    def record(success: bool = True, count: int = 1):
+        counts["ok" if success else "fail"] += count
+
+    try:
+        yield record
+    except Exception as e:
+        counts["fail"] += 1
+        error_msg = str(e)
+        logger.exception("[%s] collector block failed", collector)
+    finally:
+        finished = datetime.now()
+        duration_ms = int((finished - started).total_seconds() * 1000)
+        if error_msg or (counts["fail"] and not counts["ok"]):
+            status = "fail"
+        elif counts["fail"]:
+            status = "partial"
+        else:
+            status = "success"
+        log_collector_run(
+            collector,
+            status,
+            items_ok=counts["ok"],
+            items_fail=counts["fail"],
+            duration_ms=duration_ms,
+            started_at=started.isoformat(timespec="seconds"),
+            finished_at=finished.isoformat(timespec="seconds"),
+            error_msg=error_msg,
+            db_path=DB_PATH,
+        )
 
 
 def safe_store(
@@ -131,128 +166,193 @@ def collect_all_indicators():
     logger.info("=" * 60)
     logger.info(f"데이터 수집 시작: {date.today().isoformat()}")
     clear_api_errors()  # 이전 실행 오류 초기화
+    meta = load_indicator_meta()
 
     # ── 한국은행 ECOS KeyStatisticList (월/분기 지표) ───────────────
     logger.info("[ECOS] KeyStatisticList 수집 중...")
-    keystat = fetch_ecos_keystat()
-    if keystat:
-        logger.info(f"[ECOS] {len(keystat)}개 지표 수신")
-        for kor_name, (eng_key, unit, freq) in ECOS_KEY_MAP.items():
-            item = keystat.get(kor_name)
+    ecos_indicators = indicators_by_source("ecos_keystat", meta)
+    keystat = {}
+    with collector_run("ecos_keystat") as record:
+        keystat = fetch_ecos_keystat(db_path=DB_PATH)
+        if keystat:
+            logger.info(f"[ECOS] {len(keystat)}개 지표 수신")
+        else:
+            logger.error("[ECOS] KeyStatisticList 수집 완전 실패")
+        for ind_key, ind_meta in ecos_indicators.items():
+            kor_name = ind_meta.get("symbol")
+            item = keystat.get(kor_name) if kor_name else None
             val = item["value"] if item else None
-            safe_store(eng_key, val, "ECOS:KeyStatisticList", unit, frequency=freq)
-    else:
-        logger.error("[ECOS] KeyStatisticList 수집 완전 실패")
-        for _, (eng_key, unit, freq) in ECOS_KEY_MAP.items():
-            safe_store(eng_key, None, "ECOS:fallback", unit, frequency=freq)
+            safe_store(
+                ind_key,
+                val,
+                "ECOS:KeyStatisticList",
+                ind_meta.get("unit", ""),
+                frequency=ind_meta.get("frequency"),
+            )
+            record(success=val is not None)
 
     # ── Yahoo Finance 실시간 가격 (KOSPI/KOSDAQ/금/두바이유) ─────────
     logger.info("[Yahoo] 실시간 가격 수집 중 (KOSPI/KOSDAQ/GOLD/DUBAI_OIL + 섹터ETF)...")
-    for symbol, (ind_key, unit, source, freq) in YAHOO_QUOTE_MAP.items():
-        result = fetch_yahoo_quote(symbol)
-        if result:
-            actual_date, val = result
-            safe_store(ind_key, val, source, unit, date_str=actual_date, frequency=freq)
-        else:
-            # Yahoo 실패 시 ECOS 값으로 대체 (KOSPI/KOSDAQ/GOLD/DUBAI_OIL만)
-            ecos_fallbacks = {
-                "KOSPI":     "코스피지수",
-                "KOSDAQ":    "코스닥지수",
-                "GOLD":      "금",
-                "DUBAI_OIL": "Dubai유(현물)",
-            }
-            fb_name = ecos_fallbacks.get(ind_key)
-            fb_val = keystat.get(fb_name, {}).get("value") if keystat and fb_name else None
-            safe_store(ind_key, fb_val, f"ECOS:fallback({symbol})", unit, frequency=freq)
+    yahoo_indicators = indicators_by_source("yahoo_quote", meta)
+    with collector_run("yahoo_quote") as record:
+        for ind_key, ind_meta in yahoo_indicators.items():
+            symbol = ind_meta.get("symbol")
+            result = fetch_yahoo_quote(symbol, db_path=DB_PATH) if symbol else None
+            if result:
+                actual_date, val = result
+                safe_store(
+                    ind_key,
+                    val,
+                    f"Yahoo:{symbol}",
+                    ind_meta.get("unit", ""),
+                    date_str=actual_date,
+                    frequency=ind_meta.get("frequency"),
+                )
+                record(success=True)
+            else:
+                safe_store(ind_key, None, f"Yahoo:{symbol}", ind_meta.get("unit", ""), frequency=ind_meta.get("frequency"))
+                record(success=False)
 
     # ── FRED 미국 지표 ──────────────────────────────────────────────
     logger.info("[FRED] 미국 경제지표 수집 중...")
 
-    # WTI 국제유가 - Yahoo(최신) vs FRED(공식, 1-2일 지연)
-    obs = fetch_fred("DCOILWTICO")
-    fred_wti = _fred_date_val(obs)
-    yahoo_wti = fetch_yahoo_quote("CL=F")
-    if yahoo_wti and (fred_wti is None or yahoo_wti[0] >= fred_wti[0]):
-        safe_store("WTI", yahoo_wti[1], "Yahoo:CL=F", "USD/bbl", date_str=yahoo_wti[0], frequency="daily")
-    elif fred_wti:
-        safe_store("WTI", fred_wti[1], "FRED:DCOILWTICO", "USD/bbl", date_str=fred_wti[0], frequency="daily")
-    else:
-        safe_store("WTI", None, "FRED:DCOILWTICO", "USD/bbl", frequency="daily")
+    with collector_run("fred") as record:
+        for ind_key, ind_meta in indicators_by_source("fred", meta).items():
+            series_id = ind_meta.get("symbol")
+            obs = fetch_fred(series_id, db_path=DB_PATH) if series_id else []
+            latest = _fred_date_val(obs)
+            if latest:
+                obs_date, val = latest
+                safe_store(
+                    ind_key,
+                    val,
+                    f"FRED:{series_id}",
+                    ind_meta.get("unit", ""),
+                    date_str=obs_date,
+                    frequency=ind_meta.get("frequency"),
+                )
+                record(success=True)
+            else:
+                safe_store(ind_key, None, f"FRED:{series_id}", ind_meta.get("unit", ""), frequency=ind_meta.get("frequency"))
+                record(success=False)
 
-    # 미국 CPI (월별 지표 - 실제 관측 날짜 사용)
-    obs = fetch_fred("CPIAUCSL")
-    fred_cpi = _fred_date_val(obs)
-    if fred_cpi:
-        safe_store("US_CPI", fred_cpi[1], "FRED:CPIAUCSL", "index", date_str=fred_cpi[0], frequency="monthly")
-    else:
-        safe_store("US_CPI", None, "FRED:CPIAUCSL", "index", frequency="monthly")
-
-    # 미국 기준금리 (월별 - 실제 관측 날짜 사용)
-    obs = fetch_fred("FEDFUNDS")
-    fred_fedfunds = _fred_date_val(obs)
-    if fred_fedfunds:
-        safe_store("FED_RATE", fred_fedfunds[1], "FRED:FEDFUNDS", "%", date_str=fred_fedfunds[0], frequency="monthly")
-    else:
-        safe_store("FED_RATE", None, "FRED:FEDFUNDS", "%", frequency="monthly")
-
-    # 미국 10Y 국채금리 - Yahoo(최신 거래일) vs FRED(공식, 1일 지연)
-    obs = fetch_fred("DGS10")
-    fred_us10y = _fred_date_val(obs)
-    yahoo_us10y = fetch_yahoo_quote("^TNX")
-    if yahoo_us10y and (fred_us10y is None or yahoo_us10y[0] >= fred_us10y[0]):
-        val = yahoo_us10y[1] / 10 if yahoo_us10y[1] > 10 else yahoo_us10y[1]
-        safe_store("US10Y", val, "Yahoo:^TNX", "%", date_str=yahoo_us10y[0], frequency="daily")
-    elif fred_us10y:
-        safe_store("US10Y", fred_us10y[1], "FRED:DGS10", "%", date_str=fred_us10y[0], frequency="daily")
-    else:
-        safe_store("US10Y", None, "FRED:DGS10", "%", frequency="daily")
-
-    # 달러 무역가중지수 (FRED:DTWEXBGS, 주별)
-    obs = fetch_fred("DTWEXBGS")
-    fred_dtwex = _fred_date_val(obs)
-    if fred_dtwex:
-        safe_store("USD_INDEX", fred_dtwex[1], "FRED:DTWEXBGS", "index", date_str=fred_dtwex[0], frequency="weekly")
-    else:
-        safe_store("USD_INDEX", None, "FRED:DTWEXBGS", "index", frequency="weekly")
-
-    # 실제 DXY (ICE US Dollar Index, Yahoo Finance: DX-Y.NYB)
-    dxy_result = fetch_yahoo_quote("DX-Y.NYB")
-    if dxy_result:
-        safe_store("DXY", dxy_result[1], "YAHOO:DX-Y.NYB", "index", date_str=dxy_result[0], frequency="daily")
-    else:
-        safe_store("DXY", None, "YAHOO:DX-Y.NYB", "index", frequency="daily")
+    # WTI/US10Y처럼 시장 데이터와 공식 FRED 데이터 중 더 최신 관측치를 선택하는 지표
+    with collector_run("hybrid_market_fred") as record:
+        for ind_key, ind_meta in indicators_by_source("hybrid_market_fred", meta).items():
+            yahoo_symbol = ind_meta.get("symbol")
+            fred_symbol = ind_meta.get("fred_symbol")
+            fred_obs = fetch_fred(fred_symbol, db_path=DB_PATH) if fred_symbol else []
+            fred_latest = _fred_date_val(fred_obs)
+            yahoo_latest = fetch_yahoo_quote(yahoo_symbol, db_path=DB_PATH) if yahoo_symbol else None
+            if yahoo_latest and (fred_latest is None or yahoo_latest[0] >= fred_latest[0]):
+                val = yahoo_latest[1]
+                if ind_key == "US10Y" and val > 10:
+                    val = val / 10
+                safe_store(
+                    ind_key,
+                    val,
+                    f"Yahoo:{yahoo_symbol}",
+                    ind_meta.get("unit", ""),
+                    date_str=yahoo_latest[0],
+                    frequency=ind_meta.get("frequency"),
+                )
+                record(success=True)
+            elif fred_latest:
+                safe_store(
+                    ind_key,
+                    fred_latest[1],
+                    f"FRED:{fred_symbol}",
+                    ind_meta.get("unit", ""),
+                    date_str=fred_latest[0],
+                    frequency=ind_meta.get("frequency"),
+                )
+                record(success=True)
+            else:
+                safe_store(ind_key, None, f"FRED:{fred_symbol}", ind_meta.get("unit", ""), frequency=ind_meta.get("frequency"))
+                record(success=False)
 
     # ── NY Fed 공급망 압력지수 (GSCPI · PMI Supplier Delivery Times 기반) ────
     logger.info("[NY Fed] 공급망 압력지수(GSCPI/PMI 기반) 수집 중...")
-    pmi_sdt_val = fetch_nyfed_pmi_sdt()
-    if pmi_sdt_val is not None:
-        safe_store("PMI_SDT", pmi_sdt_val, "NY_FED:GSCPI", "", frequency="monthly")
-    else:
-        logger.info("[NY Fed] GSCPI 수집 실패 - 건너뜀")
-
-    # ── Hyperscaler AI CapEx (Deep Research S1) ─────────────────────────
-    logger.info("[FMP] Hyperscaler CapEx 수집 중 (MSFT/GOOGL/META/AMZN)...")
-    import time as _time
-    for ticker in ["MSFT", "GOOGL", "META", "AMZN"]:
-        rows = fetch_fmp_capex(ticker, limit=5)
-        for row in rows:
-            date_str = row["date"]
-            capex_b  = row["capex_b"]
-            ind_key  = f"CAPEX_{ticker}"
-            try:
-                upsert_indicator(
-                    date_str, ind_key, capex_b, f"FMP:{ticker}", "B USD",
-                    db_path=DB_PATH, frequency="quarterly",
+    with collector_run("nyfed_gscpi") as record:
+        for ind_key, ind_meta in indicators_by_source("nyfed_gscpi", meta).items():
+            pmi_sdt_val = fetch_nyfed_pmi_sdt(db_path=DB_PATH)
+            if pmi_sdt_val is not None:
+                safe_store(
+                    ind_key,
+                    pmi_sdt_val,
+                    "NY_FED:GSCPI",
+                    ind_meta.get("unit", ""),
+                    frequency=ind_meta.get("frequency"),
                 )
-            except Exception as e:
-                logger.error(f"  [{ind_key}@{date_str}] 저장 오류: {e}")
-        if rows:
-            latest = rows[0]
-            logger.info(f"  [CAPEX_{ticker}] 최신: {latest['date']} = ${latest['capex_b']:.2f}B ({len(rows)}분기 저장)")
-            log_collect(f"CAPEX_{ticker}", "success", db_path=DB_PATH)
-        else:
-            log_collect(f"CAPEX_{ticker}", "fail", "FMP 수집 실패", db_path=DB_PATH)
-        _time.sleep(0.3)
+                record(success=True)
+            else:
+                logger.info("[NY Fed] GSCPI 수집 실패 - 건너뜀")
+                safe_store(ind_key, None, "NY_FED:GSCPI", ind_meta.get("unit", ""), frequency=ind_meta.get("frequency"))
+                record(success=False)
+
+    # ── CapEx (AI 병목 + 전력 병목) ─────────────────────────────────
+    logger.info("[FMP] CapEx 수집 중 (AI hyperscaler + Utility)...")
+    with collector_run("fmp_capex") as record:
+        for ind_key, ind_meta in indicators_by_source("fmp_capex", meta).items():
+            ticker = ind_meta.get("symbol") or ind_key.replace("CAPEX_", "")
+            rows = fetch_fmp_capex(ticker, limit=5, db_path=DB_PATH)
+            for row in rows:
+                date_str = row["date"]
+                capex_b  = row["capex_b"]
+                try:
+                    upsert_indicator(
+                        date_str,
+                        ind_key,
+                        capex_b,
+                        f"FMP:{ticker}",
+                        ind_meta.get("unit", "B USD"),
+                        db_path=DB_PATH,
+                        frequency=ind_meta.get("frequency", "quarterly"),
+                        observed_date=date_str,
+                    )
+                except Exception as e:
+                    logger.error(f"  [{ind_key}@{date_str}] 저장 오류: {e}")
+            if rows:
+                latest = rows[0]
+                logger.info(f"  [{ind_key}] 최신: {latest['date']} = ${latest['capex_b']:.2f}B ({len(rows)}분기 저장)")
+                log_collect(ind_key, "success", db_path=DB_PATH)
+                record(success=True)
+            else:
+                safe_store(ind_key, None, f"FMP:{ticker}", ind_meta.get("unit", "B USD"), frequency=ind_meta.get("frequency", "quarterly"))
+                record(success=False)
+            time.sleep(0.3)
+
+    # ── 전력 병목: ERCOT/PJM 부하·예비율 ────────────────────────────
+    logger.info("[Power] ERCOT/PJM 전력 병목 데이터 수집 중...")
+    with collector_run("power_grid") as record:
+        ercot = fetch_ercot_grid_status(db_path=DB_PATH)
+        ercot_map = {
+            "ERCOT_LOAD_MW": "load_mw",
+            "ERCOT_RESERVE_MARGIN": "reserve_margin_pct",
+        }
+        for ind_key, field in ercot_map.items():
+            ind_meta = meta.get(ind_key, {})
+            val = ercot.get(field) if ercot else None
+            safe_store(
+                ind_key,
+                val,
+                ercot.get("source", "ERCOT:supply-demand") if ercot else "ERCOT:supply-demand",
+                ind_meta.get("unit", ""),
+                frequency=ind_meta.get("frequency", "daily"),
+            )
+            record(success=val is not None)
+
+        pjm = fetch_pjm_load(db_path=DB_PATH)
+        pjm_meta = meta.get("PJM_LOAD_MW", {})
+        pjm_val = pjm.get("load_mw") if pjm else None
+        safe_store(
+            "PJM_LOAD_MW",
+            pjm_val,
+            pjm.get("source", "PJM:inst_load") if pjm else "PJM:inst_load",
+            pjm_meta.get("unit", "MW"),
+            frequency=pjm_meta.get("frequency", "daily"),
+        )
+        record(success=pjm_val is not None)
 
     # ── 상대강도 파생 지표 (P2: SMH/SPY, XLU/SPY) ──────────────────
     logger.info("[RS] 섹터 상대강도 계산 중...")
@@ -301,9 +401,9 @@ if __name__ == "__main__":
     # AI 병목: MSFT/AMZN/META/GOOGL + NVDA/TSMC/Micron/SK하이닉스/삼성
     logger.info("[IR] 신규 8-K/20-F 파일링 확인 중...")
     try:
-        from ir_scraper import get_new_filings, fetch_filing_text
+        from ir_scraper import get_new_filings, fetch_filing_text, count_ai_bottleneck_keywords
         from gemini_client import summarize_ir
-        from database import save_ir_filing
+        from database import save_ir_filing, save_ir_keyword_mentions
 
         new_filings = get_new_filings(db_path=DB_PATH)
         if not new_filings:
@@ -317,8 +417,10 @@ if __name__ == "__main__":
                     if not text:
                         logger.warning(f"[IR] 문서 내용 없음: {f['ticker']} {f['date']}")
                         continue
+                    keyword_counts = count_ai_bottleneck_keywords(text)
                     summary_text = summarize_ir(f["company"], f["date"], text)
                     save_ir_filing(f, summary_text, db_path=DB_PATH)
+                    save_ir_keyword_mentions(f, keyword_counts, db_path=DB_PATH)
                     summarized.append({**f, "summary": summary_text})
                     logger.info(f"[IR] 요약 완료: {f['ticker']} {f['date']}")
                 except Exception as e:

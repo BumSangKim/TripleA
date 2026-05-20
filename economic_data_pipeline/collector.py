@@ -1,11 +1,14 @@
 # collector.py
 # 각 데이터 소스에서 경제 지표를 수집하는 모듈
 # ECOS StatisticSearch 대신 KeyStatisticList 사용 (더 안정적)
+import re
+
 import requests
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from config import ECOS_KEY, FRED_KEY, FMP_KEY, NAVER_ID, NAVER_SECRET, KIPRIS_KEY
+from database import DB_PATH as DEFAULT_DB_PATH, mask_sensitive_url, save_raw_observation
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,33 @@ def get_session() -> requests.Session:
     return session
 
 
-def fetch_ecos_keystat() -> dict:
+def _masked_url(url: str, *secrets: str | None) -> str:
+    masked = url
+    for secret in secrets:
+        if secret:
+            masked = masked.replace(secret, "***MASKED***")
+    return masked
+
+
+def _save_raw(source: str, raw_data, indicator: str = None, obs_date: str = None, db_path: str = None) -> None:
+    """원본 응답 저장 실패가 수집 실패로 전파되지 않도록 격리한다."""
+    try:
+        save_raw_observation(
+            source=source,
+            raw_data=raw_data,
+            indicator=indicator,
+            obs_date=obs_date,
+            db_path=db_path or DEFAULT_DB_PATH,
+        )
+    except Exception as e:
+        logger.warning(f"[raw_observations] 저장 실패 ({source}): {e}")
+
+
+def _sanitize_error(e: Exception) -> str:
+    return mask_sensitive_url(str(e))
+
+
+def fetch_ecos_keystat(db_path: str = None) -> dict:
     """
     ECOS KeyStatisticList API 호출 - 한국은행 핵심 경제지표 전체 조회
     StatisticSearch보다 안정적이며 CPI, PPI, 환율, 금리, 코스피, 실업률, 두바이유, 금 등 포함
@@ -58,6 +87,11 @@ def fetch_ecos_keystat() -> dict:
             return {}
         res.raise_for_status()
         data = res.json()
+        _save_raw(
+            "ECOS:KeyStatisticList",
+            {"url": _masked_url(url, ECOS_KEY), "status_code": res.status_code, "response": data},
+            db_path=db_path,
+        )
         # ECOS는 인증 오류 시 HTTP 200 + RESULT.CODE="ERROR-300" 반환
         err_code = data.get("RESULT", {}).get("CODE", "")
         if err_code and err_code.startswith("ERROR"):
@@ -75,7 +109,7 @@ def fetch_ecos_keystat() -> dict:
                 pass
         return result
     except Exception as e:
-        logger.error(f"[ECOS KeyStatisticList] 수집 실패: {e}")
+        logger.error(f"[ECOS KeyStatisticList] 수집 실패: {_sanitize_error(e)}")
         return {}
 
 
@@ -89,7 +123,7 @@ def fetch_dxy_yahoo() -> float | None:
     return val[1] if val else None
 
 
-def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
+def fetch_yahoo_quote(symbol: str, db_path: str = None) -> tuple[str, float] | None:
     """
     Yahoo Finance에서 최신 종가와 실제 날짜를 함께 반환
     반환: (날짜 "YYYY-MM-DD", 종가) 또는 None
@@ -114,7 +148,19 @@ def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
             timeout=10,
         )
         res.raise_for_status()
-        result = res.json().get("chart", {}).get("result", [{}])[0]
+        data = res.json()
+        _save_raw(
+            f"Yahoo:{symbol}",
+            {
+                "url": url,
+                "params": {"range": "5d", "interval": "1d"},
+                "status_code": res.status_code,
+                "response": data,
+            },
+            obs_date=None,
+            db_path=db_path,
+        )
+        result = data.get("chart", {}).get("result", [{}])[0]
         meta   = result.get("meta", {})
         closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
         timestamps = result.get("timestamp", [])
@@ -158,11 +204,11 @@ def fetch_yahoo_quote(symbol: str) -> tuple[str, float] | None:
         logger.warning(f"[Yahoo {symbol}] 유효 데이터 없음")
         return None
     except Exception as e:
-        logger.error(f"[Yahoo {symbol}] 수집 실패: {e}")
+        logger.error(f"[Yahoo {symbol}] 수집 실패: {_sanitize_error(e)}")
         return None
 
 
-def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
+def fetch_fmp_capex(ticker: str, limit: int = 5, db_path: str = None) -> list[dict]:
     """
     Financial Modeling Prep API - 분기별 CapEx 수집
     Hyperscaler AI CapEx 신호 (Deep Research S1): MSFT, GOOGL, META, AMZN
@@ -172,7 +218,7 @@ def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
     """
     if not FMP_KEY:
         logger.warning("[FMP] FMP_API_KEY 미설정 - CapEx 수집 건너뜀")
-        return []
+        return fetch_sec_capex(ticker, limit=limit, db_path=db_path)
     limit = min(limit, 5)  # 무료 플랜 최대 5
     session = get_session()
     try:
@@ -189,17 +235,36 @@ def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
         if res.status_code in (401, 403):
             _record_auth_error("FMP", f"{ticker}: HTTP {res.status_code} - API 키 만료 또는 플랜 초과")
             return []
+        if res.status_code == 402:
+            logger.warning(f"[FMP] {ticker} 무료 플랜 제한(402) - SEC companyfacts fallback 시도")
+            return fetch_sec_capex(ticker, limit=limit, db_path=db_path)
         res.raise_for_status()
         if not res.text:
             logger.warning(f"[FMP] {ticker} 빈 응답")
             return []
         data = res.json()
+        _save_raw(
+            f"FMP:{ticker}",
+            {
+                "url": "https://financialmodelingprep.com/stable/cash-flow-statement",
+                "params": {
+                    "symbol": ticker,
+                    "apikey": FMP_KEY,
+                    "limit": limit,
+                    "period": "quarter",
+                },
+                "status_code": res.status_code,
+                "response": data,
+            },
+            indicator=f"CAPEX_{ticker}",
+            db_path=db_path,
+        )
         # FMP는 인증 실패 시 {"Error Message": "..."} 형태로 반환
         if isinstance(data, dict) and ("Error Message" in data or "message" in data):
             msg = data.get("Error Message") or data.get("message", "알 수 없는 오류")
             if any(kw in msg.lower() for kw in ("invalid", "not authorized", "premium", "limit")):
                 _record_auth_error("FMP", f"{ticker}: {msg}")
-            return []
+            return fetch_sec_capex(ticker, limit=limit, db_path=db_path)
         if not isinstance(data, list):
             logger.warning(f"[FMP] {ticker} 예상치 못한 응답: {str(data)[:80]}")
             return []
@@ -214,11 +279,80 @@ def fetch_fmp_capex(ticker: str, limit: int = 5) -> list[dict]:
         logger.info(f"[FMP] {ticker} CapEx {len(result)}분기 수집 완료")
         return result
     except Exception as e:
-        logger.error(f"[FMP] {ticker} 수집 실패: {e}")
+        logger.error(f"[FMP] {ticker} 수집 실패: {_sanitize_error(e)}")
+        return fetch_sec_capex(ticker, limit=limit, db_path=db_path)
+
+
+SEC_CAPEX_CIKS = {
+    "NEE": "0000753308",
+    "DUK": "0001326160",
+    "SO": "0000092122",
+}
+
+
+def fetch_sec_capex(ticker: str, limit: int = 5, db_path: str = None) -> list[dict]:
+    """SEC companyfacts 기반 CapEx fallback. API 키 없이 유틸리티 CapEx를 보강한다."""
+    cik = SEC_CAPEX_CIKS.get(ticker)
+    if not cik:
         return []
+    url = f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
+    headers = {"User-Agent": "TripleA Pipeline bumsangkim@dev.io"}
+    session = get_session()
+    try:
+        res = session.get(url, headers=headers, timeout=20)
+        res.raise_for_status()
+        data = res.json()
+        _save_raw(
+            f"SEC:{ticker}:companyfacts",
+            {"url": url, "status_code": res.status_code, "response": data},
+            indicator=f"CAPEX_{ticker}",
+            db_path=db_path,
+        )
+        facts = data.get("facts", {}).get("us-gaap", {})
+        for key in (
+            "PaymentsToAcquirePropertyPlantAndEquipment",
+            "CapitalExpendituresIncurredButNotYetPaid",
+            "PaymentsToAcquireProductiveAssets",
+            "PaymentsToAcquireOtherPropertyPlantAndEquipment",
+        ):
+            units = facts.get(key, {}).get("units", {})
+            rows = units.get("USD", [])
+            quarterly = [
+                row for row in rows
+                if row.get("form") in ("10-Q", "10-K")
+                and row.get("start")
+                and row.get("end")
+                and row.get("val") is not None
+                and _months_between(row["start"], row["end"]) <= 4
+            ]
+            if quarterly:
+                latest = sorted(quarterly, key=lambda x: (x.get("end", ""), x.get("filed", "")), reverse=True)
+                result = [
+                    {
+                        "date": row["end"],
+                        "capex_b": round(abs(float(row["val"])) / 1e9, 3),
+                        "ticker": ticker,
+                    }
+                    for row in latest[:limit]
+                ]
+                logger.info(f"[SEC] {ticker} CapEx {len(result)}분기 수집 완료 ({key})")
+                return result
+        logger.warning(f"[SEC] {ticker} CapEx 태그를 찾지 못함")
+    except Exception as e:
+        logger.warning(f"[SEC] {ticker} CapEx fallback 실패: {_sanitize_error(e)}")
+    return []
 
 
-def fetch_nyfed_pmi_sdt() -> float | None:
+def _months_between(start: str, end: str) -> int:
+    try:
+        start_y, start_m = [int(x) for x in start[:7].split("-")]
+        end_y, end_m = [int(x) for x in end[:7].split("-")]
+        return (end_y - start_y) * 12 + (end_m - start_m) + 1
+    except Exception:
+        return 999
+
+
+def fetch_nyfed_pmi_sdt(db_path: str = None) -> float | None:
     """
     NY Fed 글로벌 공급망 압력지수(GSCPI) 수집
     PMI Supplier Delivery Times를 핵심 입력으로 사용하는 공급망 압력 종합지수
@@ -246,12 +380,25 @@ def fetch_nyfed_pmi_sdt() -> float | None:
             val = sh.cell(r_idx, 1).value
             if val and isinstance(val, (int, float)):
                 date_str = sh.cell(r_idx, 0).value
+                _save_raw(
+                    "NY_FED:GSCPI",
+                    {
+                        "url": url,
+                        "status_code": res.status_code,
+                        "content_length": len(res.content),
+                        "sheet": "GSCPI Monthly Data",
+                        "latest": {"date": date_str, "value": float(val)},
+                    },
+                    indicator="PMI_SDT",
+                    obs_date=str(date_str),
+                    db_path=db_path,
+                )
                 logger.info(f"[NY Fed GSCPI] 최신값: {date_str} = {val:.4f}")
                 return float(val)
         logger.warning("[NY Fed GSCPI] 유효 데이터 행 없음")
         return None
     except Exception as e:
-        logger.error(f"[NY Fed GSCPI] 수집 실패: {e}")
+        logger.error(f"[NY Fed GSCPI] 수집 실패: {_sanitize_error(e)}")
         return None
 
 
@@ -282,7 +429,7 @@ def fetch_ecos_statistic_search(
         rows = data.get("StatisticSearch", {}).get("row", [])
         return rows
     except Exception as e:
-        logger.error(f"[ECOS StatisticSearch] {stat_id} 수집 실패: {e}")
+        logger.error(f"[ECOS StatisticSearch] {stat_id} 수집 실패: {_sanitize_error(e)}")
         return []
 
 
@@ -308,7 +455,7 @@ def fetch_kosis(stat_id: str, start_period: str) -> list:
         res.raise_for_status()
         return res.json()
     except Exception as e:
-        logger.error(f"[KOSIS] {stat_id} 수집 실패: {e}")
+        logger.error(f"[KOSIS] {stat_id} 수집 실패: {_sanitize_error(e)}")
         return []
 
 
@@ -337,11 +484,11 @@ def fetch_krx_index(market: str = "KOSPI") -> dict:
         res.raise_for_status()
         return res.json()
     except Exception as e:
-        logger.error(f"[KRX] {market} 수집 실패: {e}")
+        logger.error(f"[KRX] {market} 수집 실패: {_sanitize_error(e)}")
         return {}
 
 
-def fetch_fred(series_id: str, limit: int = 30) -> list:
+def fetch_fred(series_id: str, limit: int = 30, db_path: str = None) -> list:
     """FRED API 호출 (무료, 키 필요)"""
     url = "https://api.stlouisfed.org/fred/series/observations"
     params = {
@@ -361,13 +508,24 @@ def fetch_fred(series_id: str, limit: int = 30) -> list:
             return []
         res.raise_for_status()
         data = res.json()
+        _save_raw(
+            f"FRED:{series_id}",
+            {
+                "url": url,
+                "params": params,
+                "status_code": res.status_code,
+                "response": data,
+            },
+            indicator=series_id,
+            db_path=db_path,
+        )
         # FRED는 API 키 오류 시 error_code 필드 포함
         if "error_code" in data:
             _record_auth_error("FRED", f"{series_id}: {data.get('error_message', data['error_code'])}")
             return []
         return data.get("observations", [])
     except Exception as e:
-        logger.error(f"[FRED] {series_id} 수집 실패: {e}")
+        logger.error(f"[FRED] {series_id} 수집 실패: {_sanitize_error(e)}")
         return []
 
 
@@ -397,7 +555,7 @@ def fetch_naver_news(query: str, display: int = 10) -> list:
         res.raise_for_status()
         return res.json().get("items", [])
     except Exception as e:
-        logger.error(f"[NAVER] '{query}' 수집 실패: {e}")
+        logger.error(f"[NAVER] '{query}' 수집 실패: {_sanitize_error(e)}")
         return []
 
 
@@ -408,7 +566,7 @@ def fetch_rss(url: str) -> list:
         feed = feedparser.parse(url)
         return feed.entries[:10]
     except Exception as e:
-        logger.error(f"[RSS] {url} 파싱 실패: {e}")
+        logger.error(f"[RSS] {url} 파싱 실패: {_sanitize_error(e)}")
         return []
 
 
@@ -435,13 +593,13 @@ def fetch_kipris(keyword: str, page: int = 1) -> list:
         items = root.findall(".//item")
         return [{"title": item.findtext("inventionTitle", ""), "appNo": item.findtext("applicationNumber", "")} for item in items]
     except Exception as e:
-        logger.error(f"[KIPRIS] '{keyword}' 수집 실패: {e}")
+        logger.error(f"[KIPRIS] '{keyword}' 수집 실패: {_sanitize_error(e)}")
         return []
 
 
 # ── P2: 전력 병목 레이어 ─────────────────────────────────────────────────────
 
-def fetch_ercot_grid_status() -> dict | None:
+def fetch_ercot_grid_status(db_path: str = None) -> dict | None:
     """
     ERCOT (텍사스 전력망) 실시간 공개 데이터 수집
     - 현재 부하(MW), 공급 예비율(Reserve Margin %)
@@ -454,6 +612,11 @@ def fetch_ercot_grid_status() -> dict | None:
         res = session.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
         res.raise_for_status()
         data = res.json()
+        _save_raw(
+            "ERCOT:supply-demand",
+            {"url": url, "status_code": res.status_code, "response": data},
+            db_path=db_path,
+        )
         # ERCOT 대시보드 응답 파싱
         current = data.get("currentDemand", {})
         load_mw = current.get("demand")
@@ -471,11 +634,11 @@ def fetch_ercot_grid_status() -> dict | None:
             logger.info(f"[ERCOT] 부하={load_mw}MW, 예비율={reserve_margin_pct}%")
             return result
     except Exception as e:
-        logger.warning(f"[ERCOT] 수집 실패 (공식 API 변경 가능): {e}")
-    return None
+        logger.warning(f"[ERCOT] 공식 endpoint 실패 - DCHub fallback 시도: {_sanitize_error(e)}")
+    return fetch_grid_intelligence("ERCOT", db_path=db_path)
 
 
-def fetch_pjm_load() -> dict | None:
+def fetch_pjm_load(db_path: str = None) -> dict | None:
     """
     PJM (미국 동부 전력망) 공개 데이터 수집
     - PJM 최신 실시간 부하(MW)
@@ -486,6 +649,9 @@ def fetch_pjm_load() -> dict | None:
     params = {"fields": "datetime_beginning_utc,area_load", "sort": "datetime_beginning_utc desc", "rowCount": 1}
     session = get_session()
     try:
+        public = _fetch_pjm_public_page(db_path=db_path)
+        if public:
+            return public
         res = session.get(
             url, params=params,
             headers={"Ocp-Apim-Subscription-Key": "", "User-Agent": "Mozilla/5.0"},
@@ -493,7 +659,7 @@ def fetch_pjm_load() -> dict | None:
         )
         if res.status_code == 401:
             # PJM API는 구독키 필요 → 공개 대안: EIA API 사용
-            return _fetch_eia_power()
+            return fetch_grid_intelligence("PJM", db_path=db_path)
         res.raise_for_status()
         items = res.json().get("items", [])
         if items:
@@ -506,8 +672,68 @@ def fetch_pjm_load() -> dict | None:
                 "zone": "PJM",
             }
     except Exception as e:
-        logger.warning(f"[PJM] 수집 실패: {e}")
-    return None
+        logger.warning(f"[PJM] Data Miner 수집 실패 - DCHub fallback 시도: {_sanitize_error(e)}")
+    return fetch_grid_intelligence("PJM", db_path=db_path)
+
+
+def _fetch_pjm_public_page(db_path: str = None) -> dict | None:
+    """PJM 공개 Markets & Operations 페이지에서 current load를 파싱한다."""
+    url = "https://www.pjm.com/markets-and-operations"
+    session = get_session()
+    try:
+        res = session.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        res.raise_for_status()
+        html = res.text
+        _save_raw("PJM:markets-and-operations", {"url": url, "status_code": res.status_code, "html": html[:20000]}, db_path=db_path)
+        match = re.search(r'<span class="currentloadico"></span><span><h2>([\d,]+)</h2></span>\s*current load \(MW\)', html)
+        if not match:
+            return None
+        load_mw = float(match.group(1).replace(",", ""))
+        time_match = re.search(r"Today's Outlook</h2>\s*As of ([^<]+)", html)
+        timestamp = time_match.group(1).strip() if time_match else ""
+        logger.info(f"[PJM public] 부하={load_mw:.0f}MW")
+        return {"load_mw": load_mw, "datetime_utc": timestamp, "zone": "PJM", "source": "PJM:markets-and-operations"}
+    except Exception as e:
+        logger.warning(f"[PJM public] 페이지 파싱 실패: {_sanitize_error(e)}")
+        return None
+
+
+def fetch_grid_intelligence(region: str, db_path: str = None) -> dict | None:
+    """
+    ISO 공식 API가 WAF/API-key 문제로 막힐 때 쓰는 공개 EIA RTO 프록시 fallback.
+    DCHub 응답의 note에 따르면 EIA hourly RTO 데이터를 사용한다.
+    """
+    url = f"https://dchub.cloud/api/v1/grid/intelligence/{region}"
+    session = get_session()
+    try:
+        res = session.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+        res.raise_for_status()
+        data = res.json()
+        _save_raw(f"DCHub:{region}", {"url": url, "status_code": res.status_code, "response": data}, db_path=db_path)
+        load = data.get("demand_mw")
+        if load is None:
+            return None
+        result = {
+            "load_mw": float(str(load).replace(",", "")),
+            "datetime_utc": data.get("demand_period", ""),
+            "zone": region,
+            "source": f"DCHub:{region}",
+        }
+        mix = data.get("generation_mix") or {}
+        generation_mw = 0.0
+        for item in mix.values():
+            try:
+                generation_mw += float(str(item.get("mw", 0)).replace(",", ""))
+            except Exception:
+                pass
+        if generation_mw and result["load_mw"]:
+            result["generation_mw"] = generation_mw
+            result["reserve_margin_pct"] = round((generation_mw - result["load_mw"]) / result["load_mw"] * 100, 2)
+        logger.info(f"[DCHub {region}] 부하={result['load_mw']:.0f}MW")
+        return result
+    except Exception as e:
+        logger.warning(f"[DCHub {region}] fallback 실패: {_sanitize_error(e)}")
+        return None
 
 
 def _fetch_eia_power() -> dict | None:
@@ -535,7 +761,7 @@ def _fetch_eia_power() -> dict | None:
                 logger.info(f"[EIA via FRED] US 발전량: {o['date']} = {o['value']} GWh")
                 return {"load_mw": None, "generation_gwh": float(o["value"]), "datetime_utc": o["date"], "zone": "US"}
     except Exception as e:
-        logger.warning(f"[EIA] 수집 실패: {e}")
+        logger.warning(f"[EIA] 수집 실패: {_sanitize_error(e)}")
     return None
 
 
@@ -552,4 +778,3 @@ def fetch_utility_capex(tickers: list[str] | None = None) -> list[dict]:
         data = fetch_fmp_capex(ticker, limit=4)
         results.extend(data)
     return results
-

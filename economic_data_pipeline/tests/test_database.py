@@ -21,6 +21,8 @@ from database import (
     upsert_economic_event,
     save_event_release,
     get_upcoming_events,
+    mask_sensitive_data,
+    save_ir_keyword_mentions,
 )
 
 
@@ -124,20 +126,49 @@ class TestRawObservations:
         conn.close()
         assert count == 1
 
+    def test_masks_api_keys(self, tmp_db):
+        save_raw_observation(
+            "FRED:TEST",
+            {
+                "url": "https://example.com/data?api_key=SECRET&x=1",
+                "params": {"apikey": "SECRET2", "series_id": "CPI"},
+            },
+            db_path=tmp_db,
+        )
+        conn = sqlite3.connect(tmp_db)
+        raw_json = conn.execute("SELECT raw_json FROM raw_observations").fetchone()[0]
+        conn.close()
+        assert "SECRET" not in raw_json
+        assert "SECRET2" not in raw_json
+        assert "***MASKED***" in raw_json
+
+    def test_mask_sensitive_data_helper(self):
+        masked = mask_sensitive_data({"access_token": "abc", "nested": {"client_secret": "def"}})
+        assert masked["access_token"] == "***MASKED***"
+        assert masked["nested"]["client_secret"] == "***MASKED***"
+
 
 # ── collector_runs ──────────────────────────────────────────────────────────
 
 class TestCollectorRuns:
     def test_log_collector_run(self, tmp_db):
-        log_collector_run("ecos_keystat", "ok", items_ok=8, db_path=tmp_db)
+        log_collector_run(
+            "ecos_keystat",
+            "ok",
+            items_ok=8,
+            started_at="2026-01-01T00:00:00",
+            finished_at="2026-01-01T00:00:01",
+            db_path=tmp_db,
+        )
         conn = sqlite3.connect(tmp_db)
         row = conn.execute(
-            "SELECT collector, status, items_ok FROM collector_runs"
+            "SELECT collector, status, items_ok, finished_at FROM collector_runs"
         ).fetchone()
         conn.close()
         assert row[0] == "ecos_keystat"
         assert row[1] == "ok"
         assert row[2] == 8
+        assert row[3] == "2026-01-01T00:00:01"
 
 
 # ── economic_events ─────────────────────────────────────────────────────────
@@ -154,19 +185,45 @@ class TestEconomicEvents:
 
     def test_save_event_release(self, tmp_db):
         ev_id = upsert_economic_event("2026-06-01", "US_CPI", db_path=tmp_db)
-        save_event_release(ev_id, actual=330.0, forecast=329.5, unit="index",
+        save_event_release(ev_id, actual=330.0, forecast=329.5, revised=329.4, unit="index",
                            source="BLS", db_path=tmp_db)
         conn = sqlite3.connect(tmp_db)
         row = conn.execute(
-            "SELECT actual, forecast, surprise FROM event_releases WHERE event_id=?",
+            "SELECT actual, forecast, surprise, revised, interpretation FROM event_releases WHERE event_id=?",
             (ev_id,)
         ).fetchone()
         conn.close()
         assert row[0] == pytest.approx(330.0)
         assert row[2] == pytest.approx(0.5)
+        assert row[3] == pytest.approx(329.4)
+        assert row[4] == "hawkish"
+
+    def test_unemployment_positive_surprise_is_dovish(self, tmp_db):
+        ev_id = upsert_economic_event("2026-06-01", "Unemployment Rate", db_path=tmp_db)
+        save_event_release(ev_id, actual=4.2, forecast=4.0, db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        row = conn.execute(
+            "SELECT surprise, interpretation FROM event_releases WHERE event_id=?",
+            (ev_id,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == pytest.approx(0.2)
+        assert row[1] == "dovish"
 
     def test_get_upcoming_events(self, tmp_db):
         upsert_economic_event("2099-12-31", "FOMC", db_path=tmp_db)
         events = get_upcoming_events(days_ahead=365 * 100, db_path=tmp_db)
         names = [e["event_name"] for e in events]
         assert "FOMC" in names
+
+
+class TestIrKeywordMentions:
+    def test_save_ir_keyword_mentions(self, tmp_db):
+        filing = {"accession": "0001", "ticker": "NVDA", "date": "2026-01-01"}
+        save_ir_keyword_mentions(filing, {"HBM": 3, "CoWoS": 1}, db_path=tmp_db)
+        conn = sqlite3.connect(tmp_db)
+        rows = conn.execute(
+            "SELECT keyword, mention_count FROM ir_keyword_mentions WHERE ticker='NVDA' ORDER BY keyword"
+        ).fetchall()
+        conn.close()
+        assert rows == [("CoWoS", 1), ("HBM", 3)]

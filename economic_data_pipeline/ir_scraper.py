@@ -21,6 +21,9 @@ COMPANY_CIKS = {
     "MU":    "0000723125",   # Micron — HBM 수급
     "TSMC":  "0001046179",   # TSMC (20-F, 연간 보고서도 포함)
     "AMD":   "0000002488",   # AMD
+    "AVGO":  "0001730168",   # Broadcom
+    "SMCI":  "0001375365",   # Super Micro Computer
+    "DELL":  "0001571996",   # Dell Technologies
     "INTC":  "0000050863",   # Intel
 }
 COMPANY_NAMES = {
@@ -32,14 +35,19 @@ COMPANY_NAMES = {
     "MU":    "마이크론",
     "TSMC":  "TSMC",
     "AMD":   "AMD",
+    "AVGO":  "Broadcom",
+    "SMCI":  "Super Micro Computer",
+    "DELL":  "Dell Technologies",
     "INTC":  "인텔",
 }
 
 # AI 병목 관련 키워드 (요약 시 중요도 강조용)
 AI_BOTTLENECK_KEYWORDS = [
-    "data center", "datacenter", "ai infrastructure", "gpu", "hbm", "high bandwidth memory",
+    "data center", "datacenter", "ai infrastructure", "gpu", "HBM", "high bandwidth memory",
     "capital expenditure", "capex", "hyperscaler", "inference", "training",
     "supply constraint", "demand", "backlog", "compute",
+    "lead time", "allocation", "supply constrained", "tight supply", "HBM3E", "CoWoS",
+    "advanced packaging",
 ]
 
 # SEC EDGAR 요구 User-Agent
@@ -51,12 +59,19 @@ HEADERS = {
 MAX_TEXT_CHARS = 8000   # Gemini 토큰 절약을 위한 텍스트 제한
 
 
-def fetch_recent_8k(ticker: str, limit: int = 5) -> list[dict]:
-    """
-    SEC EDGAR에서 특정 기업의 최근 8-K 파일링 목록 반환
-    Returns: [{"accession": str, "date": str, "form": str, "doc": str, "ticker": str, "company": str}]
-    """
-    cik = COMPANY_CIKS.get(ticker)
+def count_ai_bottleneck_keywords(text: str) -> dict[str, int]:
+    """AI 병목 키워드 등장 횟수 카운트."""
+    import re
+
+    if not text:
+        return {keyword: 0 for keyword in AI_BOTTLENECK_KEYWORDS}
+    counts = {}
+    for keyword in AI_BOTTLENECK_KEYWORDS:
+        pattern = re.compile(rf"\b{re.escape(keyword)}\b", re.IGNORECASE)
+        counts[keyword] = len(pattern.findall(text))
+    return counts
+
+
 def fetch_recent_8k(ticker: str, limit: int = 5) -> list[dict]:
     """
     SEC EDGAR에서 특정 기업의 최근 8-K(또는 20-F) 파일링 목록 반환.

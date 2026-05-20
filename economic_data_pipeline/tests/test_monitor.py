@@ -10,8 +10,8 @@ from unittest.mock import patch
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from database import init_db, upsert_indicator
-from monitor import check_data_quality, get_stale_days
+from database import init_db, upsert_indicator, log_collector_run, log_collect
+from monitor import check_data_quality, get_stale_days, observation_quality, collection_quality
 
 
 @pytest.fixture
@@ -79,6 +79,52 @@ class TestCheckDataQuality:
         assert quality["fresh_count"] == 1
         assert quality["total_tracked"] == 2
         assert quality["completeness"] == 50.0
+
+    def test_monthly_period_start_uses_month_end_for_freshness(self, tmp_db):
+        today = date.today()
+        first_of_last_month = (today.replace(day=1) - timedelta(days=1)).replace(day=1).isoformat()
+        upsert_indicator(first_of_last_month, "US_CPI", 332.4, "FRED", "index", db_path=tmp_db, frequency="monthly")
+        fake_meta = {"US_CPI": {"stale_days": 40, "frequency": "monthly", "layer": "us"}}
+        with patch("monitor._load_indicator_meta", return_value=fake_meta):
+            quality = observation_quality(db_path=tmp_db)
+        assert quality["fresh_count"] == 1
+        assert quality["stale_indicators"] == []
+
+    def test_observation_quality_ignores_stale_fallback(self, tmp_db):
+        d = date.today().isoformat()
+        upsert_indicator(d, "KOSPI", 7000.0, "fallback", "pt", db_path=tmp_db, is_stale=1)
+        fake_meta = {"KOSPI": {"stale_days": 3, "frequency": "daily", "layer": "korea"}}
+        with patch("monitor._load_indicator_meta", return_value=fake_meta):
+            quality = observation_quality(db_path=tmp_db)
+        assert quality["fresh_count"] == 0
+        assert "KOSPI" in quality["stale_indicators"]
+
+
+class TestCollectionQuality:
+    def test_prefers_collector_runs(self, tmp_db):
+        log_collector_run("fred", "success", items_ok=3, db_path=tmp_db)
+        log_collector_run("yahoo", "fail", items_fail=1, db_path=tmp_db)
+        log_collect("KOSPI", "success", db_path=tmp_db)
+        quality = collection_quality(db_path=tmp_db)
+        assert quality["source"] == "collector_runs"
+        assert quality["success_rate"] == 50.0
+        assert quality["fail_count"] == 1
+
+    def test_uses_latest_run_per_collector(self, tmp_db):
+        today = date.today().isoformat()
+        log_collector_run("power_grid", "fail", started_at=f"{today}T09:00:00", db_path=tmp_db)
+        log_collector_run("power_grid", "success", started_at=f"{today}T10:00:00", db_path=tmp_db)
+        log_collector_run("fred", "success", started_at=f"{today}T10:00:01", db_path=tmp_db)
+        quality = collection_quality(db_path=tmp_db)
+        assert quality["success_rate"] == 100.0
+        assert quality["fail_count"] == 0
+
+    def test_falls_back_to_collect_log(self, tmp_db):
+        log_collect("KOSPI", "success", db_path=tmp_db)
+        log_collect("CPI", "fail", db_path=tmp_db)
+        quality = collection_quality(db_path=tmp_db)
+        assert quality["source"] == "collect_log"
+        assert quality["success_rate"] == 50.0
 
 
 # ── alert_if_fail (기본 동작 확인) ───────────────────────────────────────────
