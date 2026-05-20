@@ -409,3 +409,105 @@ def send_signal_alerts(signals: list[dict]) -> int:
     _tg_send_message("\n".join(lines))
     logger.info(f"[Telegram] 퀀트 신호 {len(signals)}건 전송 완료")
     return len(signals)
+
+
+def send_valuation_report(results: list[dict], db_path: str = "economic_data.db") -> bool:
+    """
+    밸류에이션 스크리닝 결과를 텔레그램으로 전송.
+
+    Parameters
+    ----------
+    results : run_valuation_pipeline()의 반환값 (overvaluation_score 내림차순 정렬)
+    db_path : 병목지수 조회에 사용 (최신값 표시용)
+    """
+    if not results:
+        logger.warning("[Telegram] 밸류에이션 결과 없음 - 전송 건너뜀")
+        return False
+
+    today = date.today().strftime("%Y년 %m월 %d일")
+
+    # 병목지수 최신값 가져오기
+    bottleneck_val = None
+    try:
+        conn = __import__("sqlite3").connect(db_path)
+        row = conn.execute(
+            "SELECT bottleneck_index FROM bottleneck_scores ORDER BY date DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if row:
+            bottleneck_val = row[0]
+    except Exception:
+        pass
+
+    def _bn_label(val) -> str:
+        if val is None:
+            return "N/A"
+        if val >= 2.0:
+            return f"{val:.2f}σ 🔴 (심각 병목)"
+        if val >= 1.0:
+            return f"{val:.2f}σ 🟠 (병목 주의)"
+        if val >= 0.0:
+            return f"{val:.2f}σ 🟡 (경미한 병목)"
+        return f"{val:.2f}σ 🟢 (완화)"
+
+    lines = [
+        f"*📊 밸류에이션 스크리닝* ({today})",
+        f"병목지수: {_bn_label(bottleneck_val)}",
+        "",
+    ]
+
+    # 고평가 항목 (overvaluation_score > 0.10)
+    overvalued = [r for r in results if (r.get("overvaluation_score") or 0) > 0.10]
+    if overvalued:
+        lines.append("*🔴 고평가 주의*")
+        for r in overvalued:
+            ev_cur = r.get("current_ev_ebitda")
+            ev_fair = r.get("fair_ev_ebitda")
+            mp = r.get("mispricing_ev_ebitda")
+            ev_cur_s = f"{ev_cur:.1f}x" if ev_cur else "N/A"
+            ev_fair_s = f"{ev_fair:.1f}x" if ev_fair else "N/A"
+            mp_pct_s = f"{mp * 100:+.1f}%" if mp is not None else ""
+            name = r.get("name") or r.get("ticker")
+            signal = r.get("valuation_signal", "")
+            lines.append(
+                f"  • *{name}* ({r['ticker']}): EV/EBITDA {ev_cur_s} vs 적정 {ev_fair_s} ({mp_pct_s}) → {signal}"
+            )
+        lines.append("")
+
+    # 저평가 항목 (overvaluation_score < -0.10)
+    undervalued = [r for r in results if (r.get("overvaluation_score") or 0) < -0.10]
+    if undervalued:
+        lines.append("*🟢 저평가 후보*")
+        for r in undervalued:
+            ev_cur = r.get("current_ev_ebitda")
+            ev_fair = r.get("fair_ev_ebitda")
+            mp = r.get("mispricing_ev_ebitda")
+            ev_cur_s = f"{ev_cur:.1f}x" if ev_cur else "N/A"
+            ev_fair_s = f"{ev_fair:.1f}x" if ev_fair else "N/A"
+            mp_pct_s = f"{mp * 100:+.1f}%" if mp is not None else ""
+            name = r.get("name") or r.get("ticker")
+            signal = r.get("valuation_signal", "")
+            lines.append(
+                f"  • *{name}* ({r['ticker']}): EV/EBITDA {ev_cur_s} vs 적정 {ev_fair_s} ({mp_pct_s}) → {signal}"
+            )
+        lines.append("")
+
+    # 적정 항목 수 (overvaluation_score between -0.10 and 0.10)
+    neutral = [r for r in results if -0.10 <= (r.get("overvaluation_score") or 0) <= 0.10]
+    if neutral:
+        neutral_names = ", ".join(r.get("name") or r.get("ticker") for r in neutral)
+        lines.append(f"*⚪ 적정 평가*: {neutral_names}")
+        lines.append("")
+
+    # 모델 타입 표시
+    model_types = {r.get("model_type", "heuristic") for r in results}
+    model_label = "Ridge 회귀" if "ridge" in model_types else "휴리스틱 (데이터 축적 중)"
+    lines.append(f"📌 모델: {model_label} | {len(results)}종목 분석")
+
+    message = "\n".join(lines)
+    if len(message) > 4000:
+        message = message[:4000] + "\n...(이하 생략)"
+
+    ok = _tg_send_message(message)
+    logger.info("[Telegram] 밸류에이션 리포트 전송 %s", "완료" if ok else "실패")
+    return ok

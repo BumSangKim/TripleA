@@ -26,7 +26,7 @@ from ingestion.collector import (
     clear_api_errors,
 )
 from backend.summarizer import build_summary
-from backend.telegram_sender import send_report, send_ir_summaries, send_api_alert, send_signal_alerts
+from backend.telegram_sender import send_report, send_ir_summaries, send_api_alert, send_signal_alerts, send_valuation_report
 from backend.monitor import alert_if_fail
 
 logging.basicConfig(
@@ -440,6 +440,17 @@ if __name__ == "__main__":
     summary = build_summary(db_path=DB_PATH)
     send_report(db_path=DB_PATH, force=args.force)
     alert_if_fail(db_path=DB_PATH)
+
+    # ── 밸류에이션 스크리닝 (--force 시 즉시 실행) ───────────────────
+    if args.force:
+        logger.info("[Valuation] --force: 밸류에이션 스크리닝 실행 중...")
+        try:
+            from backend.valuation_pipeline import run_valuation_pipeline
+            val_results = run_valuation_pipeline(db_path=DB_PATH)
+            send_valuation_report(val_results, db_path=DB_PATH)
+            logger.info(f"[Valuation] 스크리닝 완료: {len(val_results)}종목")
+        except Exception as e:
+            logger.error(f"[Valuation] 스크리닝 오류: {e}")
 
     # ── IR 스크래핑 및 Gemini 요약 (AI 병목 레이어 포함) ───────────
     # AI 병목: MSFT/AMZN/META/GOOGL + NVDA/TSMC/Micron/SK하이닉스/삼성

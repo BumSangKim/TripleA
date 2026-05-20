@@ -112,9 +112,55 @@ def load_price_history(indicator: str, limit: int = 120) -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=300)
+def load_valuation_results() -> pd.DataFrame:
+    """최신 밸류에이션 결과 로드."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        df = pd.read_sql_query(
+            """
+            SELECT v.*
+            FROM valuation_results v
+            INNER JOIN (
+                SELECT ticker, MAX(date) AS max_date
+                FROM valuation_results
+                GROUP BY ticker
+            ) latest ON v.ticker = latest.ticker AND v.date = latest.max_date
+            ORDER BY v.overvaluation_score DESC
+            """,
+            conn,
+        )
+    except Exception:
+        df = pd.DataFrame()
+    conn.close()
+    return df
+
+
+@st.cache_data(ttl=300)
+def load_bottleneck_history(n: int = 52) -> pd.DataFrame:
+    """병목지수 이력 로드 (최근 n 관측치)."""
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        df = pd.read_sql_query(
+            f"""
+            SELECT date, bottleneck_index, z_pmi_sdt, z_wti, z_us10y, z_inflation
+            FROM bottleneck_scores
+            ORDER BY date DESC LIMIT {n}
+            """,
+            conn,
+        )
+        if not df.empty:
+            df["date"] = pd.to_datetime(df["date"])
+            df = df.sort_values("date")
+    except Exception:
+        df = pd.DataFrame()
+    conn.close()
+    return df
+
+
 # ── 탭 구성 ───────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3, tab4 = st.tabs(["📊 핵심 지표", "🔬 기술적 지표", "📡 매매 신호", "📉 차트"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 핵심 지표", "🔬 기술적 지표", "📡 매매 신호", "📉 차트", "💹 밸류에이션"])
 
 # ── Tab 1: 핵심 지표 현황 ──────────────────────────────────────────────────────
 with tab1:
@@ -219,6 +265,124 @@ with tab4:
     else:
         st.line_chart(df_price.set_index("date")["value"], use_container_width=True)
         st.caption(f"최근 {len(df_price)}일 데이터")
+
+# ── Tab 5: 밸류에이션 스크리닝 ────────────────────────────────────────────────
+with tab5:
+    st.subheader("💹 밸류에이션 스크리닝")
+
+    # 병목지수 현황
+    df_bn = load_bottleneck_history(52)
+    if not df_bn.empty:
+        latest_bn = df_bn["bottleneck_index"].iloc[-1]
+        bn_delta = (
+            latest_bn - df_bn["bottleneck_index"].iloc[-2]
+            if len(df_bn) > 1
+            else None
+        )
+
+        def _bn_label(val) -> str:
+            if val >= 2.0: return "🔴 심각 병목"
+            if val >= 1.0: return "🟠 병목 주의"
+            if val >= 0.0: return "🟡 경미한 병목"
+            return "🟢 공급망 완화"
+
+        col_bn1, col_bn2 = st.columns([1, 3])
+        with col_bn1:
+            st.metric("현재 병목지수", f"{latest_bn:.2f}σ", delta=f"{bn_delta:+.2f}σ" if bn_delta is not None else None)
+            st.caption(_bn_label(latest_bn))
+        with col_bn2:
+            st.line_chart(df_bn.set_index("date")["bottleneck_index"], use_container_width=True)
+            st.caption("병목지수 추이 (가중 Z-score 복합지수)")
+    else:
+        st.info("병목지수 데이터 없음. 파이프라인 실행 후 확인하세요.")
+
+    st.divider()
+
+    # 밸류에이션 결과 테이블
+    st.subheader("종목별 적정 멀티플 vs 현재 멀티플")
+    df_val = load_valuation_results()
+
+    if df_val.empty:
+        st.info(
+            "밸류에이션 데이터가 없습니다. "
+            "`python -m backend.main --force` 또는 `backend.valuation_pipeline`를 실행하세요."
+        )
+    else:
+        # 신호 배지 색상
+        SIGNAL_COLORS = {
+            "명확한 고평가": "#f8d7da",
+            "고평가 경계":   "#fff3cd",
+            "적정":          "#d4edda",
+            "저평가 경계":   "#cce5ff",
+            "명확한 저평가": "#b8daff",
+        }
+
+        def _signal_style(val):
+            color = SIGNAL_COLORS.get(val, "")
+            return f"background-color: {color}" if color else ""
+
+        def _mp_style(val):
+            if not isinstance(val, float):
+                return ""
+            if val > 0.10:  return "color: #c0392b"  # 빨강 (고평가)
+            if val < -0.10: return "color: #1a7a4a"  # 초록 (저평가)
+            return ""
+
+        display_cols = {
+            "ticker": "티커",
+            "sector": "섹터",
+            "current_ev_ebitda": "현재 EV/EBITDA",
+            "fair_ev_ebitda": "적정 EV/EBITDA",
+            "mispricing_ev_ebitda": "EV 괴리율",
+            "current_per": "현재 P/E",
+            "fair_per": "적정 P/E",
+            "overvaluation_score": "종합 스코어",
+            "valuation_signal": "판단",
+            "model_type": "모델",
+        }
+        avail_cols = [c for c in display_cols if c in df_val.columns]
+        df_display = df_val[avail_cols].rename(columns=display_cols).copy()
+
+        # 괴리율을 % 문자열로 표시
+        if "EV 괴리율" in df_display.columns:
+            df_display["EV 괴리율"] = df_display["EV 괴리율"].apply(
+                lambda v: f"{v * 100:+.1f}%" if pd.notna(v) else "N/A"
+            )
+
+        # EV/EBITDA 소수점 1자리
+        for col in ["현재 EV/EBITDA", "적정 EV/EBITDA", "현재 P/E", "적정 P/E"]:
+            if col in df_display.columns:
+                df_display[col] = df_display[col].apply(
+                    lambda v: f"{v:.1f}x" if pd.notna(v) else "N/A"
+                )
+
+        if "종합 스코어" in df_display.columns:
+            df_display["종합 스코어"] = df_display["종합 스코어"].apply(
+                lambda v: f"{v:+.3f}" if pd.notna(v) else "N/A"
+            )
+
+        styled = df_display.style.applymap(
+            _signal_style, subset=["판단"] if "판단" in df_display.columns else []
+        )
+        st.dataframe(styled, use_container_width=True, hide_index=True)
+
+        # 요약 지표
+        if "판단" in df_val.columns:
+            ov_cnt = int((df_val["overvaluation_score"] > 0.10).sum())
+            uv_cnt = int((df_val["overvaluation_score"] < -0.10).sum())
+            ok_cnt = len(df_val) - ov_cnt - uv_cnt
+            c1, c2, c3 = st.columns(3)
+            c1.metric("🔴 고평가", ov_cnt)
+            c2.metric("⚪ 적정", ok_cnt)
+            c3.metric("🟢 저평가", uv_cnt)
+
+        # 병목지수 분해 차트
+        if not df_bn.empty:
+            with st.expander("병목지수 구성 요소 보기"):
+                component_cols = [c for c in ["z_pmi_sdt", "z_wti", "z_us10y", "z_inflation"] if c in df_bn.columns]
+                if component_cols:
+                    st.line_chart(df_bn.set_index("date")[component_cols], use_container_width=True)
+                    st.caption("GSCPI/PMI(40%) · WTI(30%) · US10Y(20%) · CPI(10%) Z-스코어")
 
 # ── 하단 정보 ─────────────────────────────────────────────────────────────────
 st.markdown("---")

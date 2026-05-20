@@ -259,6 +259,88 @@ def init_db(db_path: str = DB_PATH):
         )
     """)
 
+    # ── 기업 분기 재무 데이터 (Valuation Layer) ─────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS company_fundamentals (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            ticker            TEXT NOT NULL,
+            period            TEXT NOT NULL,     -- YYYY-MM-DD (분기 마지막일)
+            revenue           REAL,              -- USD
+            ebitda            REAL,              -- USD
+            net_income        REAL,              -- USD
+            equity            REAL,              -- USD (Book Value)
+            debt              REAL,              -- USD (Total Debt)
+            cash              REAL,              -- USD
+            roic              REAL,              -- % (Return on Invested Capital)
+            roe               REAL,              -- %
+            revenue_growth_yoy REAL,             -- % YoY
+            ebitda_margin     REAL,              -- % (EBITDA/Revenue)
+            debt_ratio        REAL,              -- Debt/Equity
+            source            TEXT DEFAULT 'FMP',
+            updated_at        TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(ticker, period)
+        )
+    """)
+
+    # ── 기업 시장 멀티플 스냅샷 (주간) ──────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS company_multiples (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            date             TEXT NOT NULL,
+            ticker           TEXT NOT NULL,
+            sector           TEXT,
+            close_price      REAL,
+            market_cap       REAL,              -- USD billion
+            enterprise_value REAL,              -- USD billion
+            ev_ebitda        REAL,              -- EV/EBITDA multiple
+            pe_ratio         REAL,              -- Trailing P/E
+            pb_ratio         REAL,              -- Price/Book
+            ps_ratio         REAL,              -- Price/Sales
+            source           TEXT DEFAULT 'Yahoo',
+            updated_at       TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(date, ticker)
+        )
+    """)
+
+    # ── 병목지수 시계열 ──────────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS bottleneck_scores (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            date             TEXT NOT NULL UNIQUE,
+            z_pmi_sdt        REAL,   -- 공급망 압력 (GSCPI)
+            z_wti            REAL,   -- 원자재 비용 압력 (WTI z-score)
+            z_us10y          REAL,   -- 금리 부담 (US10Y z-score)
+            z_inflation      REAL,   -- 물가 압력 (CPI YoY z-score)
+            bottleneck_index REAL,   -- 가중 합성 병목지수
+            updated_at       TEXT DEFAULT (datetime('now','localtime'))
+        )
+    """)
+
+    # ── 밸류에이션 결과 ─────────────────────────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS valuation_results (
+            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+            date                 TEXT NOT NULL,
+            ticker               TEXT NOT NULL,
+            sector               TEXT,
+            current_ev_ebitda    REAL,
+            fair_ev_ebitda       REAL,
+            mispricing_ev_ebitda REAL,  -- (current-fair)/fair
+            current_per          REAL,
+            fair_per             REAL,
+            mispricing_per       REAL,
+            current_pbr          REAL,
+            fair_pbr             REAL,
+            mispricing_pbr       REAL,
+            overvaluation_score  REAL,  -- 복합 고평가 스코어
+            valuation_signal     TEXT,  -- '고평가'|'저평가'|'적정'
+            model_type           TEXT DEFAULT 'heuristic',
+            bottleneck_used      REAL,
+            updated_at           TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(date, ticker)
+        )
+    """)
+
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_date ON indicators(date)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_indicator ON indicators(indicator)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_indicators_stale ON indicators(is_stale)")
@@ -270,6 +352,10 @@ def init_db(db_path: str = DB_PATH):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_features_indicator ON features(indicator)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_signals_created ON signals(created_at)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_orders_symbol ON orders(symbol, created_at)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_company_fund ON company_fundamentals(ticker, period)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_company_mult ON company_multiples(ticker, date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_bottleneck ON bottleneck_scores(date)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_valuation ON valuation_results(date, ticker)")
     conn.commit()
     conn.close()
 
@@ -786,3 +872,228 @@ def record_order(order: dict, db_path: str = DB_PATH) -> int:
     conn.commit()
     conn.close()
     return row_id
+
+
+# ── Valuation Layer CRUD ─────────────────────────────────────────────────────
+
+def upsert_company_fundamentals(
+    ticker: str,
+    period: str,
+    revenue: float = None,
+    ebitda: float = None,
+    net_income: float = None,
+    equity: float = None,
+    debt: float = None,
+    cash: float = None,
+    roic: float = None,
+    roe: float = None,
+    revenue_growth_yoy: float = None,
+    ebitda_margin: float = None,
+    debt_ratio: float = None,
+    source: str = "FMP",
+    db_path: str = DB_PATH,
+):
+    """기업 분기 재무 데이터 저장/업데이트"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO company_fundamentals
+            (ticker, period, revenue, ebitda, net_income, equity, debt, cash,
+             roic, roe, revenue_growth_yoy, ebitda_margin, debt_ratio, source)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(ticker, period) DO UPDATE SET
+            revenue=COALESCE(excluded.revenue, revenue),
+            ebitda=COALESCE(excluded.ebitda, ebitda),
+            net_income=COALESCE(excluded.net_income, net_income),
+            equity=COALESCE(excluded.equity, equity),
+            debt=COALESCE(excluded.debt, debt),
+            cash=COALESCE(excluded.cash, cash),
+            roic=COALESCE(excluded.roic, roic),
+            roe=COALESCE(excluded.roe, roe),
+            revenue_growth_yoy=COALESCE(excluded.revenue_growth_yoy, revenue_growth_yoy),
+            ebitda_margin=COALESCE(excluded.ebitda_margin, ebitda_margin),
+            debt_ratio=COALESCE(excluded.debt_ratio, debt_ratio),
+            updated_at=datetime('now','localtime')
+        """,
+        (ticker, period, revenue, ebitda, net_income, equity, debt, cash,
+         roic, roe, revenue_growth_yoy, ebitda_margin, debt_ratio, source),
+    )
+    conn.commit()
+    conn.close()
+
+
+def upsert_company_multiples(
+    date_str: str,
+    ticker: str,
+    sector: str = None,
+    close_price: float = None,
+    market_cap: float = None,
+    enterprise_value: float = None,
+    ev_ebitda: float = None,
+    pe_ratio: float = None,
+    pb_ratio: float = None,
+    ps_ratio: float = None,
+    source: str = "Yahoo",
+    db_path: str = DB_PATH,
+):
+    """기업 시장 멀티플 스냅샷 저장/업데이트"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO company_multiples
+            (date, ticker, sector, close_price, market_cap, enterprise_value,
+             ev_ebitda, pe_ratio, pb_ratio, ps_ratio, source)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(date, ticker) DO UPDATE SET
+            sector=COALESCE(excluded.sector, sector),
+            close_price=COALESCE(excluded.close_price, close_price),
+            market_cap=COALESCE(excluded.market_cap, market_cap),
+            enterprise_value=COALESCE(excluded.enterprise_value, enterprise_value),
+            ev_ebitda=COALESCE(excluded.ev_ebitda, ev_ebitda),
+            pe_ratio=COALESCE(excluded.pe_ratio, pe_ratio),
+            pb_ratio=COALESCE(excluded.pb_ratio, pb_ratio),
+            ps_ratio=COALESCE(excluded.ps_ratio, ps_ratio),
+            updated_at=datetime('now','localtime')
+        """,
+        (date_str, ticker, sector, close_price, market_cap, enterprise_value,
+         ev_ebitda, pe_ratio, pb_ratio, ps_ratio, source),
+    )
+    conn.commit()
+    conn.close()
+
+
+def save_bottleneck_score(
+    date_str: str,
+    bottleneck_index: float,
+    z_pmi_sdt: float = None,
+    z_wti: float = None,
+    z_us10y: float = None,
+    z_inflation: float = None,
+    db_path: str = DB_PATH,
+):
+    """병목지수 저장"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO bottleneck_scores
+            (date, bottleneck_index, z_pmi_sdt, z_wti, z_us10y, z_inflation)
+        VALUES (?,?,?,?,?,?)
+        ON CONFLICT(date) DO UPDATE SET
+            bottleneck_index=excluded.bottleneck_index,
+            z_pmi_sdt=COALESCE(excluded.z_pmi_sdt, z_pmi_sdt),
+            z_wti=COALESCE(excluded.z_wti, z_wti),
+            z_us10y=COALESCE(excluded.z_us10y, z_us10y),
+            z_inflation=COALESCE(excluded.z_inflation, z_inflation),
+            updated_at=datetime('now','localtime')
+        """,
+        (date_str, bottleneck_index, z_pmi_sdt, z_wti, z_us10y, z_inflation),
+    )
+    conn.commit()
+    conn.close()
+
+
+def upsert_valuation_result(
+    date_str: str,
+    ticker: str,
+    sector: str = None,
+    current_ev_ebitda: float = None,
+    fair_ev_ebitda: float = None,
+    mispricing_ev_ebitda: float = None,
+    current_per: float = None,
+    fair_per: float = None,
+    mispricing_per: float = None,
+    current_pbr: float = None,
+    fair_pbr: float = None,
+    mispricing_pbr: float = None,
+    overvaluation_score: float = None,
+    valuation_signal: str = None,
+    model_type: str = "heuristic",
+    bottleneck_used: float = None,
+    db_path: str = DB_PATH,
+):
+    """밸류에이션 결과 저장/업데이트"""
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        """
+        INSERT INTO valuation_results
+            (date, ticker, sector, current_ev_ebitda, fair_ev_ebitda, mispricing_ev_ebitda,
+             current_per, fair_per, mispricing_per, current_pbr, fair_pbr, mispricing_pbr,
+             overvaluation_score, valuation_signal, model_type, bottleneck_used)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(date, ticker) DO UPDATE SET
+            sector=COALESCE(excluded.sector, sector),
+            current_ev_ebitda=COALESCE(excluded.current_ev_ebitda, current_ev_ebitda),
+            fair_ev_ebitda=COALESCE(excluded.fair_ev_ebitda, fair_ev_ebitda),
+            mispricing_ev_ebitda=COALESCE(excluded.mispricing_ev_ebitda, mispricing_ev_ebitda),
+            current_per=COALESCE(excluded.current_per, current_per),
+            fair_per=COALESCE(excluded.fair_per, fair_per),
+            mispricing_per=COALESCE(excluded.mispricing_per, mispricing_per),
+            current_pbr=COALESCE(excluded.current_pbr, current_pbr),
+            fair_pbr=COALESCE(excluded.fair_pbr, fair_pbr),
+            mispricing_pbr=COALESCE(excluded.mispricing_pbr, mispricing_pbr),
+            overvaluation_score=COALESCE(excluded.overvaluation_score, overvaluation_score),
+            valuation_signal=COALESCE(excluded.valuation_signal, valuation_signal),
+            model_type=excluded.model_type,
+            bottleneck_used=COALESCE(excluded.bottleneck_used, bottleneck_used),
+            updated_at=datetime('now','localtime')
+        """,
+        (date_str, ticker, sector, current_ev_ebitda, fair_ev_ebitda, mispricing_ev_ebitda,
+         current_per, fair_per, mispricing_per, current_pbr, fair_pbr, mispricing_pbr,
+         overvaluation_score, valuation_signal, model_type, bottleneck_used),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_latest_valuation_results(db_path: str = DB_PATH) -> pd.DataFrame:
+    """가장 최근 날짜의 밸류에이션 결과 전체 조회"""
+    conn = sqlite3.connect(db_path)
+    try:
+        df = pd.read_sql_query(
+            """
+            SELECT v.*
+            FROM valuation_results v
+            INNER JOIN (
+                SELECT ticker, MAX(date) AS max_date FROM valuation_results GROUP BY ticker
+            ) latest ON v.ticker=latest.ticker AND v.date=latest.max_date
+            ORDER BY v.overvaluation_score DESC
+            """,
+            conn,
+        )
+    except Exception:
+        df = pd.DataFrame()
+    conn.close()
+    return df
+
+
+def get_bottleneck_history(n: int = 52, db_path: str = DB_PATH) -> pd.DataFrame:
+    """병목지수 시계열 조회 (최근 n주)"""
+    conn = sqlite3.connect(db_path)
+    try:
+        df = pd.read_sql_query(
+            "SELECT date, bottleneck_index, z_pmi_sdt, z_wti, z_us10y, z_inflation "
+            "FROM bottleneck_scores ORDER BY date DESC LIMIT ?",
+            conn, params=(n,),
+        )
+        df = df.sort_values("date").reset_index(drop=True)
+    except Exception:
+        df = pd.DataFrame()
+    conn.close()
+    return df
+
+
+def get_latest_fundamentals(ticker: str, db_path: str = DB_PATH) -> dict:
+    """기업 최신 분기 재무 데이터 조회"""
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        """SELECT * FROM company_fundamentals WHERE ticker=?
+           ORDER BY period DESC LIMIT 1""",
+        (ticker,),
+    ).fetchone()
+    conn.close()
+    if row is None:
+        return {}
+    cols = ["id", "ticker", "period", "revenue", "ebitda", "net_income", "equity",
+            "debt", "cash", "roic", "roe", "revenue_growth_yoy", "ebitda_margin",
+            "debt_ratio", "source", "updated_at"]
+    return dict(zip(cols, row))
