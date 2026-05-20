@@ -429,11 +429,16 @@ def collect_all_indicators():
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true", help="중복 방지 무시하고 강제 전송")
+    args = parser.parse_args()
+
     validate_config()
     init_db(DB_PATH)
     collect_all_indicators()
     summary = build_summary(db_path=DB_PATH)
-    send_report(db_path=DB_PATH)
+    send_report(db_path=DB_PATH, force=args.force)
     alert_if_fail(db_path=DB_PATH)
 
     # ── IR 스크래핑 및 Gemini 요약 (AI 병목 레이어 포함) ───────────

@@ -56,6 +56,6 @@ fi
 echo ""
 echo "▶  파이프라인 실행: $(date '+%Y-%m-%d %H:%M:%S')"
 echo "────────────────────────────────────────"
-python3 -m backend.main
+python3 -m backend.main --force
 echo "────────────────────────────────────────"
 echo "✅ 완료: $(date '+%Y-%m-%d %H:%M:%S')"
