@@ -1,0 +1,45 @@
+# docker-compose.yml — TripleA 대시보드 통합 실행
+# 사용법: docker compose up --build
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: triplea-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data          # SQLite DB 영속화
+      - ./API_KEY:/app/API_KEY:ro # API 키 읽기 전용 마운트
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-triplea-change-in-production}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - FRED_API_KEY=${FRED_API_KEY:-}
+      - ECOS_API_KEY=${ECOS_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: triplea-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:8000
+    depends_on:
+      api:
+        condition: service_healthy
+
+# 로컬 볼륨
+volumes:
+  triplea-data:

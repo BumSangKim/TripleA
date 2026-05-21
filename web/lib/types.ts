@@ -1,0 +1,115 @@
+// lib/types.ts
+export interface KPISummary {
+  totalAssets: number;
+  cash: number;
+  todayProfit: number;
+  todayProfitRate: number;
+  riskLevel: string;
+  macroScore?: number | null;
+}
+
+export interface MacroIndicator {
+  key: string;
+  name: string;
+  value: number | null;
+  unit: string | null;
+  change: number | null;
+  status: "rising" | "falling" | "stable";
+  date: string | null;
+  history?: number[];
+}
+
+export interface AccountSummary {
+  id: number;
+  name: string;
+  type: string | null;
+  value: number;
+  profit: number;
+  profitRate: number;
+}
+
+export interface AllocationItem {
+  asset: string;
+  value: number;
+  ratio: number;
+}
+
+export interface TargetItem {
+  id?: number;
+  asset_class: string;
+  target_type?: string;
+  currentRatio: number;
+  targetRatio: number;
+  deviation: number;
+  level: "normal" | "warning" | "danger";
+  unit?: string;
+}
+
+export interface SuggestionItem {
+  asset: string;
+  action: string;
+  reason: string;
+  deviation: number;
+}
+
+export interface TopMover {
+  symbol: string;
+  name: string | null;
+  price: number | null;
+  changeRate: number;
+  contribution: number | null;
+}
+
+export interface CalendarEvent {
+  id?: number;
+  date: string;
+  time: string | null;
+  title?: string;
+  event?: string;
+  country: string;
+  importance: "high" | "medium" | "low";
+  actual?: number | null;
+  forecast?: number | null;
+  previous?: number | null;
+}
+
+export interface DocumentItem {
+  id?: number;
+  type: string;
+  title: string;
+  content?: string | null;
+  tags?: string | null;
+  url?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface AlertItem {
+  id: number;
+  level: "info" | "warning" | "danger";
+  category: string | null;
+  title: string;
+  message: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface Insights {
+  macroSummary: string;
+  portfolioSummary: string;
+  marketRisk: string;
+  recommendation: string;
+}
+
+export interface DashboardSummary {
+  kpi: KPISummary;
+  macro: MacroIndicator[];
+  accounts: AccountSummary[];
+  allocation: AllocationItem[];
+  targets: TargetItem[];
+  suggestions: SuggestionItem[];
+  topMovers: TopMover[];
+  calendar: CalendarEvent[];
+  alerts: AlertItem[];
+  insights: Insights;
+}
