@@ -7,6 +7,7 @@ import type {
   DashboardSummary,
   DocumentItem,
   AlertItem,
+  APIErrorDetail,
   MacroIndicator,
   ModeInfo,
   ProviderSyncResult,
@@ -18,6 +19,45 @@ import type {
 } from "./types";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+export class APIRequestError extends Error {
+  status: number;
+  path: string;
+  detail?: APIErrorDetail;
+
+  constructor(message: string, status: number, path: string, detail?: APIErrorDetail) {
+    super(message);
+    this.name = "APIRequestError";
+    this.status = status;
+    this.path = path;
+    this.detail = detail;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function parseErrorDetail(body: unknown): { message: string; detail?: APIErrorDetail } {
+  if (!isRecord(body) || !("detail" in body)) {
+    return { message: "API 요청이 실패했습니다." };
+  }
+
+  const rawDetail = body.detail;
+  if (typeof rawDetail === "string") {
+    return { message: rawDetail };
+  }
+  if (!isRecord(rawDetail)) {
+    return { message: "API 요청이 실패했습니다." };
+  }
+
+  const detail: APIErrorDetail = {
+    code: typeof rawDetail.code === "string" ? rawDetail.code : undefined,
+    message: typeof rawDetail.message === "string" ? rawDetail.message : undefined,
+    userAction: typeof rawDetail.userAction === "string" ? rawDetail.userAction : undefined,
+  };
+  return { message: detail.message || "API 요청이 실패했습니다.", detail };
+}
 
 function withQuery(path: string, params: Record<string, string | number | boolean | null | undefined>): string {
   const [base, rawQuery] = path.split("?");
@@ -36,7 +76,11 @@ async function fetchJSON<T>(path: string, options?: RequestInit): Promise<T> {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
   });
-  if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    const { message, detail } = parseErrorDetail(body);
+    throw new APIRequestError(message, res.status, path, detail);
+  }
   return res.json();
 }
 

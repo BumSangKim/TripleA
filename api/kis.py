@@ -28,6 +28,10 @@ class KISAPIError(RuntimeError):
     pass
 
 
+class KISNetworkError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
 class KISConfig:
     app_key: str
@@ -146,15 +150,18 @@ class KISClient:
         self.session = session or requests.Session()
 
     def issue_token(self) -> str:
-        response = self.session.post(
-            f"{self.config.base_url}/oauth2/tokenP",
-            json={
-                "grant_type": "client_credentials",
-                "appkey": self.config.app_key,
-                "appsecret": self.config.app_secret,
-            },
-            timeout=10,
-        )
+        try:
+            response = self.session.post(
+                f"{self.config.base_url}/oauth2/tokenP",
+                json={
+                    "grant_type": "client_credentials",
+                    "appkey": self.config.app_key,
+                    "appsecret": self.config.app_secret,
+                },
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            raise KISNetworkError("KIS token request failed") from exc
         data = self._json_or_raise(response)
         token = _clean(data.get("access_token"))
         if not token:
@@ -173,24 +180,27 @@ class KISClient:
 
     def query_domestic_balance(self, token: str) -> dict[str, Any]:
         tr_id = "VTTC8434R" if self.config.is_demo else "TTTC8434R"
-        response = self.session.get(
-            f"{self.config.base_url}/uapi/domestic-stock/v1/trading/inquire-balance",
-            headers=self._headers(token, tr_id),
-            params={
-                "CANO": self.config.cano,
-                "ACNT_PRDT_CD": self.config.account_product_code,
-                "AFHR_FLPR_YN": "N",
-                "OFL_YN": "",
-                "INQR_DVSN": "01",
-                "UNPR_DVSN": "01",
-                "FUND_STTL_ICLD_YN": "N",
-                "FNCG_AMT_AUTO_RDPT_YN": "N",
-                "PRCS_DVSN": "01",
-                "CTX_AREA_FK100": "",
-                "CTX_AREA_NK100": "",
-            },
-            timeout=10,
-        )
+        try:
+            response = self.session.get(
+                f"{self.config.base_url}/uapi/domestic-stock/v1/trading/inquire-balance",
+                headers=self._headers(token, tr_id),
+                params={
+                    "CANO": self.config.cano,
+                    "ACNT_PRDT_CD": self.config.account_product_code,
+                    "AFHR_FLPR_YN": "N",
+                    "OFL_YN": "",
+                    "INQR_DVSN": "01",
+                    "UNPR_DVSN": "01",
+                    "FUND_STTL_ICLD_YN": "N",
+                    "FNCG_AMT_AUTO_RDPT_YN": "N",
+                    "PRCS_DVSN": "01",
+                    "CTX_AREA_FK100": "",
+                    "CTX_AREA_NK100": "",
+                },
+                timeout=10,
+            )
+        except requests.RequestException as exc:
+            raise KISNetworkError("KIS balance request failed") from exc
         return self._json_or_raise(response)
 
     def fetch_domestic_balance(self) -> KISBalanceSnapshot:

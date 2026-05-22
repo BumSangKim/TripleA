@@ -1,7 +1,18 @@
 import sqlite3
 
+import pytest
+import requests
+
 from api import db as api_db
-from api.kis import KISBalanceSnapshot, KISConfig, KISPosition, load_kis_config, parse_domestic_balance
+from api.kis import (
+    KISBalanceSnapshot,
+    KISClient,
+    KISConfig,
+    KISNetworkError,
+    KISPosition,
+    load_kis_config,
+    parse_domestic_balance,
+)
 from api.providers import ProviderRouter
 
 
@@ -63,6 +74,25 @@ def test_parse_domestic_balance_normalizes_positions():
     assert snapshot.domestic_stock_value == 150000
     assert len(snapshot.positions) == 1
     assert snapshot.positions[0].code == "005930"
+
+
+def test_kis_client_masks_network_errors():
+    config = KISConfig(
+        app_key="key",
+        app_secret="secret",
+        cano="12345678",
+        account_product_code="01",
+        is_demo=True,
+    )
+
+    class FailingSession:
+        def post(self, *args, **kwargs):
+            raise requests.Timeout("request timed out")
+
+    with pytest.raises(KISNetworkError) as exc:
+        KISClient(config, session=FailingSession()).issue_token()
+
+    assert "KIS token request failed" in str(exc.value)
 
 
 def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):

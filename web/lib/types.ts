@@ -135,6 +135,12 @@ export interface ProviderSyncResult {
   message?: string | null;
 }
 
+export interface APIErrorDetail {
+  code?: string;
+  message?: string;
+  userAction?: string;
+}
+
 export interface TopMover {
   symbol: string;
   name: string | null;

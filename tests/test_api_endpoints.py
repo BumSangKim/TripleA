@@ -90,6 +90,25 @@ class TestModes:
         res = client.post("/api/providers/mock/sync-accounts")
         assert res.status_code == 501
 
+    def test_provider_sync_config_error_is_structured(self, client, monkeypatch):
+        from api import main as api_main
+        from api.kis import KISConfigError
+
+        class FailingProvider:
+            def sync_accounts(self, conn):
+                raise KISConfigError("raw app secret message")
+
+        monkeypatch.setattr(api_main.provider_router, "get", lambda mode: FailingProvider())
+
+        res = client.post("/api/providers/paper/sync-accounts")
+
+        assert res.status_code == 503
+        detail = res.json()["detail"]
+        assert detail["code"] == "KIS_CONFIG_MISSING"
+        assert detail["message"] == "KIS 계좌 동기화 설정이 누락되었습니다."
+        assert "secret" not in detail["message"].lower()
+        assert "secret" not in detail["userAction"].lower()
+
 
 class TestAccountModeFeatures:
     def test_account_policies_are_seeded(self, client):

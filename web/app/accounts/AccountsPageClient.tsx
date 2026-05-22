@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { APIRequestError, api } from "@/lib/api";
 import type {
   AccountPolicyItem,
   AccountSnapshotCreate,
@@ -71,6 +71,9 @@ interface Position {
 }
 
 function getErrorMessage(error: unknown): string {
+  if (error instanceof APIRequestError && error.detail?.userAction) {
+    return `${error.message} ${error.detail.userAction}`;
+  }
   return error instanceof Error ? error.message : String(error);
 }
 

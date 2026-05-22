@@ -24,7 +24,7 @@ from .models import (
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RebalanceRunResponse, ProviderSyncResult,
 )
-from .kis import KISAPIError, KISConfigError
+from .kis import KISAPIError, KISConfigError, KISNetworkError
 from .modes import TradingMode, normalize_mode
 from .providers import provider_router
 from .services import (
@@ -55,6 +55,14 @@ def _ensure_user_write_mode(mode: TradingMode):
         provider_router.get(mode).assert_user_write_allowed()
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e)) from e
+
+
+def _provider_error_detail(code: str, message: str, user_action: str) -> dict[str, str]:
+    return {
+        "code": code,
+        "message": message,
+        "userAction": user_action,
+    }
 
 # ── JWT 설정 ────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("JWT_SECRET", "triplea-dev-secret-change-in-production")
@@ -144,9 +152,35 @@ def sync_provider_accounts(mode: str):
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e)) from e
     except KISConfigError as e:
-        raise HTTPException(status_code=503, detail=str(e)) from e
+        logger.info("KIS provider sync config error: %s", e)
+        raise HTTPException(
+            status_code=503,
+            detail=_provider_error_detail(
+                "KIS_CONFIG_MISSING",
+                "KIS 계좌 동기화 설정이 누락되었습니다.",
+                ".env의 KIS 앱키, 시크릿, 계좌번호 설정을 확인하세요.",
+            ),
+        ) from e
+    except KISNetworkError as e:
+        logger.warning("KIS provider sync network error: %s", e)
+        raise HTTPException(
+            status_code=504,
+            detail=_provider_error_detail(
+                "KIS_NETWORK_ERROR",
+                "KIS 서버와 통신하지 못했습니다.",
+                "네트워크 상태와 KIS 모의투자 서버 접속 가능 여부를 확인한 뒤 다시 시도하세요.",
+            ),
+        ) from e
     except KISAPIError as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
+        logger.warning("KIS provider sync API error: %s", e)
+        raise HTTPException(
+            status_code=502,
+            detail=_provider_error_detail(
+                "KIS_API_ERROR",
+                "KIS API 응답을 처리하지 못했습니다.",
+                "KIS OpenAPI 신청 상태, 모의투자 계좌 상태, TR 권한을 확인하세요.",
+            ),
+        ) from e
 
 
 @app.get("/api/dashboard/summary", response_model=DashboardSummary, tags=["dashboard"])
