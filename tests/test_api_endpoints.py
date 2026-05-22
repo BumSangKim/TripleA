@@ -86,6 +86,10 @@ class TestModes:
         )
         assert res.status_code == 403
 
+    def test_unimplemented_provider_sync_returns_501(self, client):
+        res = client.post("/api/providers/mock/sync-accounts")
+        assert res.status_code == 501
+
 
 class TestAccountModeFeatures:
     def test_account_policies_are_seeded(self, client):

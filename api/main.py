@@ -22,8 +22,9 @@ from .models import (
     TargetItem, TargetUpdate, SuggestionItem, TopMover, CalendarEvent,
     AlertItem, Insights, DocumentItem, TokenResponse, ModeInfo,
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
-    RebalanceResultItem, RebalanceRunResponse,
+    RebalanceResultItem, RebalanceRunResponse, ProviderSyncResult,
 )
+from .kis import KISAPIError, KISConfigError
 from .modes import TradingMode, normalize_mode
 from .providers import provider_router
 from .services import (
@@ -132,6 +133,20 @@ def list_modes():
 @app.get("/api/modes/{mode}", response_model=ModeInfo, tags=["system"])
 def get_mode(mode: str):
     return _mode_info(_parse_mode(mode))
+
+
+@app.post("/api/providers/{mode}/sync-accounts", response_model=ProviderSyncResult, tags=["system"])
+def sync_provider_accounts(mode: str):
+    provider = provider_router.get(_parse_mode(mode))
+    try:
+        with get_conn() as conn:
+            return provider.sync_accounts(conn)
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e)) from e
+    except KISConfigError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except KISAPIError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @app.get("/api/dashboard/summary", response_model=DashboardSummary, tags=["dashboard"])

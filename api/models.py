@@ -142,6 +142,18 @@ class RebalanceRunResponse(BaseModel):
     results: List[RebalanceResultItem]
 
 
+class ProviderSyncResult(BaseModel):
+    ok: bool
+    mode: TradingMode
+    provider: str
+    accountId: Optional[int] = None
+    accountMasked: Optional[str] = None
+    syncedPositions: int = 0
+    totalValue: float = 0
+    cashValue: float = 0
+    message: Optional[str] = None
+
+
 # ── Top Movers ───────────────────────────────────────────────────────
 class TopMover(BaseModel):
     symbol: str

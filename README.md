@@ -66,6 +66,7 @@ npm run dev
 | GET | `/api/modes` | 지원 모드와 정책 조회 |
 | GET | `/api/dashboard/summary?mode=paper` | 대시보드 요약 |
 | GET | `/api/account-policies` | 계좌 유형별 정책 |
+| POST | `/api/providers/paper/sync-accounts` | KIS 모의투자 계좌 읽기 전용 동기화 |
 | POST | `/api/accounts/{id}/manual-snapshot?mode=paper` | 수동 계좌 스냅샷 저장 |
 | PATCH | `/api/accounts/{id}/rebalancing-inclusion?mode=paper&include=false` | 리밸런싱 포함 여부 변경 |
 | POST | `/api/rebalancing/run?mode=paper` | 리밸런싱 결과 계산/저장 |
