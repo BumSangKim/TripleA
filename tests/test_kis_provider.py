@@ -245,3 +245,64 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
     assert saved_snapshot["domestic_stock_value"] == 200000
     assert saved_snapshot["etf_value"] == 100000
     assert saved_snapshot["bond_value"] == 50000
+
+
+def test_live_provider_syncs_kis_snapshot_read_only(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "dashboard.db")
+    monkeypatch.setattr(api_db, "DB_PATH", db_path)
+    api_db.ensure_dashboard_tables()
+
+    snapshot = KISBalanceSnapshot(
+        account_masked="87****21-01",
+        total_value=1000000,
+        cash_value=200000,
+        domestic_stock_value=800000,
+        message="정상처리",
+        positions=[
+            KISPosition(
+                code="005930",
+                name="삼성전자",
+                quantity=10,
+                avg_price=70000,
+                current_price=80000,
+                market_value=800000,
+                profit=100000,
+            )
+        ],
+    )
+
+    def fake_load_kis_config(*, force_demo=None):
+        assert force_demo is False
+        return KISConfig(
+            app_key="real_key",
+            app_secret="real_secret",
+            cano="87654321",
+            account_product_code="01",
+            is_demo=False,
+            account_type="GENERAL",
+            account_name="Live GENERAL",
+        )
+
+    class FakeKISClient:
+        def __init__(self, config):
+            self.config = config
+
+        def fetch_domestic_balance(self):
+            return snapshot
+
+    monkeypatch.setattr("api.providers.load_kis_config", fake_load_kis_config)
+    monkeypatch.setattr("api.providers.KISClient", FakeKISClient)
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    result = ProviderRouter().get("live").sync_accounts(conn)
+
+    assert result.ok is True
+    assert result.mode == "live"
+    assert result.accountMasked == "87****21-01"
+
+    account = conn.execute("SELECT * FROM accounts WHERE id=?", (result.accountId,)).fetchone()
+    assert account["name"] == "Live GENERAL"
+    assert account["connection_status"] == "CONNECTED"
+    assert account["data_source"] == "KIS_LIVE"
+    assert account["trade_status"] == "LIVE_READ_ONLY"

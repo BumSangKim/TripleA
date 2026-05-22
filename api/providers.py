@@ -125,7 +125,28 @@ class PaperTradingProvider(BaseDataProvider):
 
 
 class LiveTradingProvider(BaseDataProvider):
-    pass
+    def sync_accounts(self, conn: sqlite3.Connection) -> ProviderSyncResult:
+        config = load_kis_config(force_demo=False)
+        snapshot = KISClient(config).fetch_domestic_balance()
+        account_id = _upsert_kis_snapshot(
+            conn,
+            snapshot=snapshot,
+            account_name=config.account_name,
+            account_type=config.account_type,
+            data_source="KIS_LIVE",
+            trade_status="LIVE_READ_ONLY",
+        )
+        return ProviderSyncResult(
+            ok=True,
+            mode=self.mode,
+            provider=self.name,
+            accountId=account_id,
+            accountMasked=snapshot.account_masked,
+            syncedPositions=len(snapshot.positions),
+            totalValue=snapshot.total_value,
+            cashValue=snapshot.cash_value,
+            message=snapshot.message or "KIS live account synced in read-only mode",
+        )
 
 
 class ProviderRouter:

@@ -77,6 +77,10 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function canSyncKisProvider(mode: TradingMode): boolean {
+  return mode === "paper" || mode === "live";
+}
+
 function parseMoney(value: string): number {
   const parsed = Number(value.replaceAll(",", "").trim());
   return Number.isFinite(parsed) ? parsed : 0;
@@ -330,8 +334,8 @@ export default function AccountsPageClient() {
   };
 
   const handleProviderSync = async () => {
-    if (mode !== "paper") {
-      setProviderMsg({ type: "err", text: "현재는 Paper 모드의 KIS 모의투자 동기화만 지원합니다." });
+    if (!canSyncKisProvider(mode)) {
+      setProviderMsg({ type: "err", text: "현재는 Paper/Live 모드의 KIS 계좌 동기화만 지원합니다." });
       return;
     }
 
@@ -395,7 +399,7 @@ export default function AccountsPageClient() {
           <button
             type="button"
             onClick={handleProviderSync}
-            disabled={providerSyncing || mode !== "paper"}
+            disabled={providerSyncing || !canSyncKisProvider(mode)}
             className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
           >
             {providerSyncing ? "동기화 중..." : "KIS 동기화"}
