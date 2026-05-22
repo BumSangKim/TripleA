@@ -92,6 +92,9 @@ export const api = {
   getModes: (): Promise<ModeInfo[]> =>
     fetchJSON<ModeInfo[]>("/api/modes"),
 
+  getOrderDrafts: (mode?: TradingMode, limit = 20): Promise<OrderDraftResponse[]> =>
+    fetchJSON<OrderDraftResponse[]>(withQuery("/api/orders/drafts", { mode, limit })),
+
   syncProviderAccounts: (mode: TradingMode): Promise<ProviderSyncResult> =>
     fetchJSON<ProviderSyncResult>(`/api/providers/${mode}/sync-accounts`, {
       method: "POST",

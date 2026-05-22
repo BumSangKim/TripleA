@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-22_trading_modes_order_history.md` | 주문 draft 이력 조회 API/UI |
 | `2026-05-22_trading_modes_order_draft_ui.md` | 주문 후보 생성 및 Paper 승인 로그 UI 연결 |
 | `2026-05-22_trading_modes_order_draft_api.md` | 주문 후보 생성 및 Paper 수동 승인 로그 API |
 | `2026-05-22_trading_modes_live_read_only_sync.md` | Live provider KIS 실계좌 조회 전용 동기화 |

@@ -104,6 +104,22 @@ def test_paper_order_execute_records_manual_approval_only(order_client):
     assert log == ("PAPER_APPROVED", "APPROVED_NOT_SENT")
 
 
+def test_order_drafts_history_lists_recent_drafts(order_client):
+    client, _ = order_client
+    created = client.post(
+        "/api/orders/draft",
+        json={"mode": "paper", "source": "rebalancing", "maxOrderAmount": 10000},
+    ).json()
+
+    res = client.get("/api/orders/drafts?mode=paper&limit=5")
+
+    assert res.status_code == 200
+    rows = res.json()
+    assert rows[0]["draftId"] == created["draftId"]
+    assert rows[0]["itemCount"] == created["itemCount"]
+    assert rows[0]["items"]
+
+
 def test_live_order_execute_stays_disabled(order_client):
     client, _ = order_client
     draft = client.post(

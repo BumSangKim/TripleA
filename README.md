@@ -74,6 +74,7 @@ npm run dev
 | GET | `/api/rebalancing/results?mode=paper` | 리밸런싱 실행 로그 |
 | POST | `/api/orders/draft` | 리밸런싱 기반 주문 후보 생성 |
 | POST | `/api/orders/execute` | Paper 주문 후보 수동 승인 로그 기록 |
+| GET | `/api/orders/drafts?mode=paper` | 주문 후보 draft 이력 조회 |
 
 ## 검증
 

@@ -615,6 +615,33 @@ def approve_order_draft(
     return _order_draft_response(conn, draft_id, message="모의 주문 후보가 승인 로그로 기록되었습니다.")
 
 
+def list_order_drafts(
+    conn: sqlite3.Connection,
+    mode: TradingMode | None = None,
+    limit: int = 20,
+) -> list[OrderDraftResponse]:
+    if mode:
+        rows = conn.execute(
+            """
+            SELECT id FROM order_drafts
+            WHERE mode=?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (mode.value, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT id FROM order_drafts
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [_order_draft_response(conn, int(row["id"])) for row in rows]
+
+
 def _portfolio_total_from_holdings(conn: sqlite3.Connection) -> float:
     row = conn.execute(
         """

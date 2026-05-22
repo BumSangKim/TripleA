@@ -35,7 +35,7 @@ from .services import (
     get_account_policies, save_manual_snapshot,
     get_account_snapshots, set_account_rebalancing_inclusion,
     record_rebalance_results, get_rebalance_results,
-    create_order_draft, approve_order_draft,
+    create_order_draft, approve_order_draft, list_order_drafts,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -439,6 +439,13 @@ def list_rebalance_results(mode: Optional[str] = None, limit: int = 50):
 
 
 # ── Orders ──────────────────────────────────────────────────────────
+@app.get("/api/orders/drafts", response_model=List[OrderDraftResponse], tags=["orders"])
+def order_drafts(mode: Optional[str] = None, limit: int = 20):
+    trading_mode = _parse_mode(mode) if mode else None
+    with get_conn() as conn:
+        return list_order_drafts(conn, trading_mode, limit=limit)
+
+
 @app.post("/api/orders/draft", response_model=OrderDraftResponse, tags=["orders"])
 def draft_orders(body: OrderDraftRequest):
     try:

@@ -1,7 +1,7 @@
 // app/orders/OrdersPageClient.tsx
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { APIRequestError, api } from "@/lib/api";
 import type { OrderDraftResponse, TradingMode } from "@/lib/types";
 import Card from "@/components/ui/Card";
@@ -32,9 +32,27 @@ export default function OrdersPageClient() {
   const [mode, setMode] = useState<TradingMode>("paper");
   const [maxAmount, setMaxAmount] = useState("1000000");
   const [draft, setDraft] = useState<OrderDraftResponse | null>(null);
+  const [drafts, setDrafts] = useState<OrderDraftResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [approving, setApproving] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      setDrafts(await api.getOrderDrafts(mode, 12));
+    } catch {
+      setDrafts([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(fetchHistory, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchHistory]);
 
   const handleCreateDraft = async () => {
     setLoading(true);
@@ -47,6 +65,7 @@ export default function OrdersPageClient() {
         maxOrderAmount: Number.isFinite(amount) && amount > 0 ? amount : null,
       });
       setDraft(result);
+      await fetchHistory();
       setMsg({ type: "ok", text: `${result.itemCount}개 주문 후보 생성` });
     } catch (error) {
       setMsg({ type: "err", text: getErrorMessage(error) });
@@ -66,6 +85,7 @@ export default function OrdersPageClient() {
         confirmText: "모의 주문을 승인합니다",
       });
       setDraft(result);
+      await fetchHistory();
       setMsg({ type: "ok", text: result.message ?? "승인 로그 저장 완료" });
     } catch (error) {
       setMsg({ type: "err", text: getErrorMessage(error) });
@@ -189,6 +209,49 @@ export default function OrdersPageClient() {
                     <td className="px-3 py-2 text-right text-slate-200">{formatKRW(item.amount)}</td>
                     <td className="px-3 py-2 text-slate-300">{statusLabel(item.status)}</td>
                     <td className="px-3 py-2 text-slate-400">{item.reason ?? "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Card title="최근 Draft">
+        {historyLoading ? (
+          <div className="py-8 text-center text-sm text-slate-500">이력 로딩 중...</div>
+        ) : drafts.length === 0 ? (
+          <div className="py-8 text-center text-sm text-slate-500">저장된 draft가 없습니다.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-700 text-slate-500">
+                  <th className="px-3 py-2 text-left">ID</th>
+                  <th className="px-3 py-2 text-left">모드</th>
+                  <th className="px-3 py-2 text-left">상태</th>
+                  <th className="px-3 py-2 text-right">후보</th>
+                  <th className="px-3 py-2 text-right">금액</th>
+                  <th className="px-3 py-2 text-left">선택</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700/60">
+                {drafts.map((item) => (
+                  <tr key={item.draftId}>
+                    <td className="px-3 py-2 text-white">{item.draftId}</td>
+                    <td className="px-3 py-2 text-slate-300">{item.mode.toUpperCase()}</td>
+                    <td className="px-3 py-2 text-slate-300">{statusLabel(item.status)}</td>
+                    <td className="px-3 py-2 text-right text-slate-300">{item.itemCount}</td>
+                    <td className="px-3 py-2 text-right text-slate-300">{formatKRW(item.totalAmount)}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => setDraft(item)}
+                        className="rounded-md bg-slate-700 px-2 py-1 text-xs text-slate-200 transition-colors hover:bg-slate-600"
+                      >
+                        보기
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
