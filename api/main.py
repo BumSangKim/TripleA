@@ -23,6 +23,7 @@ from .models import (
     AlertItem, Insights, DocumentItem, TokenResponse, ModeInfo,
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RebalanceRunResponse, ProviderSyncResult,
+    OrderDraftRequest, OrderDraftResponse, OrderExecuteRequest,
 )
 from .kis import KISAPIError, KISConfigError, KISNetworkError
 from .modes import TradingMode, normalize_mode
@@ -34,6 +35,7 @@ from .services import (
     get_account_policies, save_manual_snapshot,
     get_account_snapshots, set_account_rebalancing_inclusion,
     record_rebalance_results, get_rebalance_results,
+    create_order_draft, approve_order_draft,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -434,6 +436,41 @@ def list_rebalance_results(mode: Optional[str] = None, limit: int = 50):
     trading_mode = _parse_mode(mode) if mode else None
     with get_conn() as conn:
         return get_rebalance_results(conn, trading_mode, limit=limit)
+
+
+# ── Orders ──────────────────────────────────────────────────────────
+@app.post("/api/orders/draft", response_model=OrderDraftResponse, tags=["orders"])
+def draft_orders(body: OrderDraftRequest):
+    try:
+        with get_conn() as conn:
+            return create_order_draft(
+                conn,
+                body.mode,
+                source=body.source,
+                max_order_amount=body.maxOrderAmount,
+            )
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.post("/api/orders/execute", response_model=OrderDraftResponse, tags=["orders"])
+def execute_order_draft(body: OrderExecuteRequest):
+    try:
+        with get_conn() as conn:
+            return approve_order_draft(
+                conn,
+                body.mode,
+                body.orderDraftId,
+                confirm_text=body.confirmText,
+            )
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # ── Alerts ───────────────────────────────────────────────────────────

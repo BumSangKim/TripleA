@@ -154,6 +154,40 @@ def ensure_dashboard_tables():
                 created_at TEXT DEFAULT (datetime('now','localtime'))
             );
 
+            CREATE TABLE IF NOT EXISTS order_drafts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                mode TEXT NOT NULL,
+                source TEXT NOT NULL,
+                status TEXT NOT NULL,
+                max_order_amount REAL,
+                total_amount REAL DEFAULT 0,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                approved_at TEXT,
+                executed_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS order_items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                draft_id INTEGER NOT NULL REFERENCES order_drafts(id),
+                account_id INTEGER,
+                asset_class TEXT NOT NULL,
+                side TEXT NOT NULL,
+                amount REAL NOT NULL,
+                status TEXT NOT NULL,
+                reason TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS order_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                draft_id INTEGER REFERENCES order_drafts(id),
+                mode TEXT NOT NULL,
+                event TEXT NOT NULL,
+                status TEXT NOT NULL,
+                message TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
             CREATE TABLE IF NOT EXISTS backtest_runs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,

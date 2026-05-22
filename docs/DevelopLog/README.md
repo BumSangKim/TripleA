@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-22_trading_modes_order_draft_api.md` | 주문 후보 생성 및 Paper 수동 승인 로그 API |
 | `2026-05-22_trading_modes_live_read_only_sync.md` | Live provider KIS 실계좌 조회 전용 동기화 |
 | `2026-05-22_trading_modes_kis_asset_classification.md` | KIS 보유상품 ETF/채권/국내주식 분류 및 스냅샷 bucket 저장 |
 | `2026-05-22_trading_modes_kis_error_details.md` | KIS provider sync 오류 구조화 및 프론트 메시지 개선 |

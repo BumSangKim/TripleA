@@ -72,6 +72,8 @@ npm run dev
 | PATCH | `/api/accounts/{id}/rebalancing-inclusion?mode=paper&include=false` | 리밸런싱 포함 여부 변경 |
 | POST | `/api/rebalancing/run?mode=paper` | 리밸런싱 결과 계산/저장 |
 | GET | `/api/rebalancing/results?mode=paper` | 리밸런싱 실행 로그 |
+| POST | `/api/orders/draft` | 리밸런싱 기반 주문 후보 생성 |
+| POST | `/api/orders/execute` | Paper 주문 후보 수동 승인 로그 기록 |
 
 ## 검증
 
