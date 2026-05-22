@@ -249,13 +249,24 @@ def compute_macro_score(indicators: List[MacroIndicator]) -> int:
 
 
 def get_kpi_summary(conn: sqlite3.Connection, macro: Optional[List[MacroIndicator]] = None) -> KPISummary:
-    """KPI 요약 - 실제 holdings 없으면 mock"""
+    """KPI 요약 - holdings 테이블에 저장된 실제 계좌 데이터만 사용."""
     macro_score = compute_macro_score(macro) if macro else None
+    row = conn.execute("""
+        SELECT
+            COALESCE(SUM(market_value), 0) AS total_assets,
+            COALESCE(SUM(profit), 0) AS total_profit
+        FROM holdings
+    """).fetchone()
+    total_assets = float(row["total_assets"] or 0)
+    total_profit = float(row["total_profit"] or 0)
+    invested_principal = total_assets - total_profit
+    profit_rate = round(total_profit / invested_principal * 100, 2) if invested_principal > 0 else 0.0
+
     return KPISummary(
-        totalAssets=1_254_560_000,
-        cash=125_480_000,
-        todayProfit=3_247_800,
-        todayProfitRate=0.26,
+        totalAssets=total_assets,
+        cash=0,
+        todayProfit=total_profit,
+        todayProfitRate=profit_rate,
         riskLevel="보통",
         macroScore=macro_score,
     )
@@ -346,36 +357,6 @@ def get_top_movers_from_db(conn: sqlite3.Connection) -> List[TopMover]:
             contribution=None,
         ))
     return result
-
-
-def get_kpi_summary(conn: sqlite3.Connection, macro: Optional[List[MacroIndicator]] = None) -> KPISummary:
-    """KPI 요약 - holdings 있으면 실제값, 없으면 빈 상태"""
-    macro_score = compute_macro_score(macro) if macro else None
-
-    # 실제 holdings에서 총자산 계산
-    row = conn.execute(
-        "SELECT SUM(market_value) as total, SUM(profit) as profit FROM holdings"
-    ).fetchone()
-    total_assets = row["total"] or 0
-    today_profit = row["profit"] or 0
-
-    # 현금은 'cash' 또는 '현금' asset_class
-    cash_row = conn.execute(
-        "SELECT SUM(market_value) as cash FROM holdings WHERE asset_class IN ('현금','cash','Cash')"
-    ).fetchone()
-    cash = cash_row["cash"] or 0
-
-    today_profit_rate = round(today_profit / (total_assets - today_profit) * 100, 2) \
-        if total_assets > today_profit > 0 else 0.0
-
-    return KPISummary(
-        totalAssets=total_assets,
-        cash=cash,
-        todayProfit=today_profit,
-        todayProfitRate=today_profit_rate,
-        riskLevel="보통",
-        macroScore=macro_score,
-    )
 
 
 def get_calendar_events(conn: sqlite3.Connection, from_date: Optional[str] = None, to_date: Optional[str] = None) -> List[CalendarEvent]:

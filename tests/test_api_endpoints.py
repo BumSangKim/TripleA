@@ -19,8 +19,9 @@ def test_db():
     os.environ["DB_PATH"] = db_path
 
     # 테이블 초기화
-    from api.db import ensure_dashboard_tables
-    ensure_dashboard_tables()
+    from api import db as api_db
+    api_db.DB_PATH = db_path
+    api_db.ensure_dashboard_tables()
 
     # 테스트용 지표 데이터 삽입
     conn = sqlite3.connect(db_path)

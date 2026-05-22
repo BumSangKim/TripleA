@@ -79,8 +79,39 @@ def ensure_dashboard_tables():
                 updated_at TEXT DEFAULT (datetime('now','localtime'))
             );
         """)
+        _migrate_dashboard_tables(conn)
         conn.commit()
         _seed_default_targets(conn)
+
+
+def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    return {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+
+
+def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, definition: str):
+    if column not in _table_columns(conn, table):
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _migrate_dashboard_tables(conn: sqlite3.Connection):
+    """기존 로컬 DB가 예전 계좌 스키마여도 최신 대시보드 쿼리가 동작하게 보강."""
+    _add_column_if_missing(conn, "accounts", "initial_value", "REAL DEFAULT 0")
+
+    holding_columns = _table_columns(conn, "holdings")
+    _add_column_if_missing(conn, "holdings", "ticker", "TEXT")
+    _add_column_if_missing(conn, "holdings", "current_price", "REAL")
+    _add_column_if_missing(conn, "holdings", "market_value", "REAL")
+    _add_column_if_missing(conn, "holdings", "profit", "REAL DEFAULT 0")
+    _add_column_if_missing(conn, "holdings", "asset_class", "TEXT")
+
+    if "symbol" in holding_columns:
+        conn.execute("UPDATE holdings SET ticker=symbol WHERE ticker IS NULL OR ticker=''")
+    conn.execute("UPDATE holdings SET current_price=avg_price WHERE current_price IS NULL")
+    conn.execute("""
+        UPDATE holdings
+        SET market_value=COALESCE(quantity, 0) * COALESCE(current_price, avg_price, 0)
+        WHERE market_value IS NULL
+    """)
 
 
 def _seed_default_targets(conn: sqlite3.Connection):
