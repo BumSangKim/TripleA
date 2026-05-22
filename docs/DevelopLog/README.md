@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-22_trading_modes_kis_asset_classification.md` | KIS 보유상품 ETF/채권/국내주식 분류 및 스냅샷 bucket 저장 |
 | `2026-05-22_trading_modes_kis_error_details.md` | KIS provider sync 오류 구조화 및 프론트 메시지 개선 |
 | `2026-05-22_trading_modes_frontend_lint_cleanup.md` | 프론트엔드 lint/build 품질 게이트 복구 |
 | `2026-05-22_trading_modes_kis_sync_ui.md` | 계좌 화면 KIS Paper 동기화 버튼/API 연결 |

@@ -10,6 +10,7 @@ from api.kis import (
     KISConfig,
     KISNetworkError,
     KISPosition,
+    classify_kis_asset,
     load_kis_config,
     parse_domestic_balance,
 )
@@ -76,6 +77,54 @@ def test_parse_domestic_balance_normalizes_positions():
     assert snapshot.positions[0].code == "005930"
 
 
+def test_kis_asset_classification_and_snapshot_buckets():
+    assert classify_kis_asset("005930", "삼성전자") == "국내주식"
+    assert classify_kis_asset("069500", "KODEX 200") == "ETF"
+    assert classify_kis_asset("476800", "ACE 국고채10년") == "채권"
+
+    config = KISConfig(
+        app_key="key",
+        app_secret="secret",
+        cano="12345678",
+        account_product_code="01",
+        is_demo=True,
+    )
+    data = {
+        "rt_cd": "0",
+        "output1": [
+            {
+                "pdno": "005930",
+                "prdt_name": "삼성전자",
+                "hldg_qty": "2",
+                "prpr": "75000",
+                "evlu_amt": "150000",
+            },
+            {
+                "pdno": "069500",
+                "prdt_name": "KODEX 200",
+                "hldg_qty": "1",
+                "prpr": "40000",
+                "evlu_amt": "40000",
+            },
+            {
+                "pdno": "476800",
+                "prdt_name": "ACE 국고채10년",
+                "hldg_qty": "1",
+                "prpr": "100000",
+                "evlu_amt": "100000",
+            },
+        ],
+        "output2": [{"dnca_tot_amt": "10000", "tot_evlu_amt": "300000"}],
+    }
+
+    snapshot = parse_domestic_balance(data, config)
+
+    assert [position.asset_class for position in snapshot.positions] == ["국내주식", "ETF", "채권"]
+    assert snapshot.domestic_stock_value == 150000
+    assert snapshot.etf_value == 40000
+    assert snapshot.bond_value == 100000
+
+
 def test_kis_client_masks_network_errors():
     config = KISConfig(
         app_key="key",
@@ -102,9 +151,11 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
 
     snapshot = KISBalanceSnapshot(
         account_masked="12****78-01",
-        total_value=250000,
+        total_value=400000,
         cash_value=50000,
         domestic_stock_value=200000,
+        etf_value=100000,
+        bond_value=50000,
         message="정상처리",
         positions=[
             KISPosition(
@@ -115,6 +166,27 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
                 current_price=100000,
                 market_value=200000,
                 profit=60000,
+                asset_class="국내주식",
+            ),
+            KISPosition(
+                code="069500",
+                name="KODEX 200",
+                quantity=1,
+                avg_price=90000,
+                current_price=100000,
+                market_value=100000,
+                profit=10000,
+                asset_class="ETF",
+            ),
+            KISPosition(
+                code="476800",
+                name="ACE 국고채10년",
+                quantity=1,
+                avg_price=50000,
+                current_price=50000,
+                market_value=50000,
+                profit=0,
+                asset_class="채권",
             )
         ],
     )
@@ -147,7 +219,7 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
 
     assert result.ok is True
     assert result.accountMasked == "12****78-01"
-    assert result.syncedPositions == 1
+    assert result.syncedPositions == 3
 
     account = conn.execute("SELECT * FROM accounts WHERE id=?", (result.accountId,)).fetchone()
     assert account["name"] == "Demo ISA"
@@ -156,14 +228,20 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
     assert account["data_source"] == "KIS_PAPER"
     assert account["trade_status"] == "PAPER_READ_ONLY"
 
-    holding = conn.execute("SELECT * FROM holdings WHERE account_id=?", (result.accountId,)).fetchone()
-    assert holding["ticker"] == "005930"
-    assert holding["market_value"] == 200000
-    assert holding["strategy_bucket"] == "BROKER_SYNC"
+    holdings = conn.execute("SELECT * FROM holdings WHERE account_id=? ORDER BY ticker", (result.accountId,)).fetchall()
+    assert {holding["ticker"]: holding["asset_class"] for holding in holdings} == {
+        "005930": "국내주식",
+        "069500": "ETF",
+        "476800": "채권",
+    }
+    assert holdings[0]["strategy_bucket"] == "BROKER_SYNC"
 
     saved_snapshot = conn.execute(
         "SELECT * FROM account_snapshots WHERE account_id=?",
         (result.accountId,),
     ).fetchone()
-    assert saved_snapshot["total_value"] == 250000
+    assert saved_snapshot["total_value"] == 400000
     assert saved_snapshot["cash_value"] == 50000
+    assert saved_snapshot["domestic_stock_value"] == 200000
+    assert saved_snapshot["etf_value"] == 100000
+    assert saved_snapshot["bond_value"] == 50000

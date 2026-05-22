@@ -198,7 +198,7 @@ def _upsert_kis_snapshot(
             INSERT INTO holdings
             (account_id, ticker, name, quantity, avg_price, current_price,
              market_value, profit, asset_class, price, value, strategy_bucket, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '국내주식', ?, ?, 'BROKER_SYNC', ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'BROKER_SYNC', ?)
             """,
             (
                 account_id,
@@ -209,6 +209,7 @@ def _upsert_kis_snapshot(
                 position.current_price,
                 position.market_value,
                 position.profit,
+                position.asset_class,
                 position.current_price,
                 position.market_value,
                 now,
@@ -218,10 +219,18 @@ def _upsert_kis_snapshot(
     conn.execute(
         """
         INSERT INTO account_snapshots
-        (account_id, total_value, cash_value, domestic_stock_value, snapshot_at)
-        VALUES (?, ?, ?, ?, ?)
+        (account_id, total_value, cash_value, domestic_stock_value, bond_value, etf_value, snapshot_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (account_id, snapshot.total_value, snapshot.cash_value, snapshot.domestic_stock_value, now),
+        (
+            account_id,
+            snapshot.total_value,
+            snapshot.cash_value,
+            snapshot.domestic_stock_value,
+            snapshot.bond_value,
+            snapshot.etf_value,
+            now,
+        ),
     )
     conn.commit()
     return account_id

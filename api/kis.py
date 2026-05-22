@@ -56,6 +56,7 @@ class KISPosition:
     current_price: float
     market_value: float
     profit: float
+    asset_class: str = "국내주식"
 
 
 @dataclass(frozen=True)
@@ -65,6 +66,8 @@ class KISBalanceSnapshot:
     cash_value: float
     domestic_stock_value: float
     positions: list[KISPosition]
+    bond_value: float = 0
+    etf_value: float = 0
     message: str = ""
 
 
@@ -89,6 +92,47 @@ def _first_decimal(row: Mapping[str, Any], keys: list[str]) -> Decimal:
         if value != 0:
             return value
     return Decimal("0")
+
+
+def classify_kis_asset(code: str, name: str) -> str:
+    upper_name = name.upper()
+    bond_keywords = [
+        "채권",
+        "국고채",
+        "국채",
+        "회사채",
+        "통안채",
+        "단기금융",
+        "머니마켓",
+        "MMF",
+        "CD금리",
+        "KOFR",
+    ]
+    if any(keyword in upper_name for keyword in bond_keywords):
+        return "채권"
+
+    etf_prefixes = [
+        "ACE ",
+        "ARIRANG ",
+        "HANARO ",
+        "KBSTAR ",
+        "KODEX ",
+        "KOSEF ",
+        "PLUS ",
+        "RISE ",
+        "SOL ",
+        "TIGER ",
+        "TIMEFOLIO ",
+        "TREX ",
+    ]
+    if any(upper_name.startswith(prefix) for prefix in etf_prefixes):
+        return "ETF"
+
+    # 한국 ETF/ETN은 통상 6자리 코드 체계를 사용하므로 이름 신호를 우선한다.
+    if code.startswith(("1", "2", "3", "4", "5", "6")) and any(prefix.strip() in upper_name for prefix in etf_prefixes):
+        return "ETF"
+
+    return "국내주식"
 
 
 def resolve_account(env: Mapping[str, str]) -> tuple[str, str]:
@@ -246,21 +290,26 @@ def parse_domestic_balance(data: Mapping[str, Any], config: KISConfig) -> KISBal
         if current_price == 0 and quantity > 0 and market_value > 0:
             current_price = market_value / quantity
         avg_price = _first_decimal(row, ["pchs_avg_pric", "avg_price"])
+        code = _clean(row.get("pdno")) or _clean(row.get("prdt_code"))
+        name = _clean(row.get("prdt_name")) or _clean(row.get("name"))
         positions.append(KISPosition(
-            code=_clean(row.get("pdno")) or _clean(row.get("prdt_code")),
-            name=_clean(row.get("prdt_name")) or _clean(row.get("name")),
+            code=code,
+            name=name,
             quantity=float(quantity),
             avg_price=float(avg_price),
             current_price=float(current_price),
             market_value=float(market_value),
             profit=float(_first_decimal(row, ["evlu_pfls_amt", "profit"])),
+            asset_class=classify_kis_asset(code, name),
         ))
 
-    domestic_stock_value = sum(position.market_value for position in positions)
+    domestic_stock_value = sum(position.market_value for position in positions if position.asset_class == "국내주식")
+    bond_value = sum(position.market_value for position in positions if position.asset_class == "채권")
+    etf_value = sum(position.market_value for position in positions if position.asset_class == "ETF")
     cash_value = float(_first_decimal(summary, ["dnca_tot_amt", "ord_psbl_cash", "cash_value"]))
     total_value = float(_first_decimal(summary, ["tot_evlu_amt", "nass_amt", "total_value"]))
     if total_value <= 0:
-        total_value = domestic_stock_value + cash_value
+        total_value = domestic_stock_value + bond_value + etf_value + cash_value
 
     return KISBalanceSnapshot(
         account_masked=mask_account(config.cano, config.account_product_code),
@@ -268,5 +317,7 @@ def parse_domestic_balance(data: Mapping[str, Any], config: KISConfig) -> KISBal
         cash_value=cash_value,
         domestic_stock_value=domestic_stock_value,
         positions=positions,
+        bond_value=bond_value,
+        etf_value=etf_value,
         message=_clean(data.get("msg1")),
     )
