@@ -10,6 +10,7 @@ import type {
   APIErrorDetail,
   MacroIndicator,
   ModeInfo,
+  OrderDraftResponse,
   ProviderSyncResult,
   RebalanceResultItem,
   RebalanceRunResponse,
@@ -94,6 +95,30 @@ export const api = {
   syncProviderAccounts: (mode: TradingMode): Promise<ProviderSyncResult> =>
     fetchJSON<ProviderSyncResult>(`/api/providers/${mode}/sync-accounts`, {
       method: "POST",
+    }),
+
+  createOrderDraft: (data: {
+    mode: TradingMode;
+    source?: string;
+    maxOrderAmount?: number | null;
+  }): Promise<OrderDraftResponse> =>
+    fetchJSON<OrderDraftResponse>("/api/orders/draft", {
+      method: "POST",
+      body: JSON.stringify({
+        mode: data.mode,
+        source: data.source ?? "rebalancing",
+        maxOrderAmount: data.maxOrderAmount ?? null,
+      }),
+    }),
+
+  executeOrderDraft: (data: {
+    mode: TradingMode;
+    orderDraftId: number;
+    confirmText?: string | null;
+  }): Promise<OrderDraftResponse> =>
+    fetchJSON<OrderDraftResponse>("/api/orders/execute", {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 
   getMacroSummary: (): Promise<MacroIndicator[]> =>

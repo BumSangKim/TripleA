@@ -135,6 +135,30 @@ export interface ProviderSyncResult {
   message?: string | null;
 }
 
+export interface OrderItem {
+  id?: number | null;
+  draftId?: number | null;
+  accountId?: number | null;
+  assetClass: string;
+  side: "BUY" | "SELL" | string;
+  amount: number;
+  status: string;
+  reason?: string | null;
+  createdAt?: string | null;
+}
+
+export interface OrderDraftResponse {
+  ok: boolean;
+  draftId: number;
+  mode: TradingMode;
+  source: string;
+  status: string;
+  totalAmount: number;
+  itemCount: number;
+  items: OrderItem[];
+  message?: string | null;
+}
+
 export interface APIErrorDetail {
   code?: string;
   message?: string;
