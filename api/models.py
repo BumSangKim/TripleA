@@ -142,6 +142,18 @@ class RebalanceRunResponse(BaseModel):
     results: List[RebalanceResultItem]
 
 
+class RiskBudgetItem(BaseModel):
+    strategyBucket: str
+    currentRatio: float
+    targetRatio: float
+    minRatio: Optional[float] = None
+    maxRatio: Optional[float] = None
+    deviation: float
+    level: str
+    action: str
+    reason: str
+
+
 class ProviderSyncResult(BaseModel):
     ok: bool
     mode: TradingMode

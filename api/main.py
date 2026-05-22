@@ -22,7 +22,7 @@ from .models import (
     TargetItem, TargetUpdate, SuggestionItem, TopMover, CalendarEvent,
     AlertItem, Insights, DocumentItem, TokenResponse, ModeInfo,
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
-    RebalanceResultItem, RebalanceRunResponse, ProviderSyncResult,
+    RebalanceResultItem, RebalanceRunResponse, RiskBudgetItem, ProviderSyncResult,
     OrderDraftRequest, OrderDraftResponse, OrderExecuteRequest,
     BacktestRunRequest, BacktestRunResponse,
 )
@@ -38,6 +38,7 @@ from .services import (
     record_rebalance_results, get_rebalance_results,
     create_order_draft, approve_order_draft, list_order_drafts,
     run_backtest, list_backtest_runs, get_backtest_run,
+    get_risk_budget_items,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -438,6 +439,12 @@ def list_rebalance_results(mode: Optional[str] = None, limit: int = 50):
     trading_mode = _parse_mode(mode) if mode else None
     with get_conn() as conn:
         return get_rebalance_results(conn, trading_mode, limit=limit)
+
+
+@app.get("/api/engine/risk-budget", response_model=List[RiskBudgetItem], tags=["engine"])
+def risk_budget():
+    with get_conn() as conn:
+        return get_risk_budget_items(conn)
 
 
 # ── Backtests ───────────────────────────────────────────────────────

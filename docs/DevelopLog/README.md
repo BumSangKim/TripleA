@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-22_trading_modes_risk_budget_engine.md` | RiskBudget 계산 API 및 리밸런싱 사유 연결 |
 | `2026-05-22_trading_modes_notification_dedup.md` | Telegram 알림 notification_logs 중복 방지 |
 | `2026-05-22_trading_modes_backtest_ui.md` | 백테스트 화면/API 연결 및 결과 차트 |
 | `2026-05-22_trading_modes_backtest_api.md` | 백테스트 실행 API 및 결과 시계열 저장 |

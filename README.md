@@ -72,6 +72,7 @@ npm run dev
 | PATCH | `/api/accounts/{id}/rebalancing-inclusion?mode=paper&include=false` | 리밸런싱 포함 여부 변경 |
 | POST | `/api/rebalancing/run?mode=paper` | 리밸런싱 결과 계산/저장 |
 | GET | `/api/rebalancing/results?mode=paper` | 리밸런싱 실행 로그 |
+| GET | `/api/engine/risk-budget` | 전략 버킷별 위험예산 상태 조회 |
 | POST | `/api/backtests/run` | 백테스트 실행 및 결과 저장 |
 | GET | `/api/backtests/runs` | 백테스트 실행 이력 조회 |
 | GET | `/api/backtests/runs/{id}` | 백테스트 상세 결과와 자산곡선 조회 |
