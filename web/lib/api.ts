@@ -9,6 +9,7 @@ import type {
   AlertItem,
   MacroIndicator,
   ModeInfo,
+  ProviderSyncResult,
   RebalanceResultItem,
   RebalanceRunResponse,
   SuggestionItem,
@@ -45,6 +46,11 @@ export const api = {
 
   getModes: (): Promise<ModeInfo[]> =>
     fetchJSON<ModeInfo[]>("/api/modes"),
+
+  syncProviderAccounts: (mode: TradingMode): Promise<ProviderSyncResult> =>
+    fetchJSON<ProviderSyncResult>(`/api/providers/${mode}/sync-accounts`, {
+      method: "POST",
+    }),
 
   getMacroSummary: (): Promise<MacroIndicator[]> =>
     fetchJSON<MacroIndicator[]>("/api/macro/summary"),

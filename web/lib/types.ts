@@ -123,6 +123,18 @@ export interface RebalanceRunResponse {
   results: RebalanceResultItem[];
 }
 
+export interface ProviderSyncResult {
+  ok: boolean;
+  mode: TradingMode;
+  provider: string;
+  accountId?: number | null;
+  accountMasked?: string | null;
+  syncedPositions: number;
+  totalValue: number;
+  cashValue: number;
+  message?: string | null;
+}
+
 export interface TopMover {
   symbol: string;
   name: string | null;
