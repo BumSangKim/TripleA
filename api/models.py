@@ -4,7 +4,7 @@ Pydantic 스키마 정의
 """
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .modes import TradingMode
 
@@ -189,6 +189,44 @@ class OrderDraftResponse(BaseModel):
     itemCount: int
     items: List[OrderItem]
     message: Optional[str] = None
+
+
+# ── Backtests ────────────────────────────────────────────────────────
+class BacktestTarget(BaseModel):
+    assetClass: str
+    targetRatio: float
+
+
+class BacktestRunRequest(BaseModel):
+    name: str = "Backtest"
+    startDate: str
+    endDate: str
+    initialCapital: float
+    rebalanceFrequency: str = "monthly"
+    targets: List[BacktestTarget] = Field(default_factory=list)
+
+
+class BacktestPoint(BaseModel):
+    date: str
+    value: float
+    drawdown: float
+
+
+class BacktestRunResponse(BaseModel):
+    ok: bool
+    runId: int
+    name: str
+    startDate: str
+    endDate: str
+    initialCapital: float
+    rebalanceFrequency: str
+    status: str
+    totalReturn: float
+    annualReturn: float
+    maxDrawdown: float
+    volatility: float
+    points: List[BacktestPoint]
+    createdAt: Optional[str] = None
 
 
 # ── Top Movers ───────────────────────────────────────────────────────

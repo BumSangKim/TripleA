@@ -3,13 +3,16 @@ api/services.py
 비즈니스 로직 - 리밸런싱 계산, 데이터 조합
 """
 from __future__ import annotations
+import math
 import sqlite3
+from datetime import date, timedelta
 from typing import List, Optional
 from .models import (
     MacroIndicator, TargetItem, SuggestionItem, AlertItem,
     KPISummary, AllocationItem, AccountSummary, TopMover, CalendarEvent, Insights,
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, OrderDraftResponse, OrderItem,
+    BacktestRunRequest, BacktestRunResponse, BacktestPoint,
 )
 from .modes import TradingMode
 
@@ -640,6 +643,262 @@ def list_order_drafts(
             (limit,),
         ).fetchall()
     return [_order_draft_response(conn, int(row["id"])) for row in rows]
+
+
+# ── Backtests ────────────────────────────────────────────────────────
+_BACKTEST_ANNUAL_RETURNS = {
+    "DOMESTIC_STOCK": 0.055,
+    "국내주식": 0.055,
+    "FOREIGN_STOCK": 0.075,
+    "해외주식": 0.075,
+    "ETF": 0.060,
+    "BOND": 0.030,
+    "채권": 0.030,
+    "CASH": 0.020,
+    "현금": 0.020,
+    "ALT": 0.040,
+    "기타/대기": 0.015,
+}
+
+
+def run_backtest(
+    conn: sqlite3.Connection,
+    request: BacktestRunRequest,
+) -> BacktestRunResponse:
+    start = _parse_backtest_date(request.startDate, "startDate")
+    end = _parse_backtest_date(request.endDate, "endDate")
+    if start >= end:
+        raise ValueError("startDate must be before endDate")
+    if request.initialCapital <= 0:
+        raise ValueError("initialCapital must be greater than zero")
+
+    frequency = (request.rebalanceFrequency or "monthly").strip().lower()
+    point_dates = _backtest_dates(start, end, frequency)
+    weights = _normalize_backtest_targets(conn, request.targets)
+    annual_assumption = sum(
+        weight * _annual_return_for_asset(asset)
+        for asset, weight in weights.items()
+    )
+
+    values, drawdowns, period_returns, period_days = _simulate_backtest_points(
+        initial_capital=request.initialCapital,
+        point_dates=point_dates,
+        annual_assumption=annual_assumption,
+    )
+    total_return = round((values[-1] / request.initialCapital - 1) * 100, 2)
+    elapsed_years = max((end - start).days / 365.0, 1 / 365.0)
+    annual_return = round(((values[-1] / request.initialCapital) ** (1 / elapsed_years) - 1) * 100, 2)
+    max_drawdown = round(abs(min(drawdowns)), 2)
+    volatility = round(_annualized_volatility(period_returns, period_days), 2)
+
+    cur = conn.execute("""
+        INSERT INTO backtest_runs
+        (name, start_date, end_date, initial_capital, rebalance_frequency,
+         status, total_return, annual_return, max_drawdown, volatility)
+        VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)
+    """, (
+        (request.name or "Backtest").strip() or "Backtest",
+        start.isoformat(),
+        end.isoformat(),
+        request.initialCapital,
+        frequency,
+        total_return,
+        annual_return,
+        max_drawdown,
+        volatility,
+    ))
+    run_id = int(cur.lastrowid)
+    conn.executemany("""
+        INSERT INTO backtest_points
+        (run_id, point_date, portfolio_value, drawdown)
+        VALUES (?, ?, ?, ?)
+    """, [
+        (run_id, point_date.isoformat(), round(value, 2), round(drawdown, 2))
+        for point_date, value, drawdown in zip(point_dates, values, drawdowns)
+    ])
+    conn.commit()
+    return get_backtest_run(conn, run_id)
+
+
+def list_backtest_runs(
+    conn: sqlite3.Connection,
+    limit: int = 20,
+) -> list[BacktestRunResponse]:
+    bounded_limit = max(1, min(int(limit or 20), 100))
+    rows = conn.execute("""
+        SELECT id FROM backtest_runs
+        ORDER BY created_at DESC, id DESC
+        LIMIT ?
+    """, (bounded_limit,)).fetchall()
+    return [get_backtest_run(conn, int(row["id"])) for row in rows]
+
+
+def get_backtest_run(
+    conn: sqlite3.Connection,
+    run_id: int,
+) -> BacktestRunResponse:
+    row = conn.execute("SELECT * FROM backtest_runs WHERE id=?", (run_id,)).fetchone()
+    if not row:
+        raise KeyError(f"backtest run {run_id} not found")
+    point_rows = conn.execute("""
+        SELECT point_date, portfolio_value, drawdown
+        FROM backtest_points
+        WHERE run_id=?
+        ORDER BY point_date ASC, id ASC
+    """, (run_id,)).fetchall()
+    return BacktestRunResponse(
+        ok=True,
+        runId=row["id"],
+        name=row["name"] or "Backtest",
+        startDate=row["start_date"],
+        endDate=row["end_date"],
+        initialCapital=row["initial_capital"],
+        rebalanceFrequency=row["rebalance_frequency"] or "monthly",
+        status=row["status"] or "COMPLETED",
+        totalReturn=row["total_return"] or 0,
+        annualReturn=row["annual_return"] or 0,
+        maxDrawdown=row["max_drawdown"] or 0,
+        volatility=row["volatility"] or 0,
+        points=[
+            BacktestPoint(
+                date=point["point_date"],
+                value=point["portfolio_value"],
+                drawdown=point["drawdown"],
+            )
+            for point in point_rows
+        ],
+        createdAt=row["created_at"],
+    )
+
+
+def _parse_backtest_date(value: str, field_name: str) -> date:
+    try:
+        return date.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be YYYY-MM-DD") from exc
+
+
+def _normalize_backtest_targets(
+    conn: sqlite3.Connection,
+    request_targets: list,
+) -> dict[str, float]:
+    raw_targets: list[tuple[str, float]] = []
+    if request_targets:
+        raw_targets = [
+            (target.assetClass, float(target.targetRatio))
+            for target in request_targets
+        ]
+    else:
+        rows = conn.execute("""
+            SELECT asset_class, target_value
+            FROM targets
+            WHERE target_type='asset_allocation'
+              AND COALESCE(target_value, 0) > 0
+        """).fetchall()
+        raw_targets = [(row["asset_class"], float(row["target_value"])) for row in rows]
+
+    weights: dict[str, float] = {}
+    for asset, ratio in raw_targets:
+        asset_name = (asset or "").strip()
+        if not asset_name:
+            raise ValueError("targets.assetClass must not be empty")
+        if ratio < 0:
+            raise ValueError("targets.targetRatio must be zero or greater")
+        normalized_ratio = ratio / 100.0 if ratio > 1 else ratio
+        weights[asset_name] = weights.get(asset_name, 0.0) + normalized_ratio
+
+    total = sum(weights.values())
+    if total <= 0:
+        raise ValueError("At least one positive backtest target is required")
+    return {asset: ratio / total for asset, ratio in weights.items()}
+
+
+def _annual_return_for_asset(asset: str) -> float:
+    asset_key = (asset or "").strip()
+    normalized = asset_key.upper().replace(" ", "_")
+    return _BACKTEST_ANNUAL_RETURNS.get(
+        asset_key,
+        _BACKTEST_ANNUAL_RETURNS.get(normalized, 0.045),
+    )
+
+
+def _backtest_dates(start: date, end: date, frequency: str) -> list[date]:
+    if frequency == "weekly":
+        dates = _stepped_dates(start, end, lambda current: current + timedelta(days=7))
+    elif frequency == "monthly":
+        dates = _stepped_dates(start, end, lambda current: _advance_months(current, 1))
+    elif frequency == "quarterly":
+        dates = _stepped_dates(start, end, lambda current: _advance_months(current, 3))
+    else:
+        raise ValueError("rebalanceFrequency must be one of weekly, monthly, quarterly")
+    if dates[-1] != end:
+        dates.append(end)
+    return dates
+
+
+def _stepped_dates(start: date, end: date, advance) -> list[date]:
+    dates = [start]
+    current = start
+    while True:
+        next_date = advance(current)
+        if next_date >= end:
+            break
+        dates.append(next_date)
+        current = next_date
+    return dates
+
+
+def _advance_months(value: date, months: int) -> date:
+    month_index = value.month - 1 + months
+    year = value.year + month_index // 12
+    month = month_index % 12 + 1
+    day = min(value.day, _last_day_of_month(year, month))
+    return date(year, month, day)
+
+
+def _last_day_of_month(year: int, month: int) -> int:
+    if month == 12:
+        return 31
+    return (date(year, month + 1, 1) - timedelta(days=1)).day
+
+
+def _simulate_backtest_points(
+    *,
+    initial_capital: float,
+    point_dates: list[date],
+    annual_assumption: float,
+) -> tuple[list[float], list[float], list[float], list[int]]:
+    values = [float(initial_capital)]
+    drawdowns = [0.0]
+    period_returns: list[float] = []
+    period_days: list[int] = []
+    peak = float(initial_capital)
+    cycle_shocks = [-0.018, 0.007, 0.005, -0.006, 0.009, 0.004]
+
+    for index in range(1, len(point_dates)):
+        days = max((point_dates[index] - point_dates[index - 1]).days, 1)
+        base_return = (1 + annual_assumption) ** (days / 365.0) - 1
+        shock = cycle_shocks[(index - 1) % len(cycle_shocks)] * math.sqrt(days / 30.0)
+        period_return = base_return + shock
+        next_value = max(0.0, values[-1] * (1 + period_return))
+        peak = max(peak, next_value)
+        drawdown = (next_value / peak - 1) * 100 if peak > 0 else 0.0
+
+        values.append(next_value)
+        drawdowns.append(drawdown)
+        period_returns.append(period_return)
+        period_days.append(days)
+
+    return values, drawdowns, period_returns, period_days
+
+
+def _annualized_volatility(period_returns: list[float], period_days: list[int]) -> float:
+    if len(period_returns) < 2:
+        return 0.0
+    mean = sum(period_returns) / len(period_returns)
+    variance = sum((value - mean) ** 2 for value in period_returns) / (len(period_returns) - 1)
+    average_days = max(sum(period_days) / len(period_days), 1)
+    return math.sqrt(variance) * math.sqrt(365 / average_days) * 100
 
 
 def _portfolio_total_from_holdings(conn: sqlite3.Connection) -> float:

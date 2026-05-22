@@ -203,6 +203,15 @@ def ensure_dashboard_tables():
                 created_at TEXT DEFAULT (datetime('now','localtime'))
             );
 
+            CREATE TABLE IF NOT EXISTS backtest_points (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
+                point_date TEXT NOT NULL,
+                portfolio_value REAL NOT NULL,
+                drawdown REAL NOT NULL,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
             CREATE TABLE IF NOT EXISTS notification_channels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 channel_type TEXT NOT NULL,

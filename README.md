@@ -72,6 +72,9 @@ npm run dev
 | PATCH | `/api/accounts/{id}/rebalancing-inclusion?mode=paper&include=false` | 리밸런싱 포함 여부 변경 |
 | POST | `/api/rebalancing/run?mode=paper` | 리밸런싱 결과 계산/저장 |
 | GET | `/api/rebalancing/results?mode=paper` | 리밸런싱 실행 로그 |
+| POST | `/api/backtests/run` | 백테스트 실행 및 결과 저장 |
+| GET | `/api/backtests/runs` | 백테스트 실행 이력 조회 |
+| GET | `/api/backtests/runs/{id}` | 백테스트 상세 결과와 자산곡선 조회 |
 | POST | `/api/orders/draft` | 리밸런싱 기반 주문 후보 생성 |
 | POST | `/api/orders/execute` | Paper 주문 후보 수동 승인 로그 기록 |
 | GET | `/api/orders/drafts?mode=paper` | 주문 후보 draft 이력 조회 |
@@ -83,15 +86,14 @@ source .venv/bin/activate
 PYTHONPATH=. python -m pytest
 
 cd web
+npm run lint
 npm run build
 ```
-
-`npm run lint`는 일부 기존 프론트엔드 화면의 hook/immutability 정리 작업이 남아 있어 별도 단위로 처리합니다.
 
 ## 다음 개발 방향
 
 1. `ProviderRouter`의 provider별 실제 데이터 연결
 2. Paper provider의 한국투자증권 모의투자 조회 연동
-3. Backtest provider와 `backtest_runs` 저장/조회 흐름 구현
+3. Backtest 화면에서 기간/초기자본/목표비중 입력과 결과 차트 연결
 4. Live provider는 조회 전용을 유지하고, 주문은 후보 생성과 수동 승인으로 분리
 5. 텔레그램 알림 채널과 `notification_logs` 중복 방지 정책 연결

@@ -65,6 +65,7 @@ def test_dashboard_schema_tables_are_created(tmp_path, monkeypatch):
         "engine_allocations",
         "rebalance_results",
         "backtest_runs",
+        "backtest_points",
         "notification_channels",
         "notification_logs",
     }.issubset(tables)

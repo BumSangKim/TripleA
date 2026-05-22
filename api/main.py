@@ -24,6 +24,7 @@ from .models import (
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RebalanceRunResponse, ProviderSyncResult,
     OrderDraftRequest, OrderDraftResponse, OrderExecuteRequest,
+    BacktestRunRequest, BacktestRunResponse,
 )
 from .kis import KISAPIError, KISConfigError, KISNetworkError
 from .modes import TradingMode, normalize_mode
@@ -36,6 +37,7 @@ from .services import (
     get_account_snapshots, set_account_rebalancing_inclusion,
     record_rebalance_results, get_rebalance_results,
     create_order_draft, approve_order_draft, list_order_drafts,
+    run_backtest, list_backtest_runs, get_backtest_run,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -436,6 +438,31 @@ def list_rebalance_results(mode: Optional[str] = None, limit: int = 50):
     trading_mode = _parse_mode(mode) if mode else None
     with get_conn() as conn:
         return get_rebalance_results(conn, trading_mode, limit=limit)
+
+
+# ── Backtests ───────────────────────────────────────────────────────
+@app.post("/api/backtests/run", response_model=BacktestRunResponse, tags=["backtests"])
+def run_backtest_endpoint(body: BacktestRunRequest):
+    try:
+        with get_conn() as conn:
+            return run_backtest(conn, body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.get("/api/backtests/runs", response_model=List[BacktestRunResponse], tags=["backtests"])
+def backtest_runs(limit: int = 20):
+    with get_conn() as conn:
+        return list_backtest_runs(conn, limit=limit)
+
+
+@app.get("/api/backtests/runs/{run_id}", response_model=BacktestRunResponse, tags=["backtests"])
+def backtest_run(run_id: int):
+    try:
+        with get_conn() as conn:
+            return get_backtest_run(conn, run_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
 
 
 # ── Orders ──────────────────────────────────────────────────────────
