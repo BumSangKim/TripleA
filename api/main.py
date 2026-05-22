@@ -689,6 +689,59 @@ def system_status():
     }
 
 
+def _telegram_alert_dedup_key(alert: dict, send_date: str) -> str:
+    category = alert.get("category") or "general"
+    return f"telegram:{send_date}:{alert.get('level')}:{category}:{alert.get('title')}"
+
+
+def _mask_secret(value: str, secret: str) -> str:
+    if not secret:
+        return value
+    return value.replace(secret, "***")
+
+
+def _pending_telegram_alerts(conn, alerts: list[dict], send_date: str) -> tuple[list[tuple[dict, str]], int]:
+    pending: list[tuple[dict, str]] = []
+    skipped = 0
+    for alert in alerts:
+        dedup_key = _telegram_alert_dedup_key(alert, send_date)
+        existing = conn.execute("""
+            SELECT id FROM notification_logs
+            WHERE channel_type='TELEGRAM'
+              AND dedup_key=?
+              AND status='SENT'
+            LIMIT 1
+        """, (dedup_key,)).fetchone()
+        if existing:
+            skipped += 1
+        else:
+            pending.append((alert, dedup_key))
+    return pending, skipped
+
+
+def _record_telegram_notification_logs(
+    conn,
+    pending: list[tuple[dict, str]],
+    status_value: str,
+    error_message: str | None = None,
+) -> None:
+    conn.executemany("""
+        INSERT INTO notification_logs
+        (channel_type, alert_type, message, dedup_key, status, sent_at, error_message)
+        VALUES ('TELEGRAM', ?, ?, ?, ?, datetime('now','localtime'), ?)
+    """, [
+        (
+            alert.get("level"),
+            f"{alert.get('title')}\n{alert.get('message') or ''}".strip(),
+            dedup_key,
+            status_value,
+            error_message,
+        )
+        for alert, dedup_key in pending
+    ])
+    conn.commit()
+
+
 # ── Telegram 알림 전송 ────────────────────────────────────────────────
 @app.post("/api/alerts/notify/telegram", tags=["alerts"])
 def notify_telegram(level_filter: str = "danger"):
@@ -730,17 +783,27 @@ def notify_telegram(level_filter: str = "danger"):
                 "SELECT * FROM dashboard_alerts WHERE is_read=0 AND level=? ORDER BY created_at DESC LIMIT 20",
                 (level_filter,)
             ).fetchall()
+        send_date = conn.execute("SELECT date('now','localtime')").fetchone()[0]
+        alerts = [dict(r) for r in rows]
+        pending, skipped = _pending_telegram_alerts(conn, alerts, send_date)
 
-    if not rows:
+    if not alerts:
         return {"ok": True, "sent": 0, "message": "전송할 알림 없음"}
+    if not pending:
+        return {
+            "ok": True,
+            "sent": 0,
+            "skipped": skipped,
+            "message": "오늘 이미 전송한 알림입니다",
+        }
 
     level_emoji = {"danger": "🔴", "warning": "🟡", "info": "🔵"}
     lines = ["*TripleA 대시보드 알림*\n"]
-    for r in rows:
-        emoji = level_emoji.get(r["level"], "⚪")
-        lines.append(f"{emoji} *{r['title']}*")
-        if r["message"]:
-            lines.append(f"  {r['message']}")
+    for alert, _ in pending:
+        emoji = level_emoji.get(alert["level"], "⚪")
+        lines.append(f"{emoji} *{alert['title']}*")
+        if alert["message"]:
+            lines.append(f"  {alert['message']}")
         lines.append("")
 
     text = "\n".join(lines).strip()
@@ -752,6 +815,11 @@ def notify_telegram(level_filter: str = "danger"):
             timeout=15,
         )
         res.raise_for_status()
-        return {"ok": True, "sent": len(rows)}
+        with get_conn() as conn:
+            _record_telegram_notification_logs(conn, pending, "SENT")
+        return {"ok": True, "sent": len(pending), "skipped": skipped}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Telegram 전송 실패: {str(e)}")
+        error_message = _mask_secret(str(e), tg_token)
+        with get_conn() as conn:
+            _record_telegram_notification_logs(conn, pending, "FAILED", error_message=error_message)
+        raise HTTPException(status_code=502, detail=f"Telegram 전송 실패: {error_message}")

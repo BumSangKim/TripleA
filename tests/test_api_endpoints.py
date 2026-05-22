@@ -270,6 +270,92 @@ class TestAlertsEndpoints:
         assert res.status_code == 200
         assert "created" in res.json()
 
+    def test_telegram_notify_records_dedup_logs(self, client, test_db, monkeypatch):
+        import requests
+
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
+        posted = []
+
+        class DummyResponse:
+            def raise_for_status(self):
+                return None
+
+        def fake_post(url, json, timeout):
+            posted.append({"url": url, "json": json, "timeout": timeout})
+            return DummyResponse()
+
+        monkeypatch.setattr(requests, "post", fake_post)
+        conn = sqlite3.connect(test_db)
+        conn.execute("UPDATE dashboard_alerts SET is_read=1")
+        conn.execute("DELETE FROM notification_logs")
+        conn.execute("""
+            INSERT INTO dashboard_alerts (level, category, title, message, is_read)
+            VALUES ('danger', 'target', '중복 방지 테스트', '현금 부족', 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        first = client.post("/api/alerts/notify/telegram?level_filter=danger")
+        second = client.post("/api/alerts/notify/telegram?level_filter=danger")
+
+        assert first.status_code == 200
+        assert first.json()["sent"] == 1
+        assert second.status_code == 200
+        assert second.json()["sent"] == 0
+        assert second.json()["skipped"] == 1
+        assert len(posted) == 1
+
+        conn = sqlite3.connect(test_db)
+        logs = conn.execute(
+            "SELECT channel_type, status, dedup_key, message FROM notification_logs"
+        ).fetchall()
+        conn.close()
+        assert len(logs) == 1
+        assert logs[0] == (
+            "TELEGRAM",
+            "SENT",
+            logs[0][2],
+            "중복 방지 테스트\n현금 부족",
+        )
+        assert "중복 방지 테스트" in logs[0][2]
+
+    def test_telegram_notify_masks_token_on_failure(self, client, test_db, monkeypatch):
+        import requests
+
+        token = "secret-token-for-test"
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", token)
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
+
+        def fake_post(url, json, timeout):
+            raise requests.RequestException(f"{url} failed")
+
+        monkeypatch.setattr(requests, "post", fake_post)
+        conn = sqlite3.connect(test_db)
+        conn.execute("UPDATE dashboard_alerts SET is_read=1")
+        conn.execute("DELETE FROM notification_logs")
+        conn.execute("""
+            INSERT INTO dashboard_alerts (level, category, title, message, is_read)
+            VALUES ('danger', 'target', '마스킹 테스트', '토큰 보호', 0)
+        """)
+        conn.commit()
+        conn.close()
+
+        res = client.post("/api/alerts/notify/telegram?level_filter=danger")
+
+        assert res.status_code == 502
+        assert token not in res.json()["detail"]
+        assert "***" in res.json()["detail"]
+
+        conn = sqlite3.connect(test_db)
+        log = conn.execute(
+            "SELECT status, error_message FROM notification_logs ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        assert log[0] == "FAILED"
+        assert token not in log[1]
+        assert "***" in log[1]
+
 
 # ── 자료실 ───────────────────────────────────────────────────────────
 
