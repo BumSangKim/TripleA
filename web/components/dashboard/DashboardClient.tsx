@@ -99,6 +99,30 @@ interface DashboardClientProps {
   initialData: DashboardSummary | null;
 }
 
+function ModeBadge({ data }: { data: DashboardSummary }) {
+  const mode = data.mode ?? "paper";
+  const labelMap: Record<string, string> = {
+    mock: "Mock",
+    test: "Test",
+    backtest: "Backtest",
+    paper: "Paper",
+    live: "Live",
+  };
+  const color =
+    mode === "live"
+      ? "border-red-500/40 bg-red-500/10 text-red-300"
+      : mode === "paper"
+        ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
+        : "border-slate-600 bg-slate-800 text-slate-300";
+
+  return (
+    <div className={`rounded-md border px-2 py-1 ${color}`} title={data.modeInfo?.orderPolicy ?? ""}>
+      <span className="font-semibold">{labelMap[mode] ?? mode}</span>
+      {data.modeInfo?.provider && <span className="ml-1 text-slate-400">{data.modeInfo.provider}</span>}
+    </div>
+  );
+}
+
 export default function DashboardClient({ initialData }: DashboardClientProps) {
   const [data, setData] = useState<DashboardSummary>(initialData ?? MOCK_DATA);
   const [loading, setLoading] = useState(false);
@@ -141,6 +165,7 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
       {/* 상단 우측 갱신 */}
       <div className="flex items-center justify-end gap-2 text-xs text-slate-500">
+        <ModeBadge data={data} />
         <span>마지막 업데이트: {lastUpdate}</span>
         <button
           onClick={refresh}

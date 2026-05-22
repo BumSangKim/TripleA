@@ -8,6 +8,18 @@ export interface KPISummary {
   macroScore?: number | null;
 }
 
+export type TradingMode = "mock" | "test" | "backtest" | "paper" | "live";
+
+export interface ModeInfo {
+  mode: TradingMode;
+  provider: string;
+  dbWriteScope: string;
+  externalApi: boolean;
+  orderPolicy: string;
+  canWriteUserData: boolean;
+  canExecuteOrders: boolean;
+}
+
 export interface MacroIndicator {
   key: string;
   name: string;
@@ -26,6 +38,41 @@ export interface AccountSummary {
   value: number;
   profit: number;
   profitRate: number;
+  accountType?: string | null;
+  connectionStatus?: string | null;
+  tradeStatus?: string | null;
+  includeInRebalancing?: boolean;
+  dataSource?: string | null;
+  lastSyncedAt?: string | null;
+}
+
+export interface AccountPolicyItem {
+  id: number;
+  accountType: string;
+  role: string;
+  depositPolicy?: string | null;
+  allowedProducts?: string | null;
+  rebalancePriority?: string | null;
+  riskNote?: string | null;
+}
+
+export interface AccountSnapshotCreate {
+  totalValue: number;
+  cashValue?: number;
+  domesticStockValue?: number;
+  foreignStockValue?: number;
+  bondValue?: number;
+  etfValue?: number;
+  pensionValue?: number;
+  altValue?: number;
+  snapshotAt?: string | null;
+}
+
+export interface AccountSnapshotItem extends Required<Omit<AccountSnapshotCreate, "snapshotAt">> {
+  id: number;
+  accountId: number;
+  snapshotAt: string | null;
+  createdAt?: string | null;
 }
 
 export interface AllocationItem {
@@ -50,6 +97,30 @@ export interface SuggestionItem {
   action: string;
   reason: string;
   deviation: number;
+}
+
+export interface RebalanceResultItem {
+  id?: number | null;
+  runId?: number | null;
+  mode: TradingMode;
+  accountId?: number | null;
+  accountType?: string | null;
+  assetClass: string;
+  currentRatio: number;
+  targetRatio: number;
+  deviation: number;
+  action: string;
+  amount: number;
+  reason: string;
+  createdAt?: string | null;
+}
+
+export interface RebalanceRunResponse {
+  ok: boolean;
+  mode: TradingMode;
+  runId: number;
+  saved: number;
+  results: RebalanceResultItem[];
 }
 
 export interface TopMover {
@@ -102,6 +173,8 @@ export interface Insights {
 }
 
 export interface DashboardSummary {
+  mode?: TradingMode;
+  modeInfo?: ModeInfo | null;
   kpi: KPISummary;
   macro: MacroIndicator[];
   accounts: AccountSummary[];

@@ -78,10 +78,123 @@ def ensure_dashboard_tables():
                 created_at TEXT DEFAULT (datetime('now','localtime')),
                 updated_at TEXT DEFAULT (datetime('now','localtime'))
             );
+
+            CREATE TABLE IF NOT EXISTS account_policies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_type TEXT NOT NULL UNIQUE,
+                role TEXT NOT NULL,
+                deposit_policy TEXT,
+                allowed_products TEXT,
+                rebalance_priority TEXT,
+                risk_note TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS account_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL REFERENCES accounts(id),
+                total_value REAL NOT NULL,
+                cash_value REAL DEFAULT 0,
+                domestic_stock_value REAL DEFAULT 0,
+                foreign_stock_value REAL DEFAULT 0,
+                bond_value REAL DEFAULT 0,
+                etf_value REAL DEFAULT 0,
+                pension_value REAL DEFAULT 0,
+                alt_value REAL DEFAULT 0,
+                snapshot_at TEXT NOT NULL,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS portfolio_targets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                target_name TEXT,
+                asset_class TEXT NOT NULL UNIQUE,
+                target_ratio REAL NOT NULL,
+                warning_threshold REAL DEFAULT 0.03,
+                danger_threshold REAL DEFAULT 0.05,
+                is_active INTEGER DEFAULT 1
+            );
+
+            CREATE TABLE IF NOT EXISTS account_targets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_type TEXT NOT NULL,
+                account_id INTEGER,
+                asset_class TEXT NOT NULL,
+                target_ratio REAL NOT NULL,
+                warning_threshold REAL DEFAULT 0.03,
+                danger_threshold REAL DEFAULT 0.05,
+                is_active INTEGER DEFAULT 1,
+                UNIQUE(account_type, account_id, asset_class)
+            );
+
+            CREATE TABLE IF NOT EXISTS engine_allocations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                strategy_bucket TEXT NOT NULL UNIQUE,
+                target_ratio REAL NOT NULL,
+                min_ratio REAL,
+                max_ratio REAL,
+                is_active INTEGER DEFAULT 1,
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS rebalance_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER,
+                mode TEXT NOT NULL,
+                account_id INTEGER,
+                account_type TEXT,
+                asset_class TEXT,
+                current_ratio REAL,
+                target_ratio REAL,
+                deviation REAL,
+                action TEXT,
+                amount REAL,
+                reason TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS backtest_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                start_date TEXT,
+                end_date TEXT,
+                initial_capital REAL,
+                rebalance_frequency TEXT,
+                status TEXT,
+                total_return REAL,
+                annual_return REAL,
+                max_drawdown REAL,
+                volatility REAL,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS notification_channels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_type TEXT NOT NULL,
+                channel_name TEXT,
+                config TEXT,
+                is_enabled INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS notification_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                channel_type TEXT NOT NULL,
+                alert_type TEXT,
+                message TEXT,
+                dedup_key TEXT,
+                status TEXT,
+                sent_at TEXT,
+                error_message TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
         """)
         _migrate_dashboard_tables(conn)
         conn.commit()
         _seed_default_targets(conn)
+        _seed_account_policies(conn)
+        _seed_engine_allocations(conn)
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -96,6 +209,12 @@ def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, de
 def _migrate_dashboard_tables(conn: sqlite3.Connection):
     """기존 로컬 DB가 예전 계좌 스키마여도 최신 대시보드 쿼리가 동작하게 보강."""
     _add_column_if_missing(conn, "accounts", "initial_value", "REAL DEFAULT 0")
+    _add_column_if_missing(conn, "accounts", "account_type", "TEXT DEFAULT 'GENERAL'")
+    _add_column_if_missing(conn, "accounts", "connection_status", "TEXT DEFAULT 'UNLINKED'")
+    _add_column_if_missing(conn, "accounts", "trade_status", "TEXT DEFAULT 'ORDER_DISABLED'")
+    _add_column_if_missing(conn, "accounts", "include_in_rebalancing", "INTEGER DEFAULT 1")
+    _add_column_if_missing(conn, "accounts", "data_source", "TEXT DEFAULT 'MANUAL'")
+    _add_column_if_missing(conn, "accounts", "last_synced_at", "TEXT")
 
     holding_columns = _table_columns(conn, "holdings")
     _add_column_if_missing(conn, "holdings", "ticker", "TEXT")
@@ -103,6 +222,9 @@ def _migrate_dashboard_tables(conn: sqlite3.Connection):
     _add_column_if_missing(conn, "holdings", "market_value", "REAL")
     _add_column_if_missing(conn, "holdings", "profit", "REAL DEFAULT 0")
     _add_column_if_missing(conn, "holdings", "asset_class", "TEXT")
+    _add_column_if_missing(conn, "holdings", "price", "REAL")
+    _add_column_if_missing(conn, "holdings", "value", "REAL")
+    _add_column_if_missing(conn, "holdings", "strategy_bucket", "TEXT")
 
     if "symbol" in holding_columns:
         conn.execute("UPDATE holdings SET ticker=symbol WHERE ticker IS NULL OR ticker=''")
@@ -112,6 +234,8 @@ def _migrate_dashboard_tables(conn: sqlite3.Connection):
         SET market_value=COALESCE(quantity, 0) * COALESCE(current_price, avg_price, 0)
         WHERE market_value IS NULL
     """)
+    conn.execute("UPDATE holdings SET price=current_price WHERE price IS NULL")
+    conn.execute("UPDATE holdings SET value=market_value WHERE value IS NULL")
 
 
 def _seed_default_targets(conn: sqlite3.Connection):
@@ -134,3 +258,43 @@ def _seed_default_targets(conn: sqlite3.Connection):
             defaults,
         )
         conn.commit()
+
+
+def _seed_account_policies(conn: sqlite3.Connection):
+    policies = [
+        ("GENERAL", "SATELLITE", "입출금 자유", "국내/해외 주식, ETF 등", "공격 기회 활용", "단기 유동성 관리"),
+        ("ISA", "TAX_ADVANTAGED", "연간 납입 한도 고려", "국내 상장 상품 중심", "신규 납입금 활용 우선", "잦은 매매 자제"),
+        ("PENSION_SAVINGS", "RETIREMENT", "장기 납입", "연금 계좌 허용 상품", "방어형 장기 운용", "위험자산 과다 노출 제한"),
+        ("IRP", "RETIREMENT", "출금 제약", "IRP 허용 상품", "안전자산 우선", "안전자산 비중 유지"),
+    ]
+    conn.executemany("""
+        INSERT INTO account_policies
+        (account_type, role, deposit_policy, allowed_products, rebalance_priority, risk_note)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(account_type) DO UPDATE SET
+            role=excluded.role,
+            deposit_policy=excluded.deposit_policy,
+            allowed_products=excluded.allowed_products,
+            rebalance_priority=excluded.rebalance_priority,
+            risk_note=excluded.risk_note,
+            updated_at=datetime('now','localtime')
+    """, policies)
+    conn.commit()
+
+
+def _seed_engine_allocations(conn: sqlite3.Connection):
+    defaults = [
+        ("DEFENSIVE_CORE", 0.65, 0.55, 0.80),
+        ("AGGRESSIVE_ALPHA", 0.30, 0.10, 0.40),
+        ("LIQUIDITY", 0.05, 0.03, 0.20),
+    ]
+    conn.executemany("""
+        INSERT INTO engine_allocations (strategy_bucket, target_ratio, min_ratio, max_ratio)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(strategy_bucket) DO UPDATE SET
+            target_ratio=excluded.target_ratio,
+            min_ratio=excluded.min_ratio,
+            max_ratio=excluded.max_ratio,
+            updated_at=datetime('now','localtime')
+    """, defaults)
+    conn.commit()

@@ -4,10 +4,8 @@ FastAPI 대시보드 API 서버
 실행: cd /Users/bumsangkim/Dev/TripleA && uvicorn api.main:app --reload --port 8000
 """
 from __future__ import annotations
-import asyncio
 import logging
 import os
-import sqlite3
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -22,71 +20,40 @@ from .db import get_conn, ensure_dashboard_tables
 from .models import (
     DashboardSummary, MacroIndicator, AccountSummary, AllocationItem,
     TargetItem, TargetUpdate, SuggestionItem, TopMover, CalendarEvent,
-    AlertItem, Insights, DocumentItem, TokenResponse,
+    AlertItem, Insights, DocumentItem, TokenResponse, ModeInfo,
+    AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
+    RebalanceResultItem, RebalanceRunResponse,
 )
+from .modes import TradingMode, normalize_mode
+from .providers import provider_router
 from .services import (
-    get_macro_indicators, get_target_deviations, get_rebalancing_suggestions,
-    get_recent_alerts, get_kpi_summary, get_accounts_from_db, get_allocation_from_holdings,
-    get_top_movers_from_db, get_calendar_events, build_insights, generate_target_alerts,
-    get_indicator_history,
+    get_macro_indicators, get_rebalancing_suggestions,
+    get_recent_alerts, get_kpi_summary,
+    get_calendar_events, build_insights, generate_target_alerts,
+    get_account_policies, save_manual_snapshot,
+    get_account_snapshots, set_account_rebalancing_inclusion,
+    record_rebalance_results, get_rebalance_results,
 )
 
 logger = logging.getLogger("uvicorn.error")
 
-# ── 1분 자동 수집 루프 ───────────────────────────────────────────────
-_COLLECT_SYMBOLS = {
-    # Yahoo Finance ticker: (indicator_key, unit)
-    "^KS11":    ("KOSPI",  "pt"),
-    "^KQ11":    ("KOSDAQ", "pt"),
-    "SPY":      ("SPY",    "USD"),
-    "QQQ":      ("QQQ",    "USD"),
-    "GC=F":     ("GOLD",   "USD"),
-    "CL=F":     ("WTI",    "USD"),
-    "DX-Y.NYB": ("DXY",    "pt"),
-    "^TNX":     ("US10Y",  "%"),
-    "SMH":      ("SMH",    "USD"),
-    "SOXX":     ("SOXX",   "USD"),
-}
 
-def _upsert_indicator(conn: sqlite3.Connection, key: str, value: float, unit: str, source: str = "Yahoo"):
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    conn.execute("""
-        INSERT INTO indicators (indicator, value, unit, date, source)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(date, indicator) DO UPDATE SET value=excluded.value, source=excluded.source
-    """, (key, round(value, 4), unit, today, source))
+def _mode_info(mode: TradingMode) -> ModeInfo:
+    return provider_router.get(mode).mode_info()
 
-async def _collect_once():
-    """yfinance로 현재 시세 가져와 indicators 테이블 upsert"""
+
+def _parse_mode(mode: Optional[str]) -> TradingMode:
     try:
-        import yfinance as yf  # type: ignore
-    except ImportError:
-        logger.warning("[collector] yfinance 미설치. `pip install yfinance`")
-        return
-    tickers = list(_COLLECT_SYMBOLS.keys())
-    try:
-        data = yf.download(tickers, period="2d", interval="1d", progress=False, auto_adjust=True)
-        close = data["Close"] if "Close" in data else data
-        with get_conn() as conn:
-            for ticker, (key, unit) in _COLLECT_SYMBOLS.items():
-                col = ticker if ticker in close.columns else None
-                if col is None:
-                    continue
-                series = close[col].dropna()
-                if series.empty:
-                    continue
-                latest_val = float(series.iloc[-1])
-                _upsert_indicator(conn, key, latest_val, unit)
-            conn.commit()
-        logger.info(f"[collector] {len(tickers)}개 지표 갱신 완료")
-    except Exception as e:
-        logger.warning(f"[collector] 수집 오류: {e}")
+        return normalize_mode(mode)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
-async def _collect_loop():
-    """1분 주기 백그라운드 수집"""
-    while True:
-        await _collect_once()
-        await asyncio.sleep(60)
+
+def _ensure_user_write_mode(mode: TradingMode):
+    try:
+        provider_router.get(mode).assert_user_write_allowed()
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e)) from e
 
 # ── JWT 설정 ────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv("JWT_SECRET", "triplea-dev-secret-change-in-production")
@@ -111,15 +78,7 @@ async def lifespan(app: FastAPI):
         n = generate_target_alerts(conn)
     if n:
         logger.info(f"[startup] {n}개 목표 이탈 알림 생성")
-    # 1분 수집 루프 시작
-    task = asyncio.create_task(_collect_loop())
-    logger.info("[startup] 1분 주기 지표 수집 루프 시작")
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
 
 app = FastAPI(
     title="TripleA Dashboard API",
@@ -165,22 +124,36 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 # ── Dashboard Summary ────────────────────────────────────────────────
+@app.get("/api/modes", response_model=List[ModeInfo], tags=["system"])
+def list_modes():
+    return [provider.mode_info() for provider in provider_router.list()]
+
+
+@app.get("/api/modes/{mode}", response_model=ModeInfo, tags=["system"])
+def get_mode(mode: str):
+    return _mode_info(_parse_mode(mode))
+
+
 @app.get("/api/dashboard/summary", response_model=DashboardSummary, tags=["dashboard"])
-def dashboard_summary():
+def dashboard_summary(mode: Optional[str] = None):
+    trading_mode = _parse_mode(mode)
+    provider = provider_router.get(trading_mode)
     with get_conn() as conn:
         macro      = get_macro_indicators(conn)
         kpi        = get_kpi_summary(conn, macro)
-        targets    = get_target_deviations(conn)
+        targets    = provider.get_target_deviations(conn)
         alerts     = get_recent_alerts(conn)
         calendar   = get_calendar_events(conn)
-        accounts   = get_accounts_from_db(conn)
-        allocation = get_allocation_from_holdings(conn)
-        top_movers = get_top_movers_from_db(conn)
+        accounts   = provider.get_accounts(conn)
+        allocation = provider.get_allocation(conn)
+        top_movers = provider.get_top_movers(conn)
 
     suggestions = get_rebalancing_suggestions(targets)
     insights    = build_insights(macro, kpi)
 
     return DashboardSummary(
+        mode=trading_mode,
+        modeInfo=_mode_info(trading_mode),
         kpi=kpi,
         macro=macro,
         accounts=accounts,
@@ -231,9 +204,16 @@ def indicator_history(key: str, days: int = 180):
 
 # ── Accounts ─────────────────────────────────────────────────────────
 @app.get("/api/accounts", response_model=List[AccountSummary], tags=["accounts"])
-def list_accounts():
+def list_accounts(mode: Optional[str] = None):
+    provider = provider_router.get(_parse_mode(mode))
     with get_conn() as conn:
-        return get_accounts_from_db(conn)
+        return provider.get_accounts(conn)
+
+
+@app.get("/api/account-policies", response_model=List[AccountPolicyItem], tags=["accounts"])
+def account_policies():
+    with get_conn() as conn:
+        return get_account_policies(conn)
 
 
 @app.get("/api/accounts/{account_id}/positions", tags=["accounts"])
@@ -246,12 +226,43 @@ def get_positions(account_id: int):
     return [dict(r) for r in rows]
 
 
+@app.get("/api/accounts/{account_id}/snapshots", response_model=List[AccountSnapshotItem], tags=["accounts"])
+def list_account_snapshots(account_id: int, limit: int = 20):
+    with get_conn() as conn:
+        return get_account_snapshots(conn, account_id, limit=limit)
+
+
+@app.post("/api/accounts/{account_id}/manual-snapshot", response_model=AccountSnapshotItem, tags=["accounts"])
+def create_manual_snapshot(account_id: int, body: AccountSnapshotCreate, mode: Optional[str] = None):
+    trading_mode = _parse_mode(mode)
+    _ensure_user_write_mode(trading_mode)
+    with get_conn() as conn:
+        try:
+            return save_manual_snapshot(conn, account_id, body)
+        except KeyError:
+            raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
+
+
+@app.patch("/api/accounts/{account_id}/rebalancing-inclusion", tags=["accounts"])
+def update_rebalancing_inclusion(account_id: int, include: bool, mode: Optional[str] = None):
+    trading_mode = _parse_mode(mode)
+    _ensure_user_write_mode(trading_mode)
+    with get_conn() as conn:
+        updated = set_account_rebalancing_inclusion(conn, account_id, include)
+    if not updated:
+        raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
+    return {"ok": True, "account_id": account_id, "include": include}
+
+
 @app.post("/api/accounts/upload-csv", tags=["accounts"])
-async def upload_csv(file: UploadFile = File(...)):
+async def upload_csv(file: UploadFile = File(...), mode: Optional[str] = None):
     """
     CSV 형식: account_name, ticker, name, quantity, avg_price, current_price
     account_name이 없으면 기본 계좌 "업로드 계좌"를 사용
     """
+    trading_mode = _parse_mode(mode)
+    _ensure_user_write_mode(trading_mode)
+
     content = await file.read()
     text = content.decode("utf-8-sig")  # BOM 제거
     reader = csv.DictReader(io.StringIO(text))
@@ -275,7 +286,12 @@ async def upload_csv(file: UploadFile = File(...)):
                 account_id = existing["id"]
             else:
                 cur = conn.execute(
-                    "INSERT INTO accounts (name, type) VALUES (?, '일반')", (acct_name,)
+                    """
+                    INSERT INTO accounts
+                    (name, type, account_type, connection_status, data_source)
+                    VALUES (?, '일반', 'GENERAL', 'UNLINKED', 'CSV')
+                    """,
+                    (acct_name,)
                 )
                 account_id = cur.lastrowid
 
@@ -317,9 +333,10 @@ def get_allocation():
 
 # ── Targets ──────────────────────────────────────────────────────────
 @app.get("/api/targets", response_model=List[TargetItem], tags=["targets"])
-def get_targets():
+def get_targets(mode: Optional[str] = None):
+    provider = provider_router.get(_parse_mode(mode))
     with get_conn() as conn:
-        return get_target_deviations(conn)
+        return provider.get_target_deviations(conn)
 
 
 @app.put("/api/targets", tags=["targets"])
@@ -337,10 +354,37 @@ def update_target(body: TargetUpdate):
 
 # ── Rebalancing ──────────────────────────────────────────────────────
 @app.get("/api/rebalancing/suggestions", response_model=List[SuggestionItem], tags=["rebalancing"])
-def rebalancing_suggestions():
+def rebalancing_suggestions(mode: Optional[str] = None):
+    provider = provider_router.get(_parse_mode(mode))
     with get_conn() as conn:
-        targets = get_target_deviations(conn)
+        targets = provider.get_target_deviations(conn)
     return get_rebalancing_suggestions(targets)
+
+
+@app.post("/api/rebalancing/run", response_model=RebalanceRunResponse, tags=["rebalancing"])
+def run_rebalancing(mode: Optional[str] = None):
+    trading_mode = _parse_mode(mode)
+    provider = provider_router.get(trading_mode)
+    _ensure_user_write_mode(trading_mode)
+    with get_conn() as conn:
+        macro = get_macro_indicators(conn)
+        kpi = get_kpi_summary(conn, macro)
+        targets = provider.get_target_deviations(conn)
+        run_id, rows = record_rebalance_results(conn, trading_mode, targets, kpi.totalAssets)
+    return RebalanceRunResponse(
+        ok=True,
+        mode=trading_mode,
+        runId=run_id,
+        saved=len(rows),
+        results=rows,
+    )
+
+
+@app.get("/api/rebalancing/results", response_model=List[RebalanceResultItem], tags=["rebalancing"])
+def list_rebalance_results(mode: Optional[str] = None, limit: int = 50):
+    trading_mode = _parse_mode(mode) if mode else None
+    with get_conn() as conn:
+        return get_rebalance_results(conn, trading_mode, limit=limit)
 
 
 # ── Alerts ───────────────────────────────────────────────────────────

@@ -65,6 +65,105 @@ class TestHealth:
         assert res.json()["status"] == "ok"
 
 
+class TestModes:
+    def test_modes_endpoint_lists_supported_modes(self, client):
+        res = client.get("/api/modes")
+        assert res.status_code == 200
+        modes = {item["mode"] for item in res.json()}
+        assert {"mock", "test", "backtest", "paper", "live"}.issubset(modes)
+
+    def test_dashboard_summary_accepts_mode(self, client):
+        res = client.get("/api/dashboard/summary?mode=paper")
+        assert res.status_code == 200
+        data = res.json()
+        assert data["mode"] == "paper"
+        assert data["modeInfo"]["provider"] == "PaperTradingProvider"
+
+    def test_read_only_modes_reject_csv_upload(self, client):
+        res = client.post(
+            "/api/accounts/upload-csv?mode=mock",
+            files={"file": ("holdings.csv", b"ticker,name,quantity,avg_price,current_price\n005930,Samsung,1,70000,71000\n")},
+        )
+        assert res.status_code == 403
+
+
+class TestAccountModeFeatures:
+    def test_account_policies_are_seeded(self, client):
+        res = client.get("/api/account-policies")
+        assert res.status_code == 200
+        policies = {p["accountType"]: p for p in res.json()}
+        assert policies["ISA"]["role"] == "TAX_ADVANTAGED"
+        assert policies["IRP"]["role"] == "RETIREMENT"
+
+    def test_manual_snapshot_paper_mode_updates_account(self, client, test_db):
+        conn = sqlite3.connect(test_db)
+        cur = conn.execute("""
+            INSERT INTO accounts
+            (name, type, account_type, broker, initial_value)
+            VALUES ('테스트 ISA', 'ISA', 'ISA', 'KIS', 0)
+        """)
+        account_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+
+        payload = {
+            "totalValue": 21846000,
+            "cashValue": 1000000,
+            "domesticStockValue": 7000000,
+            "foreignStockValue": 5000000,
+            "bondValue": 3000000,
+            "etfValue": 2000000,
+            "snapshotAt": "2026-05-22T09:00:00+09:00",
+        }
+        res = client.post(
+            f"/api/accounts/{account_id}/manual-snapshot?mode=paper",
+            json=payload,
+        )
+        assert res.status_code == 200
+        body = res.json()
+        assert body["accountId"] == account_id
+        assert body["totalValue"] == 21846000
+
+        accounts = client.get("/api/accounts?mode=paper").json()
+        saved = next(a for a in accounts if a["id"] == account_id)
+        assert saved["value"] == 21846000
+        assert saved["dataSource"] == "MANUAL"
+
+    def test_manual_snapshot_mock_mode_is_read_only(self, client):
+        res = client.post(
+            "/api/accounts/1/manual-snapshot?mode=mock",
+            json={"totalValue": 1000},
+        )
+        assert res.status_code == 403
+
+    def test_rebalancing_inclusion_can_be_toggled_in_paper_mode(self, client, test_db):
+        conn = sqlite3.connect(test_db)
+        cur = conn.execute("""
+            INSERT INTO accounts
+            (name, type, account_type, include_in_rebalancing)
+            VALUES ('토글 계좌', '일반', 'GENERAL', 1)
+        """)
+        account_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+
+        res = client.patch(f"/api/accounts/{account_id}/rebalancing-inclusion?mode=paper&include=false")
+
+        assert res.status_code == 200
+        assert res.json()["include"] is False
+
+    def test_rebalancing_run_records_results(self, client):
+        res = client.post("/api/rebalancing/run?mode=paper")
+        assert res.status_code == 200
+        body = res.json()
+        assert body["ok"] is True
+        assert body["mode"] == "paper"
+        assert body["saved"] == len(body["results"])
+
+        results = client.get("/api/rebalancing/results?mode=paper").json()
+        assert len(results) >= body["saved"]
+
+
 # ── 매크로 지표 ──────────────────────────────────────────────────────
 
 class TestMacroEndpoints:

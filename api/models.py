@@ -6,6 +6,8 @@ from __future__ import annotations
 from typing import List, Optional
 from pydantic import BaseModel
 
+from .modes import TradingMode
+
 
 # ── KPI ─────────────────────────────────────────────────────────────
 class KPISummary(BaseModel):
@@ -15,6 +17,16 @@ class KPISummary(BaseModel):
     todayProfitRate: float
     riskLevel: str
     macroScore: Optional[int] = None
+
+
+class ModeInfo(BaseModel):
+    mode: TradingMode
+    provider: str
+    dbWriteScope: str
+    externalApi: bool
+    orderPolicy: str
+    canWriteUserData: bool
+    canExecuteOrders: bool
 
 
 # ── Macro ────────────────────────────────────────────────────────────
@@ -37,6 +49,40 @@ class AccountSummary(BaseModel):
     value: float
     profit: float
     profitRate: float
+    accountType: Optional[str] = None
+    connectionStatus: Optional[str] = None
+    tradeStatus: Optional[str] = None
+    includeInRebalancing: bool = True
+    dataSource: Optional[str] = None
+    lastSyncedAt: Optional[str] = None
+
+
+class AccountPolicyItem(BaseModel):
+    id: int
+    accountType: str
+    role: str
+    depositPolicy: Optional[str] = None
+    allowedProducts: Optional[str] = None
+    rebalancePriority: Optional[str] = None
+    riskNote: Optional[str] = None
+
+
+class AccountSnapshotCreate(BaseModel):
+    totalValue: float
+    cashValue: float = 0
+    domesticStockValue: float = 0
+    foreignStockValue: float = 0
+    bondValue: float = 0
+    etfValue: float = 0
+    pensionValue: float = 0
+    altValue: float = 0
+    snapshotAt: Optional[str] = None
+
+
+class AccountSnapshotItem(AccountSnapshotCreate):
+    id: int
+    accountId: int
+    createdAt: Optional[str] = None
 
 
 class AllocationItem(BaseModel):
@@ -70,6 +116,30 @@ class SuggestionItem(BaseModel):
     action: str              # 비중 축소 | 비중 확대 | 관망
     reason: str
     deviation: float
+
+
+class RebalanceResultItem(BaseModel):
+    id: Optional[int] = None
+    runId: Optional[int] = None
+    mode: TradingMode
+    accountId: Optional[int] = None
+    accountType: Optional[str] = None
+    assetClass: str
+    currentRatio: float
+    targetRatio: float
+    deviation: float
+    action: str
+    amount: float
+    reason: str
+    createdAt: Optional[str] = None
+
+
+class RebalanceRunResponse(BaseModel):
+    ok: bool
+    mode: TradingMode
+    runId: int
+    saved: int
+    results: List[RebalanceResultItem]
 
 
 # ── Top Movers ───────────────────────────────────────────────────────
@@ -112,6 +182,8 @@ class Insights(BaseModel):
 
 # ── Dashboard Summary (통합) ─────────────────────────────────────────
 class DashboardSummary(BaseModel):
+    mode: TradingMode = TradingMode.TEST
+    modeInfo: Optional[ModeInfo] = None
     kpi: KPISummary
     macro: List[MacroIndicator]
     accounts: List[AccountSummary]

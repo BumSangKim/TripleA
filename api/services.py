@@ -7,8 +7,11 @@ import sqlite3
 from typing import List, Optional
 from .models import (
     MacroIndicator, TargetItem, SuggestionItem, AlertItem,
-    KPISummary, AllocationItem, AccountSummary, TopMover, CalendarEvent, Insights
+    KPISummary, AllocationItem, AccountSummary, TopMover, CalendarEvent, Insights,
+    AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
+    RebalanceResultItem,
 )
+from .modes import TradingMode
 
 MACRO_KEY_MAP = {
     "cpi":          {"name": "CPI YoY",      "unit": "%"},
@@ -98,14 +101,29 @@ def get_macro_indicators(conn: sqlite3.Connection) -> List[MacroIndicator]:
     return result
 
 
-def get_target_deviations(conn: sqlite3.Connection) -> List[TargetItem]:
+def _allocation_from_holdings(conn: sqlite3.Connection) -> dict[str, float]:
+    rows = conn.execute("""
+        SELECT asset_class, SUM(market_value) AS total
+        FROM holdings
+        WHERE asset_class IS NOT NULL
+          AND asset_class != ''
+          AND COALESCE(market_value, 0) > 0
+        GROUP BY asset_class
+    """).fetchall()
+    total = sum(float(r["total"] or 0) for r in rows)
+    if total <= 0:
+        return {}
+    return {r["asset_class"]: round(float(r["total"] or 0) / total * 100, 2) for r in rows}
+
+
+def get_target_deviations(conn: sqlite3.Connection, mode: TradingMode = TradingMode.TEST) -> List[TargetItem]:
     """목표 비중 vs 현재 비중 계산 (모든 target_type 지원)"""
     targets = conn.execute(
         "SELECT id, target_type, asset_class, target_value, warning_thr, danger_thr FROM targets"
     ).fetchall()
 
-    # asset_allocation: mock 현재 비중 (holdings 데이터 없을 때)
-    mock_allocation = {
+    db_allocation = _allocation_from_holdings(conn)
+    fallback_allocation = {
         "국내주식": 28.7, "해외주식": 34.2, "채권": 7.8,
         "ETF": 14.9, "현금": 10.1, "기타/대기": 4.3,
     }
@@ -121,7 +139,12 @@ def get_target_deviations(conn: sqlite3.Connection) -> List[TargetItem]:
         target_val = t["target_value"]
 
         if t_type == "asset_allocation":
-            curr = mock_allocation.get(t["asset_class"], target_val)
+            if db_allocation:
+                curr = db_allocation.get(t["asset_class"], 0.0)
+            elif mode == TradingMode.MOCK:
+                curr = fallback_allocation.get(t["asset_class"], target_val)
+            else:
+                curr = 0.0
             unit = "%"
         elif t_type == "monthly_invest":
             curr = mock_special.get(t["asset_class"], target_val * 0.8)
@@ -291,8 +314,214 @@ def get_accounts_from_db(conn: sqlite3.Connection) -> List[AccountSummary]:
             value=total_val,
             profit=profit,
             profitRate=profit_rate,
+            accountType=a["account_type"] if "account_type" in a.keys() else a["type"],
+            connectionStatus=a["connection_status"] if "connection_status" in a.keys() else "UNLINKED",
+            tradeStatus=a["trade_status"] if "trade_status" in a.keys() else "ORDER_DISABLED",
+            includeInRebalancing=bool(a["include_in_rebalancing"]) if "include_in_rebalancing" in a.keys() else True,
+            dataSource=a["data_source"] if "data_source" in a.keys() else "MANUAL",
+            lastSyncedAt=a["last_synced_at"] if "last_synced_at" in a.keys() else None,
         ))
     return result
+
+
+def get_account_policies(conn: sqlite3.Connection) -> list[AccountPolicyItem]:
+    rows = conn.execute("""
+        SELECT id, account_type, role, deposit_policy, allowed_products,
+               rebalance_priority, risk_note
+        FROM account_policies
+        ORDER BY account_type
+    """).fetchall()
+    return [
+        AccountPolicyItem(
+            id=r["id"],
+            accountType=r["account_type"],
+            role=r["role"],
+            depositPolicy=r["deposit_policy"],
+            allowedProducts=r["allowed_products"],
+            rebalancePriority=r["rebalance_priority"],
+            riskNote=r["risk_note"],
+        )
+        for r in rows
+    ]
+
+
+def save_manual_snapshot(
+    conn: sqlite3.Connection,
+    account_id: int,
+    snapshot: AccountSnapshotCreate,
+) -> AccountSnapshotItem:
+    account = conn.execute("SELECT id FROM accounts WHERE id=?", (account_id,)).fetchone()
+    if not account:
+        raise KeyError(f"account {account_id} not found")
+
+    snapshot_at = snapshot.snapshotAt or conn.execute(
+        "SELECT datetime('now','localtime')"
+    ).fetchone()[0]
+    cur = conn.execute("""
+        INSERT INTO account_snapshots
+        (account_id, total_value, cash_value, domestic_stock_value, foreign_stock_value,
+         bond_value, etf_value, pension_value, alt_value, snapshot_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        account_id,
+        snapshot.totalValue,
+        snapshot.cashValue,
+        snapshot.domesticStockValue,
+        snapshot.foreignStockValue,
+        snapshot.bondValue,
+        snapshot.etfValue,
+        snapshot.pensionValue,
+        snapshot.altValue,
+        snapshot_at,
+    ))
+    conn.execute("""
+        UPDATE accounts
+        SET initial_value=?,
+            data_source='MANUAL',
+            connection_status='UNLINKED',
+            last_synced_at=?
+        WHERE id=?
+    """, (snapshot.totalValue, snapshot_at, account_id))
+    conn.commit()
+
+    row = conn.execute(
+        "SELECT * FROM account_snapshots WHERE id=?", (cur.lastrowid,)
+    ).fetchone()
+    return _snapshot_from_row(row)
+
+
+def get_account_snapshots(
+    conn: sqlite3.Connection,
+    account_id: int,
+    limit: int = 20,
+) -> list[AccountSnapshotItem]:
+    rows = conn.execute("""
+        SELECT * FROM account_snapshots
+        WHERE account_id=?
+        ORDER BY snapshot_at DESC, id DESC
+        LIMIT ?
+    """, (account_id, limit)).fetchall()
+    return [_snapshot_from_row(r) for r in rows]
+
+
+def _snapshot_from_row(row: sqlite3.Row) -> AccountSnapshotItem:
+    return AccountSnapshotItem(
+        id=row["id"],
+        accountId=row["account_id"],
+        totalValue=row["total_value"],
+        cashValue=row["cash_value"],
+        domesticStockValue=row["domestic_stock_value"],
+        foreignStockValue=row["foreign_stock_value"],
+        bondValue=row["bond_value"],
+        etfValue=row["etf_value"],
+        pensionValue=row["pension_value"],
+        altValue=row["alt_value"],
+        snapshotAt=row["snapshot_at"],
+        createdAt=row["created_at"],
+    )
+
+
+def set_account_rebalancing_inclusion(
+    conn: sqlite3.Connection,
+    account_id: int,
+    include: bool,
+) -> bool:
+    cur = conn.execute(
+        "UPDATE accounts SET include_in_rebalancing=? WHERE id=?",
+        (1 if include else 0, account_id),
+    )
+    conn.commit()
+    return cur.rowcount > 0
+
+
+def record_rebalance_results(
+    conn: sqlite3.Connection,
+    mode: TradingMode,
+    targets: list[TargetItem],
+    total_assets: float,
+) -> tuple[int, list[RebalanceResultItem]]:
+    run_id = int(conn.execute("SELECT strftime('%s','now')").fetchone()[0])
+    rows: list[RebalanceResultItem] = []
+    for target in targets:
+        action, reason = _rebalance_action_reason(target)
+        amount = round((target.deviation / 100.0) * total_assets, 2)
+        cur = conn.execute("""
+            INSERT INTO rebalance_results
+            (run_id, mode, account_id, account_type, asset_class, current_ratio,
+             target_ratio, deviation, action, amount, reason)
+            VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            run_id,
+            mode.value,
+            target.asset_class,
+            target.currentRatio,
+            target.targetRatio,
+            target.deviation,
+            action,
+            amount,
+            reason,
+        ))
+        rows.append(RebalanceResultItem(
+            id=cur.lastrowid,
+            runId=run_id,
+            mode=mode,
+            assetClass=target.asset_class,
+            currentRatio=target.currentRatio,
+            targetRatio=target.targetRatio,
+            deviation=target.deviation,
+            action=action,
+            amount=amount,
+            reason=reason,
+        ))
+    conn.commit()
+    return run_id, rows
+
+
+def get_rebalance_results(
+    conn: sqlite3.Connection,
+    mode: TradingMode | None = None,
+    limit: int = 50,
+) -> list[RebalanceResultItem]:
+    if mode:
+        rows = conn.execute("""
+            SELECT * FROM rebalance_results
+            WHERE mode=?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+        """, (mode.value, limit)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT * FROM rebalance_results
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+    return [_rebalance_result_from_row(r) for r in rows]
+
+
+def _rebalance_action_reason(target: TargetItem) -> tuple[str, str]:
+    if target.level == "normal":
+        return "HOLD", f"허용 범위 내 ({target.deviation:+.1f}%)"
+    if target.deviation > 0:
+        return "REDUCE", f"목표 초과 {target.deviation:.1f}%"
+    return "INCREASE", f"목표 미달 {abs(target.deviation):.1f}%"
+
+
+def _rebalance_result_from_row(row: sqlite3.Row) -> RebalanceResultItem:
+    return RebalanceResultItem(
+        id=row["id"],
+        runId=row["run_id"],
+        mode=TradingMode(row["mode"]),
+        accountId=row["account_id"],
+        accountType=row["account_type"],
+        assetClass=row["asset_class"],
+        currentRatio=row["current_ratio"],
+        targetRatio=row["target_ratio"],
+        deviation=row["deviation"],
+        action=row["action"],
+        amount=row["amount"],
+        reason=row["reason"],
+        createdAt=row["created_at"],
+    )
 
 
 def get_allocation_from_holdings(conn: sqlite3.Connection) -> List[AllocationItem]:
