@@ -1,7 +1,6 @@
 // components/ui/MetricCard.tsx
 "use client";
 import { MacroIndicator } from "@/lib/types";
-import { formatChange, getStatusColor } from "@/lib/utils";
 import StatusChip from "./StatusChip";
 
 interface MetricCardProps {

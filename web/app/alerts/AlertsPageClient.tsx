@@ -1,6 +1,6 @@
 // app/alerts/AlertsPageClient.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { AlertItem } from "@/lib/types";
 import Card from "@/components/ui/Card";
@@ -16,17 +16,18 @@ export default function AlertsPageClient() {
   const [filter, setFilter] = useState("전체");
   const [showRead, setShowRead] = useState(false);
 
-  const fetchAlerts = () => {
+  const fetchAlerts = useCallback(() => {
     setLoading(true);
     api.getAlerts(100)
       .then(setAlerts)
       .catch(() => setAlerts([]))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
-    fetchAlerts();
-  }, []);
+    const timer = window.setTimeout(fetchAlerts, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchAlerts]);
 
   const handleMarkRead = async (id: number) => {
     await api.markAlertRead(id);
@@ -123,7 +124,7 @@ export default function AlertsPageClient() {
                 )} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <StatusChip status={alert.level as any} />
+                    <StatusChip status={alert.level} />
                     <span className="text-xs text-slate-500">{alert.category}</span>
                   </div>
                   <p className="text-sm font-medium text-white">{alert.title}</p>

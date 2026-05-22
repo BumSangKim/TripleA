@@ -4,20 +4,18 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { AllocationItem, AccountSummary } from "@/lib/types";
 import Card from "@/components/ui/Card";
-import StatusChip from "@/components/ui/StatusChip";
 import { cn, formatKRW } from "@/lib/utils";
 
 const ASSET_COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#a855f7", "#ec4899", "#14b8a6"];
 
 function DonutChart({ items }: { items: AllocationItem[] }) {
   const total = items.reduce((s, i) => s + i.value, 0) || 1;
-  let cumulative = 0;
   const segments = items.map((item, idx) => {
     const ratio = item.value / total;
-    const start = cumulative;
-    cumulative += ratio;
+    const start = items.slice(0, idx).reduce((sum, current) => sum + current.value / total, 0);
+    const end = start + ratio;
     const startAngle = start * 2 * Math.PI - Math.PI / 2;
-    const endAngle = cumulative * 2 * Math.PI - Math.PI / 2;
+    const endAngle = end * 2 * Math.PI - Math.PI / 2;
     const r = 70;
     const cx = 90, cy = 90;
     const x1 = cx + r * Math.cos(startAngle);

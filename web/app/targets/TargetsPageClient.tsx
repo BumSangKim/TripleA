@@ -1,6 +1,6 @@
 // app/targets/TargetsPageClient.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { TargetItem } from "@/lib/types";
 import Card from "@/components/ui/Card";
@@ -31,11 +31,7 @@ export default function TargetsPageClient() {
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  useEffect(() => {
-    fetchTargets();
-  }, []);
-
-  const fetchTargets = () => {
+  const fetchTargets = useCallback(() => {
     setLoading(true);
     api
       .getTargets()
@@ -53,7 +49,12 @@ export default function TargetsPageClient() {
       })
       .catch(() => setTargets([]))
       .finally(() => setLoading(false));
-  };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(fetchTargets, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchTargets]);
 
   const handleChange = (asset: string, field: keyof EditState, value: number) => {
     setEditMap((prev) => ({
@@ -316,4 +317,3 @@ export default function TargetsPageClient() {
     </div>
   );
 }
-

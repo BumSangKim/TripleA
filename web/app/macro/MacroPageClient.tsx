@@ -1,6 +1,6 @@
 // app/macro/MacroPageClient.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { MacroIndicator } from "@/lib/types";
 import StatusChip from "@/components/ui/StatusChip";
@@ -44,7 +44,7 @@ function HistoryChart({ indicator }: { indicator: string }) {
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
 
-  useEffect(() => {
+  const fetchHistory = useCallback(() => {
     setLoading(true);
     fetch(`${BASE_URL}/api/macro/history/${encodeURIComponent(indicator)}?days=${days}`)
       .then((r) => r.json())
@@ -52,6 +52,11 @@ function HistoryChart({ indicator }: { indicator: string }) {
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [indicator, days]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(fetchHistory, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchHistory]);
 
   if (loading) return <div className="h-32 flex items-center justify-center text-slate-600 text-sm">로딩 중...</div>;
   if (!data.length) return <div className="h-32 flex items-center justify-center text-slate-600 text-sm">데이터 없음</div>;

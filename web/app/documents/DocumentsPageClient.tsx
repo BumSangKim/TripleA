@@ -1,6 +1,6 @@
 // app/documents/DocumentsPageClient.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { DocumentItem } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
@@ -39,16 +39,19 @@ export default function DocumentsPageClient({
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
-  const fetchDocs = () => {
+  const fetchDocs = useCallback(() => {
     setLoading(true);
     fetch(`${BASE_URL}/api/documents?limit=200`)
       .then((r) => r.json())
       .then(setDocs)
       .catch(() => setDocs([]))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(() => { fetchDocs(); }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(fetchDocs, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchDocs]);
 
   const showMsg = (type: "ok" | "err", text: string) => {
     setMsg({ type, text });

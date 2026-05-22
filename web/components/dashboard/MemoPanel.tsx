@@ -12,14 +12,19 @@ export default function MemoPanel() {
 
   // 마운트 시 localStorage에서 이전 메모 복원
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("triplea_daily_memo");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const text = typeof parsed === "string" ? parsed : parsed?.text;
-        if (text) setMemo(text);
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = localStorage.getItem("triplea_daily_memo");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          const text = typeof parsed === "string" ? parsed : parsed?.text;
+          if (text) setMemo(text);
+        }
+      } catch {
+        // localStorage 접근 실패는 메모 기본값 유지로 처리한다.
       }
-    } catch {}
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const handleChange = (v: string) => {

@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-22_trading_modes_frontend_lint_cleanup.md` | 프론트엔드 lint/build 품질 게이트 복구 |
 | `2026-05-22_trading_modes_kis_sync_ui.md` | 계좌 화면 KIS Paper 동기화 버튼/API 연결 |
 | `2026-05-22_trading_modes_kis_paper_provider.md` | KIS 모의투자 Paper provider 읽기 전용 동기화 |
 | `2026-05-22_trading_modes_provider_legacy_cleanup.md` | ProviderRouter 도입, 레거시 코드 삭제 |

@@ -23,7 +23,6 @@ export default function KPIBar({ kpi, targets = [] }: KPIBarProps) {
   const [syncTime, setSyncTime] = useState<string>("확인 중...");
 
   const achievementRate = computeAchievementRate(targets);
-  const prevAchievementRate = achievementRate > 0 ? achievementRate - 2.8 : 0; // 전일 대비 표시용 근사값
 
   useEffect(() => {
     fetch(`${BASE_URL}/api/system/status`)
@@ -122,8 +121,8 @@ export default function KPIBar({ kpi, targets = [] }: KPIBarProps) {
         <p className="text-xs text-slate-400 mb-1">리스크 대별</p>
         <p className={`text-2xl font-bold ${riskColor}`}>{kpi.riskLevel}</p>
         {(() => {
-          const riskBars = { "낙음": 2, "보통": 5, "높음": 8 }[kpi.riskLevel] ?? 5;
-          const barColor = { "낙음": "bg-green-500", "보통": "bg-yellow-500", "높음": "bg-red-500" }[kpi.riskLevel] ?? "bg-yellow-500";
+          const riskBars = { "낮음": 2, "보통": 5, "높음": 8 }[kpi.riskLevel] ?? 5;
+          const barColor = { "낮음": "bg-green-500", "보통": "bg-yellow-500", "높음": "bg-red-500" }[kpi.riskLevel] ?? "bg-yellow-500";
           return (
             <>
               <div className="flex gap-0.5 mt-2">

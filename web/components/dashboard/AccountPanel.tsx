@@ -18,8 +18,7 @@ const ASSET_COLORS: Record<string, string> = {
 };
 
 function DonutChart({ items }: { items: AllocationItem[] }) {
-  const total = items.reduce((s, i) => s + i.ratio, 0);
-  let cum = 0;
+  const total = items.reduce((s, i) => s + i.ratio, 0) || 1;
   const cx = 60, cy = 60, r = 48, strokeW = 14;
   const circumference = 2 * Math.PI * r;
 
@@ -27,11 +26,13 @@ function DonutChart({ items }: { items: AllocationItem[] }) {
     <div className="flex items-center gap-4">
       <svg width={120} height={120} viewBox="0 0 120 120" className="shrink-0">
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1e293b" strokeWidth={strokeW} />
-        {items.map((item) => {
+        {items.map((item, idx) => {
           const pct = item.ratio / total;
           const dash = pct * circumference;
-          const offset = circumference - cum * circumference;
-          cum += pct;
+          const previousRatio = items
+            .slice(0, idx)
+            .reduce((sum, current) => sum + current.ratio / total, 0);
+          const offset = circumference - previousRatio * circumference;
           return (
             <circle
               key={item.asset}
