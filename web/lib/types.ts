@@ -123,6 +123,18 @@ export interface RebalanceRunResponse {
   results: RebalanceResultItem[];
 }
 
+export interface RiskBudgetItem {
+  strategyBucket: string;
+  currentRatio: number;
+  targetRatio: number;
+  minRatio?: number | null;
+  maxRatio?: number | null;
+  deviation: number;
+  level: "normal" | "warning" | "danger" | string;
+  action: "HOLD" | "INCREASE" | "REDUCE" | string;
+  reason: string;
+}
+
 export interface ProviderSyncResult {
   ok: boolean;
   mode: TradingMode;

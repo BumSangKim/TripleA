@@ -2,7 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import type { AllocationItem, AccountSummary } from "@/lib/types";
+import type { AllocationItem, AccountSummary, RiskBudgetItem } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 
@@ -58,21 +58,42 @@ function DonutChart({ items }: { items: AllocationItem[] }) {
   );
 }
 
+function riskLevelClass(level: string): string {
+  if (level === "danger") return "text-red-300";
+  if (level === "warning") return "text-amber-300";
+  return "text-green-300";
+}
+
+function actionLabel(action: string): string {
+  const labels: Record<string, string> = {
+    HOLD: "유지",
+    INCREASE: "보강",
+    REDUCE: "축소",
+  };
+  return labels[action] ?? action;
+}
+
 export default function PortfolioPageClient() {
   const [allocation, setAllocation] = useState<AllocationItem[]>([]);
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
+  const [riskBudget, setRiskBudget] = useState<RiskBudgetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<"value" | "ratio">("value");
 
   useEffect(() => {
-    Promise.all([
+    Promise.allSettled([
       api.getDashboardSummary(),
+      api.getRiskBudget(),
     ])
-      .then(([summary]) => {
-        setAllocation(summary.allocation ?? []);
-        setAccounts(summary.accounts ?? []);
+      .then(([summaryResult, budgetResult]) => {
+        if (summaryResult.status === "fulfilled") {
+          setAllocation(summaryResult.value.allocation ?? []);
+          setAccounts(summaryResult.value.accounts ?? []);
+        }
+        if (budgetResult.status === "fulfilled") {
+          setRiskBudget(budgetResult.value);
+        }
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -118,6 +139,56 @@ export default function PortfolioPageClient() {
           {/* 도넛 차트 */}
           <Card title="자산 배분">
             <DonutChart items={allocation} />
+          </Card>
+
+          <Card title="위험예산">
+            {riskBudget.length === 0 ? (
+              <div className="py-8 text-center text-sm text-slate-500">위험예산 데이터가 없습니다.</div>
+            ) : (
+              <div className="space-y-4">
+                {riskBudget.map((item) => {
+                  const min = item.minRatio ?? 0;
+                  const max = item.maxRatio ?? 100;
+                  const current = Math.max(0, Math.min(item.currentRatio, 100));
+                  return (
+                    <div key={item.strategyBucket}>
+                      <div className="mb-1 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">{item.strategyBucket}</p>
+                          <p className="text-[11px] text-slate-500">{item.reason}</p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className={cn("text-sm font-bold", riskLevelClass(item.level))}>
+                            {actionLabel(item.action)}
+                          </p>
+                          <p className="text-[11px] text-slate-500">
+                            {item.currentRatio.toFixed(1)}% / {item.targetRatio.toFixed(1)}%
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative h-3 overflow-hidden rounded-full bg-slate-700">
+                        <div
+                          className="absolute top-0 bottom-0 bg-slate-500/35"
+                          style={{ left: `${min}%`, width: `${Math.max(max - min, 0)}%` }}
+                        />
+                        <div
+                          className={cn(
+                            "h-full rounded-full",
+                            item.level === "danger" ? "bg-red-500" :
+                            item.level === "warning" ? "bg-amber-500" : "bg-green-500",
+                          )}
+                          style={{ width: `${current}%` }}
+                        />
+                      </div>
+                      <div className="mt-1 flex justify-between text-[10px] text-slate-600">
+                        <span>min {min.toFixed(0)}%</span>
+                        <span>max {max.toFixed(0)}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           {/* 자산 클래스 상세 테이블 */}

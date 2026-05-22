@@ -16,6 +16,7 @@ import type {
   ProviderSyncResult,
   RebalanceResultItem,
   RebalanceRunResponse,
+  RiskBudgetItem,
   SuggestionItem,
   TargetItem,
   TradingMode,
@@ -162,6 +163,9 @@ export const api = {
 
   getRebalanceResults: (mode?: TradingMode, limit = 50): Promise<RebalanceResultItem[]> =>
     fetchJSON<RebalanceResultItem[]>(withQuery("/api/rebalancing/results", { mode, limit })),
+
+  getRiskBudget: (): Promise<RiskBudgetItem[]> =>
+    fetchJSON<RiskBudgetItem[]>("/api/engine/risk-budget"),
 
   getAccountPolicies: (): Promise<AccountPolicyItem[]> =>
     fetchJSON<AccountPolicyItem[]>("/api/account-policies"),
