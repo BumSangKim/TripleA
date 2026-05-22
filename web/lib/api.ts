@@ -3,6 +3,8 @@ import type {
   AccountPolicyItem,
   AccountSnapshotCreate,
   AccountSnapshotItem,
+  BacktestRunRequest,
+  BacktestRunResponse,
   CalendarEvent,
   DashboardSummary,
   DocumentItem,
@@ -94,6 +96,15 @@ export const api = {
 
   getOrderDrafts: (mode?: TradingMode, limit = 20): Promise<OrderDraftResponse[]> =>
     fetchJSON<OrderDraftResponse[]>(withQuery("/api/orders/drafts", { mode, limit })),
+
+  getBacktestRuns: (limit = 20): Promise<BacktestRunResponse[]> =>
+    fetchJSON<BacktestRunResponse[]>(withQuery("/api/backtests/runs", { limit })),
+
+  runBacktest: (data: BacktestRunRequest): Promise<BacktestRunResponse> =>
+    fetchJSON<BacktestRunResponse>("/api/backtests/run", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   syncProviderAccounts: (mode: TradingMode): Promise<ProviderSyncResult> =>
     fetchJSON<ProviderSyncResult>(`/api/providers/${mode}/sync-accounts`, {

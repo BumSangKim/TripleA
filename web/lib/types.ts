@@ -159,6 +159,43 @@ export interface OrderDraftResponse {
   message?: string | null;
 }
 
+export interface BacktestTarget {
+  assetClass: string;
+  targetRatio: number;
+}
+
+export interface BacktestRunRequest {
+  name: string;
+  startDate: string;
+  endDate: string;
+  initialCapital: number;
+  rebalanceFrequency: "weekly" | "monthly" | "quarterly";
+  targets: BacktestTarget[];
+}
+
+export interface BacktestPoint {
+  date: string;
+  value: number;
+  drawdown: number;
+}
+
+export interface BacktestRunResponse {
+  ok: boolean;
+  runId: number;
+  name: string;
+  startDate: string;
+  endDate: string;
+  initialCapital: number;
+  rebalanceFrequency: string;
+  status: string;
+  totalReturn: number;
+  annualReturn: number;
+  maxDrawdown: number;
+  volatility: number;
+  points: BacktestPoint[];
+  createdAt?: string | null;
+}
+
 export interface APIErrorDetail {
   code?: string;
   message?: string;
