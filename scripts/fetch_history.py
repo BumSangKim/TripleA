@@ -17,11 +17,14 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # 프로젝트 루트를 sys.path에 추가
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 DB_PATH = ROOT / "data" / "economic_data.db"
+load_dotenv(ROOT / ".env")
 
 # Yahoo Finance 티커 → (indicator_key, unit)
 YAHOO_SYMBOLS = {
@@ -59,6 +62,18 @@ def get_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def get_api_key(name: str) -> str:
+    """환경변수/.env를 우선 사용하고, 없으면 API_KEY 파일을 읽는다."""
+    env_value = os.getenv(name, "").strip()
+    if env_value:
+        return env_value
+
+    key_path = ROOT / "API_KEY" / name
+    if key_path.exists():
+        return key_path.read_text().strip()
+    return ""
 
 
 def upsert(conn: sqlite3.Connection, key: str, value: float, unit: str, date_str: str, source: str):
@@ -111,13 +126,9 @@ def fetch_yahoo(period: str = "6mo") -> int:
 
 def fetch_fred(period_days: int = 180) -> int:
     """FRED API에서 6개월 데이터 수집"""
-    api_key_path = ROOT / "API_KEY" / "FRED_API_KEY"
-    if not api_key_path.exists():
-        print("[WARN] FRED_API_KEY 파일 없음, FRED 수집 건너뜀")
-        return 0
-    api_key = api_key_path.read_text().strip()
+    api_key = get_api_key("FRED_API_KEY")
     if not api_key:
-        print("[WARN] FRED_API_KEY 비어 있음, FRED 수집 건너뜀")
+        print("[WARN] FRED_API_KEY 설정 없음, FRED 수집 건너뜀")
         return 0
 
     try:
@@ -155,13 +166,9 @@ def fetch_fred(period_days: int = 180) -> int:
 
 def fetch_ecos(period_days: int = 180) -> int:
     """ECOS (한국은행) API에서 주요 지표 수집"""
-    api_key_path = ROOT / "API_KEY" / "ECOS_API_KEY"
-    if not api_key_path.exists():
-        print("[WARN] ECOS_API_KEY 파일 없음, ECOS 수집 건너뜀")
-        return 0
-    api_key = api_key_path.read_text().strip()
+    api_key = get_api_key("ECOS_API_KEY")
     if not api_key:
-        print("[WARN] ECOS_API_KEY 비어 있음, ECOS 수집 건너뜀")
+        print("[WARN] ECOS_API_KEY 설정 없음, ECOS 수집 건너뜀")
         return 0
 
     import urllib.request
