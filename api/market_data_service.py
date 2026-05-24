@@ -171,7 +171,7 @@ def validate_market_data_coverage(
     ]
     fx_results = [
         _validate_fx_coverage(conn, currency, base_currency, start, end, max_stale_days)
-        for currency in sorted({item.currency for item in asset_results if item.currency != base_currency})
+        for currency in sorted({item.currency for item in asset_results if item.ok and item.currency != base_currency})
     ]
     ok = all(item.ok for item in [*asset_results, *fx_results])
     return MarketDataCoverage(ok=ok, assets=asset_results, fx_rates=fx_results)
