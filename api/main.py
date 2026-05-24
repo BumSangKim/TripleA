@@ -26,10 +26,16 @@ from .models import (
     RebalanceResultItem, RebalanceRunResponse, RiskBudgetItem, ProviderSyncResult,
     OrderDraftRequest, OrderDraftResponse, OrderExecuteRequest,
     BacktestRunRequest, BacktestRunResponse,
+    AssetUniverseItem, MarketDataCoverageResponse, AssetCoverageItem, FxCoverageItem,
 )
 from .kis import KISAPIError, KISConfigError, KISNetworkError
 from .modes import TradingMode, normalize_mode
 from .providers import provider_router
+from .market_data_service import (
+    get_asset_universe,
+    validate_market_data_coverage,
+    AssetUniverseItem as _AssetUniverseItem,
+)
 from .services import (
     get_macro_indicators, get_rebalancing_suggestions,
     get_recent_alerts, get_kpi_summary,
@@ -477,6 +483,70 @@ def backtest_run(run_id: int):
             return get_backtest_run(conn, run_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── Market Data ──────────────────────────────────────────────────────
+@app.get("/api/market-data/assets", response_model=List[AssetUniverseItem], tags=["market-data"])
+def market_data_assets(active_only: bool = True):
+    with get_conn() as conn:
+        items: list[_AssetUniverseItem] = get_asset_universe(conn, active_only=active_only)
+    return [
+        AssetUniverseItem(
+            assetCode=item.asset_code,
+            symbol=item.symbol,
+            name=item.name,
+            assetClass=item.asset_class,
+            market=item.market,
+            currency=item.currency,
+            sourceType=item.source_type,
+            isActive=item.is_active,
+        )
+        for item in items
+    ]
+
+
+@app.get("/api/market-data/coverage", response_model=MarketDataCoverageResponse, tags=["market-data"])
+def market_data_coverage(start_date: str, end_date: str):
+    from datetime import date as _date
+    try:
+        start = _date.fromisoformat(start_date)
+        end = _date.fromisoformat(end_date)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"날짜 형식 오류: {e}") from e
+    if start > end:
+        raise HTTPException(status_code=422, detail="start_date는 end_date보다 앞이어야 합니다.")
+    with get_conn() as conn:
+        universe = get_asset_universe(conn, active_only=True)
+        asset_codes = [item.asset_code for item in universe]
+        coverage = validate_market_data_coverage(conn, asset_codes, start, end)
+    return MarketDataCoverageResponse(
+        ok=coverage.ok,
+        assets=[
+            AssetCoverageItem(
+                assetCode=a.asset_code,
+                currency=a.currency,
+                priceStartDate=a.price_start_date.isoformat() if a.price_start_date else None,
+                priceEndDate=a.price_end_date.isoformat() if a.price_end_date else None,
+                pricePoints=a.price_points,
+                ok=a.ok,
+                message=a.message,
+            )
+            for a in coverage.assets
+        ],
+        fxRates=[
+            FxCoverageItem(
+                baseCurrency=f.base_currency,
+                quoteCurrency=f.quote_currency,
+                rateStartDate=f.rate_start_date.isoformat() if f.rate_start_date else None,
+                rateEndDate=f.rate_end_date.isoformat() if f.rate_end_date else None,
+                ratePoints=f.rate_points,
+                ok=f.ok,
+                message=f.message,
+            )
+            for f in coverage.fx_rates
+        ],
+        missingMessages=coverage.missing_messages,
+    )
 
 
 # ── Orders ──────────────────────────────────────────────────────────

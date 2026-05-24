@@ -279,6 +279,45 @@ class BacktestRunResponse(BaseModel):
     createdAt: Optional[str] = None
 
 
+# ── Market Data ──────────────────────────────────────────────────────
+class AssetUniverseItem(BaseModel):
+    assetCode: str
+    symbol: str
+    name: Optional[str]
+    assetClass: str
+    market: Optional[str]
+    currency: str
+    sourceType: str
+    isActive: bool
+
+
+class AssetCoverageItem(BaseModel):
+    assetCode: str
+    currency: str
+    priceStartDate: Optional[str]
+    priceEndDate: Optional[str]
+    pricePoints: int
+    ok: bool
+    message: Optional[str] = None
+
+
+class FxCoverageItem(BaseModel):
+    baseCurrency: str
+    quoteCurrency: str
+    rateStartDate: Optional[str]
+    rateEndDate: Optional[str]
+    ratePoints: int
+    ok: bool
+    message: Optional[str] = None
+
+
+class MarketDataCoverageResponse(BaseModel):
+    ok: bool
+    assets: List[AssetCoverageItem]
+    fxRates: List[FxCoverageItem]
+    missingMessages: List[str]
+
+
 # ── Top Movers ───────────────────────────────────────────────────────
 class TopMover(BaseModel):
     symbol: str

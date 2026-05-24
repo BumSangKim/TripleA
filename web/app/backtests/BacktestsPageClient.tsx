@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { APIRequestError, api } from "@/lib/api";
-import type { BacktestPoint, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
+import type { BacktestPoint, BacktestPosition, BacktestTrade, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 
@@ -76,7 +76,6 @@ export default function BacktestsPageClient() {
     const timer = window.setTimeout(fetchHistory, 0);
     return () => window.clearTimeout(timer);
   }, [fetchHistory]);
-
 
   const handleRun = async () => {
     setLoading(true);
@@ -352,12 +351,113 @@ export default function BacktestsPageClient() {
           </div>
         )}
       </Card>
+
+      {latest && latest.positions.length > 0 && (
+        <PositionsTable positions={latest.positions} />
+      )}
+
+      {latest && latest.trades.length > 0 && (
+        <TradesTable trades={latest.trades} />
+      )}
     </div>
   );
 }
 
-function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "good" | "bad" | "warn" | "neutral" }) {
-  const color = {
+function PositionsTable({ positions }: { positions: BacktestPosition[] }) {
+  const dates = [...new Set(positions.map((p) => p.date))].sort().reverse();
+  const [selectedDate, setSelectedDate] = useState<string>(dates[0] ?? "");
+  const rows = positions.filter((p) => p.date === selectedDate);
+
+  return (
+    <Card
+      title="포지션 상세"
+      extra={
+        <select
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none focus:border-blue-500"
+        >
+          {dates.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      }
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-slate-700 text-slate-500">
+              <th className="px-3 py-2 text-left">자산코드</th>
+              <th className="px-3 py-2 text-right">수량</th>
+              <th className="px-3 py-2 text-right">가격</th>
+              <th className="px-3 py-2 text-right">환율</th>
+              <th className="px-3 py-2 text-right">평가금액(KRW)</th>
+              <th className="px-3 py-2 text-right">비중(%)</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/60">
+            {rows.map((pos) => (
+              <tr key={pos.assetCode}>
+                <td className="px-3 py-2 font-mono text-sky-300">{pos.assetCode}</td>
+                <td className="px-3 py-2 text-right text-slate-200">{pos.quantity.toFixed(4)}</td>
+                <td className="px-3 py-2 text-right text-slate-300">{pos.price.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-slate-400">{pos.fxRate.toFixed(2)}</td>
+                <td className="px-3 py-2 text-right text-white">{formatKRW(pos.marketValue)}</td>
+                <td className="px-3 py-2 text-right text-slate-300">{pos.weight.toFixed(1)}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+function TradesTable({ trades }: { trades: BacktestTrade[] }) {
+  const SIDE_STYLE: Record<string, string> = {
+    BUY: "text-green-300",
+    SELL: "text-red-300",
+  };
+
+  return (
+    <Card title={`거래 내역 (${trades.length}건)`}>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-slate-700 text-slate-500">
+              <th className="px-3 py-2 text-left">날짜</th>
+              <th className="px-3 py-2 text-left">자산코드</th>
+              <th className="px-3 py-2 text-left">구분</th>
+              <th className="px-3 py-2 text-right">수량</th>
+              <th className="px-3 py-2 text-right">가격</th>
+              <th className="px-3 py-2 text-right">순거래금액(KRW)</th>
+              <th className="px-3 py-2 text-left">사유</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700/60">
+            {trades.map((trade, index) => (
+              <tr key={`${trade.date}-${trade.assetCode}-${index}`}>
+                <td className="px-3 py-2 text-slate-400">{trade.date}</td>
+                <td className="px-3 py-2 font-mono text-sky-300">{trade.assetCode}</td>
+                <td className={cn("px-3 py-2 font-semibold", SIDE_STYLE[trade.side] ?? "text-slate-200")}>
+                  {trade.side}
+                </td>
+                <td className="px-3 py-2 text-right text-slate-200">{trade.quantity.toFixed(4)}</td>
+                <td className="px-3 py-2 text-right text-slate-300">{trade.price.toLocaleString()}</td>
+                <td className="px-3 py-2 text-right text-white">{formatKRW(trade.netAmount)}</td>
+                <td className="px-3 py-2 text-slate-400">{trade.reason ?? "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  );
+}
+
+function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "good" | "bad" | "warn" | "neutral" }) {  const color = {
     good: "text-green-300",
     bad: "text-red-300",
     warn: "text-amber-300",
