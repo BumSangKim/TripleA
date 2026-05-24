@@ -1,3 +1,4 @@
+import json
 import os
 import sqlite3
 
@@ -29,6 +30,7 @@ def seed_market_data(db_path, start_date: str, end_date: str):
         "SPY": (100.0, 120.0, "USD"),
         "TLT": (100.0, 90.0, "USD"),
         "QQQ": (100.0, 130.0, "USD"),
+        "GOLD": (100.0, 105.0, "USD"),
     }
     for asset_code, (start_price, end_price, currency) in prices.items():
         conn.executemany(
@@ -103,11 +105,19 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     point_count = conn.execute("SELECT COUNT(*) FROM backtest_points").fetchone()[0]
     position_count = conn.execute("SELECT COUNT(*) FROM backtest_positions").fetchone()[0]
     trade_count = conn.execute("SELECT COUNT(*) FROM backtest_trades").fetchone()[0]
+    decision_rows = conn.execute(
+        "SELECT final_weights_json FROM backtest_decisions WHERE run_id=? ORDER BY decision_date",
+        (body["runId"],),
+    ).fetchall()
     conn.close()
     assert run_count == 1
     assert point_count == len(body["points"])
     assert position_count == len(body["positions"])
     assert trade_count == len(body["trades"])
+    assert len(decision_rows) > 0
+    final_weights = json.loads(decision_rows[0][0])
+    assert "SMH" not in final_weights
+    assert final_weights["CASH_KRW"] == 0.15
     assert position_count > 0
     assert trade_count > 0
     assert body["trades"][0]["fee"] > 0

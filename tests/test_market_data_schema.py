@@ -56,6 +56,14 @@ def test_market_data_schema_and_seed_assets_are_created(tmp_path, monkeypatch):
     assert assets["국내주식"] == ("KOSPI", "KRW", "yahoo")
     assert assets["해외주식"] == ("SPY", "USD", "yahoo")
     assert assets["현금"] == ("CASH_KRW", "KRW", "manual")
+    configured_assets = {
+        row[0]: row[1:]
+        for row in conn.execute(
+            "SELECT asset_code, symbol, currency, source_type FROM asset_universe"
+        ).fetchall()
+    }
+    assert configured_assets["SMH"] == ("SMH", "USD", "yahoo")
+    assert configured_assets["GOLD"] == ("GLD", "USD", "yahoo")
 
     sector_assets = {
         tuple(row)

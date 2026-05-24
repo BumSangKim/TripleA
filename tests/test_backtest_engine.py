@@ -5,7 +5,53 @@ import pytest
 
 from api.backtest_engine import BacktestConfig, BacktestEngine
 from api.db import ensure_dashboard_tables
-from api.strategy_allocator import StaticTargetAllocator
+from api.strategy.types import AllocationDecision
+
+
+class SpyCashAllocator:
+    def asset_codes(self) -> list[str]:
+        return ["SPY", "CASH_KRW"]
+
+    def allocate(
+        self,
+        as_of_date: date,
+        *,
+        previous_weights: dict[str, float] | None = None,
+    ) -> AllocationDecision:
+        return AllocationDecision(
+            as_of_date=as_of_date,
+            strategy_mode="triplea_dynamic",
+            risk_profile="balanced",
+            universe_id="test",
+            macro_regime="neutral",
+            macro_score=50,
+            bucket_weights={"AGGRESSIVE_ALPHA": 0.5, "LIQUIDITY": 0.5},
+            final_weights={"SPY": 0.5, "CASH_KRW": 0.5},
+            reasons=["test allocator"],
+        )
+
+
+class SpyOnlyAllocator:
+    def asset_codes(self) -> list[str]:
+        return ["SPY"]
+
+    def allocate(
+        self,
+        as_of_date: date,
+        *,
+        previous_weights: dict[str, float] | None = None,
+    ) -> AllocationDecision:
+        return AllocationDecision(
+            as_of_date=as_of_date,
+            strategy_mode="triplea_dynamic",
+            risk_profile="balanced",
+            universe_id="test",
+            macro_regime="neutral",
+            macro_score=50,
+            bucket_weights={"AGGRESSIVE_ALPHA": 1.0},
+            final_weights={"SPY": 1.0},
+            reasons=["test allocator"],
+        )
 
 
 @pytest.fixture()
@@ -43,25 +89,15 @@ def _seed_spy_prices_and_fx(conn: sqlite3.Connection):
     conn.commit()
 
 
-def test_static_allocator_maps_asset_class_targets_to_asset_codes(engine_conn):
-    targets = StaticTargetAllocator(engine_conn).allocate({"해외주식": 70, "현금": 30})
-
-    assert [(target.asset_code, target.target_weight) for target in targets] == [
-        ("SPY", 0.7),
-        ("CASH_KRW", 0.3),
-    ]
-
-
 def test_backtest_engine_values_portfolio_with_prices_and_fx(engine_conn):
     _seed_spy_prices_and_fx(engine_conn)
 
-    result = BacktestEngine(engine_conn).run(
+    result = BacktestEngine(engine_conn, allocator=SpyCashAllocator()).run(
         BacktestConfig(
             start_date=date(2024, 1, 2),
             end_date=date(2024, 1, 4),
             initial_capital=100_000,
             rebalance_frequency="monthly",
-            target_weights={"해외주식": 0.5, "현금": 0.5},
         )
     )
 
@@ -74,6 +110,8 @@ def test_backtest_engine_values_portfolio_with_prices_and_fx(engine_conn):
     assert result.points[-1].portfolio_value == 110_000
     assert result.total_return == 10.0
     assert result.max_drawdown == 0.0
+    assert len(result.decisions) == 1
+    assert result.decisions[0].final_weights == {"SPY": 0.5, "CASH_KRW": 0.5}
     assert len(result.trades) == 2
     assert {trade.asset_code for trade in result.trades} == {"SPY", "CASH_KRW"}
     assert any(position.asset_code == "SPY" and position.market_value == 60_000 for position in result.positions)
@@ -91,12 +129,11 @@ def test_backtest_engine_rejects_missing_market_coverage(engine_conn):
     engine_conn.commit()
 
     with pytest.raises(ValueError, match="Market data coverage is insufficient"):
-        BacktestEngine(engine_conn).run(
+        BacktestEngine(engine_conn, allocator=SpyOnlyAllocator()).run(
             BacktestConfig(
                 start_date=date(2024, 1, 2),
                 end_date=date(2024, 1, 4),
                 initial_capital=100_000,
                 rebalance_frequency="monthly",
-                target_weights={"해외주식": 1.0},
             )
         )

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 
 from .market_data_service import AssetUniverseItem, get_asset_universe, resolve_asset_class_to_asset_code
+from .strategy.types import AllocationTarget
 
 ASSET_CLASS_ALIASES = {
     "DOMESTIC_STOCK": "국내주식",
@@ -11,14 +11,6 @@ ASSET_CLASS_ALIASES = {
     "BOND": "채권",
     "CASH": "현금",
 }
-
-
-@dataclass(frozen=True)
-class AllocationTarget:
-    asset_class: str
-    asset_code: str
-    currency: str
-    target_weight: float
 
 
 class StaticTargetAllocator:

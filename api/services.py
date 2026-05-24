@@ -3,6 +3,7 @@ api/services.py
 비즈니스 로직 - 리밸런싱 계산, 데이터 조합
 """
 from __future__ import annotations
+import json
 import sqlite3
 from datetime import date
 from typing import List, Optional
@@ -15,6 +16,7 @@ from .models import (
 )
 from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
+from .strategy.triplea_allocator import TripleAAllocator
 from .strategy_config import list_risk_profiles, list_universe_ids
 
 BACKTEST_STRATEGY_MODES = {"triplea_dynamic"}
@@ -791,14 +793,18 @@ def run_backtest(
     if request.dataLookbackYears < 1:
         raise ValueError("dataLookbackYears must be at least 1")
 
-    weights = _resolve_backtest_target_weights(conn)
-    result = BacktestEngine(conn).run(
+    allocator = TripleAAllocator.from_config(
+        conn,
+        risk_profile=risk_profile,
+        universe_id=universe_id,
+        strategy_mode=strategy_mode,
+    )
+    result = BacktestEngine(conn, allocator=allocator).run(
         BacktestConfig(
             start_date=start,
             end_date=end,
             initial_capital=request.initialCapital,
             rebalance_frequency=frequency,
-            target_weights=weights,
             strategy_mode=strategy_mode,
             risk_profile=risk_profile,
             universe_id=universe_id,
@@ -884,6 +890,28 @@ def run_backtest(
             trade.reason,
         )
         for trade in result.trades
+    ])
+    conn.executemany("""
+        INSERT INTO backtest_decisions
+        (run_id, decision_date, strategy_mode, risk_profile, universe_id,
+         macro_regime, macro_score, bucket_weights_json, final_weights_json,
+         bottleneck_scores_json, reasons_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, [
+        (
+            run_id,
+            decision.as_of_date.isoformat(),
+            decision.strategy_mode,
+            decision.risk_profile,
+            decision.universe_id,
+            decision.macro_regime,
+            decision.macro_score,
+            json.dumps(decision.bucket_weights, ensure_ascii=False, sort_keys=True),
+            json.dumps(decision.final_weights, ensure_ascii=False, sort_keys=True),
+            json.dumps(decision.bottleneck_scores, ensure_ascii=False, sort_keys=True),
+            json.dumps(decision.reasons, ensure_ascii=False),
+        )
+        for decision in result.decisions
     ])
     conn.commit()
     return get_backtest_run(conn, run_id)
@@ -1010,31 +1038,6 @@ def _non_negative_bps(value: float, field_name: str) -> float:
     if parsed < 0:
         raise ValueError(f"{field_name} must be zero or greater")
     return parsed
-
-
-def _resolve_backtest_target_weights(conn: sqlite3.Connection) -> dict[str, float]:
-    rows = conn.execute("""
-        SELECT asset_class, target_value
-        FROM targets
-        WHERE target_type='asset_allocation'
-          AND COALESCE(target_value, 0) > 0
-    """).fetchall()
-    raw_targets = [(row["asset_class"], float(row["target_value"])) for row in rows]
-
-    weights: dict[str, float] = {}
-    for asset, ratio in raw_targets:
-        asset_name = (asset or "").strip()
-        if not asset_name:
-            raise ValueError("Backtest target asset class must not be empty")
-        if ratio < 0:
-            raise ValueError("Backtest target ratio must be zero or greater")
-        normalized_ratio = ratio / 100.0 if ratio > 1 else ratio
-        weights[asset_name] = weights.get(asset_name, 0.0) + normalized_ratio
-
-    total = sum(weights.values())
-    if total <= 0:
-        raise ValueError("At least one positive backtest target must be configured")
-    return {asset: ratio / total for asset, ratio in weights.items()}
 
 
 def _portfolio_total_from_holdings(conn: sqlite3.Connection) -> float:

@@ -469,6 +469,7 @@ def ensure_dashboard_tables():
         _seed_account_policies(conn)
         _seed_engine_allocations(conn)
         _seed_asset_universe(conn)
+        _seed_investment_universe(conn)
         _seed_sector_maps(conn)
 
 
@@ -476,7 +477,17 @@ def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
     return {row[1] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
 
 
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (table,),
+    ).fetchone()
+    return bool(row)
+
+
 def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, definition: str):
+    if not _table_exists(conn, table):
+        return
     if column not in _table_columns(conn, table):
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
@@ -627,6 +638,39 @@ def _seed_asset_universe(conn: sqlite3.Connection):
             source_type=excluded.source_type,
             is_active=excluded.is_active,
             updated_at=datetime('now','localtime')
+    """, rows)
+    conn.commit()
+
+
+def _seed_investment_universe(conn: sqlite3.Connection):
+    data = _load_yaml_config(PROJECT_ROOT / "config" / "investment_universe.yaml")
+    universes = data.get("universes") or {}
+    rows = []
+    for universe in universes.values():
+        for item in universe.get("assets") or []:
+            asset_code = (item.get("asset_code") or "").strip()
+            if not asset_code:
+                continue
+            source_type = (item.get("source_type") or "manual").strip()
+            rows.append((
+                asset_code,
+                (item.get("symbol") or asset_code).strip(),
+                item.get("name"),
+                (item.get("asset_class") or item.get("role") or asset_code).strip(),
+                item.get("market"),
+                (item.get("currency") or universe.get("base_currency") or "KRW").strip(),
+                source_type,
+                1,
+            ))
+
+    if not rows:
+        return
+
+    conn.executemany("""
+        INSERT INTO asset_universe
+        (asset_code, symbol, name, asset_class, market, currency, source_type, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(asset_code) DO NOTHING
     """, rows)
     conn.commit()
 

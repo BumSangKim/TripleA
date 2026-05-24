@@ -3,45 +3,66 @@ universes:
     base_currency: KRW
     assets:
       - asset_code: KOSPI
+        symbol: "^KS11"
         name: KOSPI Index
+        asset_class: 국내주식
         role: domestic_equity
         bucket: AGGRESSIVE_ALPHA
         currency: KRW
+        source_type: yahoo
 
       - asset_code: SPY
+        symbol: SPY
         name: S&P 500 ETF
+        asset_class: 해외주식
         role: global_equity
         bucket: AGGRESSIVE_ALPHA
         currency: USD
+        source_type: yahoo
 
       - asset_code: QQQ
+        symbol: QQQ
         name: Nasdaq 100 ETF
+        asset_class: ETF
         role: growth_equity
         bucket: AGGRESSIVE_ALPHA
         currency: USD
+        source_type: yahoo
 
       - asset_code: SMH
+        symbol: SMH
         name: Semiconductor ETF
+        asset_class: 반도체 ETF
         role: semiconductor_satellite
         bucket: AGGRESSIVE_ALPHA
         sector: SEMICONDUCTOR
         satellite: true
         currency: USD
+        source_type: yahoo
 
       - asset_code: TLT
+        symbol: TLT
         name: Long Treasury ETF
+        asset_class: 채권
         role: long_bond
         bucket: DEFENSIVE_CORE
         currency: USD
+        source_type: yahoo
 
       - asset_code: GOLD
+        symbol: GLD
         name: Gold
+        asset_class: 금
         role: real_asset
         bucket: DEFENSIVE_CORE
         currency: USD
+        source_type: yahoo
 
       - asset_code: CASH_KRW
+        symbol: CASH_KRW
         name: KRW Cash
+        asset_class: 현금
         role: cash
         bucket: LIQUIDITY
         currency: KRW
+        source_type: manual

@@ -4,6 +4,7 @@ import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import Protocol
 
 from .market_data_service import (
     AssetUniverseItem,
@@ -12,7 +13,21 @@ from .market_data_service import (
     get_price_on_or_before,
     validate_market_data_coverage,
 )
-from .strategy_allocator import AllocationTarget, StaticTargetAllocator
+from .strategy.triplea_allocator import TripleAAllocator
+from .strategy.types import AllocationDecision, AllocationTarget
+
+
+class BacktestAllocator(Protocol):
+    def asset_codes(self) -> list[str]:
+        ...
+
+    def allocate(
+        self,
+        as_of_date: date,
+        *,
+        previous_weights: dict[str, float] | None = None,
+    ) -> AllocationDecision:
+        ...
 
 
 @dataclass(frozen=True)
@@ -21,7 +36,6 @@ class BacktestConfig:
     end_date: date
     initial_capital: float
     rebalance_frequency: str
-    target_weights: dict[str, float]
     strategy_mode: str = "triplea_dynamic"
     risk_profile: str = "balanced"
     universe_id: str = "default_global"
@@ -71,6 +85,7 @@ class BacktestEngineResult:
     points: list[BacktestPointResult]
     positions: list[BacktestPositionResult]
     trades: list[BacktestTradeResult]
+    decisions: list[AllocationDecision]
     total_return: float
     annual_return: float
     max_drawdown: float
@@ -82,15 +97,20 @@ class BacktestEngine:
         self,
         conn: sqlite3.Connection,
         *,
-        allocator: StaticTargetAllocator | None = None,
+        allocator: BacktestAllocator | None = None,
     ):
         self.conn = conn
-        self.allocator = allocator or StaticTargetAllocator(conn)
+        self.allocator = allocator
 
     def run(self, config: BacktestConfig) -> BacktestEngineResult:
         _validate_config(config)
-        targets = self.allocator.allocate(config.target_weights)
-        asset_codes = [target.asset_code for target in targets]
+        allocator = self.allocator or TripleAAllocator.from_config(
+            self.conn,
+            risk_profile=config.risk_profile,
+            universe_id=config.universe_id,
+            strategy_mode=config.strategy_mode,
+        )
+        asset_codes = allocator.asset_codes()
         coverage = validate_market_data_coverage(
             self.conn,
             asset_codes,
@@ -109,12 +129,14 @@ class BacktestEngine:
         valuation_dates = _valuation_dates(self.conn, asset_codes, config.start_date, config.end_date)
         rebalance_dates = set(_rebalance_dates(config.start_date, config.end_date, config.rebalance_frequency))
 
-        quantities = {target.asset_code: 0.0 for target in targets}
+        quantities = {asset_code: 0.0 for asset_code in asset_codes}
         points: list[BacktestPointResult] = []
         positions: list[BacktestPositionResult] = []
         trades: list[BacktestTradeResult] = []
+        decisions: list[AllocationDecision] = []
         peak = config.initial_capital
         previous_value: float | None = None
+        previous_weights: dict[str, float] | None = None
         period_returns: list[float] = []
         period_days: list[int] = []
         previous_date: date | None = None
@@ -131,6 +153,9 @@ class BacktestEngine:
                 portfolio_value = config.initial_capital
 
             if current_date in rebalance_dates:
+                decision = allocator.allocate(current_date, previous_weights=previous_weights)
+                targets = _targets_from_decision(decision, assets)
+                decisions.append(decision)
                 new_trades = _rebalance(
                     self.conn,
                     assets,
@@ -145,6 +170,7 @@ class BacktestEngine:
                     initial=current_date == config.start_date,
                 )
                 trades.extend(new_trades)
+                previous_weights = decision.final_weights
                 portfolio_value = _portfolio_value(
                     self.conn,
                     assets,
@@ -185,6 +211,7 @@ class BacktestEngine:
             points=points,
             positions=positions,
             trades=trades,
+            decisions=decisions,
             total_return=total_return,
             annual_return=annual_return,
             max_drawdown=max_drawdown,
@@ -260,6 +287,29 @@ def _last_day_of_month(year: int, month: int) -> int:
     if month == 12:
         return 31
     return (date(year, month + 1, 1) - timedelta(days=1)).day
+
+
+def _targets_from_decision(
+    decision: AllocationDecision,
+    assets: dict[str, AssetUniverseItem],
+) -> list[AllocationTarget]:
+    targets: list[AllocationTarget] = []
+    for asset_code, weight in decision.final_weights.items():
+        if weight <= 0:
+            continue
+        asset = assets.get(asset_code)
+        if not asset:
+            raise KeyError(f"Asset metadata is missing for {asset_code}")
+        targets.append(AllocationTarget(
+            asset_class=asset.asset_class,
+            asset_code=asset.asset_code,
+            currency=asset.currency,
+            target_weight=weight,
+            bucket=None,
+        ))
+    if not targets:
+        raise ValueError("allocator produced no positive targets")
+    return targets
 
 
 def _rebalance(
