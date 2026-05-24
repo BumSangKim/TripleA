@@ -224,6 +224,31 @@ class BacktestPoint(BaseModel):
     drawdown: float
 
 
+class BacktestPosition(BaseModel):
+    date: str
+    assetCode: str
+    quantity: float
+    price: float
+    fxRate: float
+    marketValue: float
+    weight: float
+
+
+class BacktestTrade(BaseModel):
+    date: str
+    assetCode: str
+    side: str
+    quantity: float
+    price: float
+    fxRate: float
+    grossAmount: float
+    fee: float = 0
+    slippage: float = 0
+    tax: float = 0
+    netAmount: float
+    reason: Optional[str] = None
+
+
 class BacktestRunResponse(BaseModel):
     ok: bool
     runId: int
@@ -238,6 +263,8 @@ class BacktestRunResponse(BaseModel):
     maxDrawdown: float
     volatility: float
     points: List[BacktestPoint]
+    positions: List[BacktestPosition] = Field(default_factory=list)
+    trades: List[BacktestTrade] = Field(default_factory=list)
     createdAt: Optional[str] = None
 
 

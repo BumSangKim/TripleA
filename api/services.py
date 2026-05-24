@@ -3,18 +3,18 @@ api/services.py
 비즈니스 로직 - 리밸런싱 계산, 데이터 조합
 """
 from __future__ import annotations
-import math
 import sqlite3
-from datetime import date, timedelta
+from datetime import date
 from typing import List, Optional
 from .models import (
     MacroIndicator, TargetItem, SuggestionItem, AlertItem,
     KPISummary, AllocationItem, AccountSummary, TopMover, CalendarEvent, Insights,
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RiskBudgetItem, OrderDraftResponse, OrderItem,
-    BacktestRunRequest, BacktestRunResponse, BacktestPoint,
+    BacktestRunRequest, BacktestRunResponse, BacktestPoint, BacktestPosition, BacktestTrade,
 )
 from .modes import TradingMode
+from .backtest_engine import BacktestConfig, BacktestEngine
 
 MACRO_KEY_MAP = {
     "cpi":          {"name": "CPI YoY",      "unit": "%"},
@@ -752,21 +752,6 @@ def list_order_drafts(
 
 
 # ── Backtests ────────────────────────────────────────────────────────
-_BACKTEST_ANNUAL_RETURNS = {
-    "DOMESTIC_STOCK": 0.055,
-    "국내주식": 0.055,
-    "FOREIGN_STOCK": 0.075,
-    "해외주식": 0.075,
-    "ETF": 0.060,
-    "BOND": 0.030,
-    "채권": 0.030,
-    "CASH": 0.020,
-    "현금": 0.020,
-    "ALT": 0.040,
-    "기타/대기": 0.015,
-}
-
-
 def run_backtest(
     conn: sqlite3.Connection,
     request: BacktestRunRequest,
@@ -779,23 +764,16 @@ def run_backtest(
         raise ValueError("initialCapital must be greater than zero")
 
     frequency = (request.rebalanceFrequency or "monthly").strip().lower()
-    point_dates = _backtest_dates(start, end, frequency)
     weights = _normalize_backtest_targets(conn, request.targets)
-    annual_assumption = sum(
-        weight * _annual_return_for_asset(asset)
-        for asset, weight in weights.items()
+    result = BacktestEngine(conn).run(
+        BacktestConfig(
+            start_date=start,
+            end_date=end,
+            initial_capital=request.initialCapital,
+            rebalance_frequency=frequency,
+            target_weights=weights,
+        )
     )
-
-    values, drawdowns, period_returns, period_days = _simulate_backtest_points(
-        initial_capital=request.initialCapital,
-        point_dates=point_dates,
-        annual_assumption=annual_assumption,
-    )
-    total_return = round((values[-1] / request.initialCapital - 1) * 100, 2)
-    elapsed_years = max((end - start).days / 365.0, 1 / 365.0)
-    annual_return = round(((values[-1] / request.initialCapital) ** (1 / elapsed_years) - 1) * 100, 2)
-    max_drawdown = round(abs(min(drawdowns)), 2)
-    volatility = round(_annualized_volatility(period_returns, period_days), 2)
 
     cur = conn.execute("""
         INSERT INTO backtest_runs
@@ -808,10 +786,10 @@ def run_backtest(
         end.isoformat(),
         request.initialCapital,
         frequency,
-        total_return,
-        annual_return,
-        max_drawdown,
-        volatility,
+        result.total_return,
+        result.annual_return,
+        result.max_drawdown,
+        result.volatility,
     ))
     run_id = int(cur.lastrowid)
     conn.executemany("""
@@ -819,8 +797,48 @@ def run_backtest(
         (run_id, point_date, portfolio_value, drawdown)
         VALUES (?, ?, ?, ?)
     """, [
-        (run_id, point_date.isoformat(), round(value, 2), round(drawdown, 2))
-        for point_date, value, drawdown in zip(point_dates, values, drawdowns)
+        (run_id, point.point_date.isoformat(), point.portfolio_value, point.drawdown)
+        for point in result.points
+    ])
+    conn.executemany("""
+        INSERT INTO backtest_positions
+        (run_id, point_date, asset_code, quantity, price, fx_rate, market_value, weight)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, [
+        (
+            run_id,
+            position.point_date.isoformat(),
+            position.asset_code,
+            position.quantity,
+            position.price,
+            position.fx_rate,
+            position.market_value,
+            position.weight,
+        )
+        for position in result.positions
+    ])
+    conn.executemany("""
+        INSERT INTO backtest_trades
+        (run_id, trade_date, asset_code, side, quantity, price, fx_rate,
+         gross_amount, fee, slippage, tax, net_amount, reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, [
+        (
+            run_id,
+            trade.trade_date.isoformat(),
+            trade.asset_code,
+            trade.side,
+            trade.quantity,
+            trade.price,
+            trade.fx_rate,
+            trade.gross_amount,
+            trade.fee,
+            trade.slippage,
+            trade.tax,
+            trade.net_amount,
+            trade.reason,
+        )
+        for trade in result.trades
     ])
     conn.commit()
     return get_backtest_run(conn, run_id)
@@ -852,6 +870,19 @@ def get_backtest_run(
         WHERE run_id=?
         ORDER BY point_date ASC, id ASC
     """, (run_id,)).fetchall()
+    position_rows = conn.execute("""
+        SELECT point_date, asset_code, quantity, price, fx_rate, market_value, weight
+        FROM backtest_positions
+        WHERE run_id=?
+        ORDER BY point_date ASC, id ASC
+    """, (run_id,)).fetchall()
+    trade_rows = conn.execute("""
+        SELECT trade_date, asset_code, side, quantity, price, fx_rate,
+               gross_amount, fee, slippage, tax, net_amount, reason
+        FROM backtest_trades
+        WHERE run_id=?
+        ORDER BY trade_date ASC, id ASC
+    """, (run_id,)).fetchall()
     return BacktestRunResponse(
         ok=True,
         runId=row["id"],
@@ -872,6 +903,35 @@ def get_backtest_run(
                 drawdown=point["drawdown"],
             )
             for point in point_rows
+        ],
+        positions=[
+            BacktestPosition(
+                date=position["point_date"],
+                assetCode=position["asset_code"],
+                quantity=position["quantity"],
+                price=position["price"],
+                fxRate=position["fx_rate"],
+                marketValue=position["market_value"],
+                weight=position["weight"],
+            )
+            for position in position_rows
+        ],
+        trades=[
+            BacktestTrade(
+                date=trade["trade_date"],
+                assetCode=trade["asset_code"],
+                side=trade["side"],
+                quantity=trade["quantity"],
+                price=trade["price"],
+                fxRate=trade["fx_rate"],
+                grossAmount=trade["gross_amount"],
+                fee=trade["fee"],
+                slippage=trade["slippage"],
+                tax=trade["tax"],
+                netAmount=trade["net_amount"],
+                reason=trade["reason"],
+            )
+            for trade in trade_rows
         ],
         createdAt=row["created_at"],
     )
@@ -917,94 +977,6 @@ def _normalize_backtest_targets(
     if total <= 0:
         raise ValueError("At least one positive backtest target is required")
     return {asset: ratio / total for asset, ratio in weights.items()}
-
-
-def _annual_return_for_asset(asset: str) -> float:
-    asset_key = (asset or "").strip()
-    normalized = asset_key.upper().replace(" ", "_")
-    return _BACKTEST_ANNUAL_RETURNS.get(
-        asset_key,
-        _BACKTEST_ANNUAL_RETURNS.get(normalized, 0.045),
-    )
-
-
-def _backtest_dates(start: date, end: date, frequency: str) -> list[date]:
-    if frequency == "weekly":
-        dates = _stepped_dates(start, end, lambda current: current + timedelta(days=7))
-    elif frequency == "monthly":
-        dates = _stepped_dates(start, end, lambda current: _advance_months(current, 1))
-    elif frequency == "quarterly":
-        dates = _stepped_dates(start, end, lambda current: _advance_months(current, 3))
-    else:
-        raise ValueError("rebalanceFrequency must be one of weekly, monthly, quarterly")
-    if dates[-1] != end:
-        dates.append(end)
-    return dates
-
-
-def _stepped_dates(start: date, end: date, advance) -> list[date]:
-    dates = [start]
-    current = start
-    while True:
-        next_date = advance(current)
-        if next_date >= end:
-            break
-        dates.append(next_date)
-        current = next_date
-    return dates
-
-
-def _advance_months(value: date, months: int) -> date:
-    month_index = value.month - 1 + months
-    year = value.year + month_index // 12
-    month = month_index % 12 + 1
-    day = min(value.day, _last_day_of_month(year, month))
-    return date(year, month, day)
-
-
-def _last_day_of_month(year: int, month: int) -> int:
-    if month == 12:
-        return 31
-    return (date(year, month + 1, 1) - timedelta(days=1)).day
-
-
-def _simulate_backtest_points(
-    *,
-    initial_capital: float,
-    point_dates: list[date],
-    annual_assumption: float,
-) -> tuple[list[float], list[float], list[float], list[int]]:
-    values = [float(initial_capital)]
-    drawdowns = [0.0]
-    period_returns: list[float] = []
-    period_days: list[int] = []
-    peak = float(initial_capital)
-    cycle_shocks = [-0.018, 0.007, 0.005, -0.006, 0.009, 0.004]
-
-    for index in range(1, len(point_dates)):
-        days = max((point_dates[index] - point_dates[index - 1]).days, 1)
-        base_return = (1 + annual_assumption) ** (days / 365.0) - 1
-        shock = cycle_shocks[(index - 1) % len(cycle_shocks)] * math.sqrt(days / 30.0)
-        period_return = base_return + shock
-        next_value = max(0.0, values[-1] * (1 + period_return))
-        peak = max(peak, next_value)
-        drawdown = (next_value / peak - 1) * 100 if peak > 0 else 0.0
-
-        values.append(next_value)
-        drawdowns.append(drawdown)
-        period_returns.append(period_return)
-        period_days.append(days)
-
-    return values, drawdowns, period_returns, period_days
-
-
-def _annualized_volatility(period_returns: list[float], period_days: list[int]) -> float:
-    if len(period_returns) < 2:
-        return 0.0
-    mean = sum(period_returns) / len(period_returns)
-    variance = sum((value - mean) ** 2 for value in period_returns) / (len(period_returns) - 1)
-    average_days = max(sum(period_days) / len(period_days), 1)
-    return math.sqrt(variance) * math.sqrt(365 / average_days) * 100
 
 
 def _portfolio_total_from_holdings(conn: sqlite3.Connection) -> float:

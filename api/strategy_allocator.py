@@ -5,6 +5,13 @@ from dataclasses import dataclass
 
 from .market_data_service import AssetUniverseItem, get_asset_universe, resolve_asset_class_to_asset_code
 
+ASSET_CLASS_ALIASES = {
+    "DOMESTIC_STOCK": "국내주식",
+    "FOREIGN_STOCK": "해외주식",
+    "BOND": "채권",
+    "CASH": "현금",
+}
+
 
 @dataclass(frozen=True)
 class AllocationTarget:
@@ -28,7 +35,8 @@ class StaticTargetAllocator:
         }
         result: list[AllocationTarget] = []
         for asset_class, weight in normalized.items():
-            asset_code = resolve_asset_class_to_asset_code(self.conn, asset_class)
+            resolved_class = ASSET_CLASS_ALIASES.get(asset_class.upper(), asset_class)
+            asset_code = resolve_asset_class_to_asset_code(self.conn, resolved_class)
             asset = assets_by_code.get(asset_code)
             if not asset:
                 raise KeyError(f"Asset metadata is missing for {asset_code}")

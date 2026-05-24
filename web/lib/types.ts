@@ -191,6 +191,31 @@ export interface BacktestPoint {
   drawdown: number;
 }
 
+export interface BacktestPosition {
+  date: string;
+  assetCode: string;
+  quantity: number;
+  price: number;
+  fxRate: number;
+  marketValue: number;
+  weight: number;
+}
+
+export interface BacktestTrade {
+  date: string;
+  assetCode: string;
+  side: string;
+  quantity: number;
+  price: number;
+  fxRate: number;
+  grossAmount: number;
+  fee: number;
+  slippage: number;
+  tax: number;
+  netAmount: number;
+  reason?: string | null;
+}
+
 export interface BacktestRunResponse {
   ok: boolean;
   runId: number;
@@ -205,6 +230,8 @@ export interface BacktestRunResponse {
   maxDrawdown: number;
   volatility: number;
   points: BacktestPoint[];
+  positions: BacktestPosition[];
+  trades: BacktestTrade[];
   createdAt?: string | null;
 }
 

@@ -22,8 +22,41 @@ def backtest_client(tmp_path, monkeypatch):
     del os.environ["DB_PATH"]
 
 
+def seed_market_data(db_path, start_date: str, end_date: str):
+    conn = sqlite3.connect(db_path)
+    prices = {
+        "KOSPI": (100.0, 110.0, "KRW"),
+        "SPY": (100.0, 120.0, "USD"),
+        "TLT": (100.0, 90.0, "USD"),
+        "QQQ": (100.0, 130.0, "USD"),
+    }
+    for asset_code, (start_price, end_price, currency) in prices.items():
+        conn.executemany(
+            """
+            INSERT OR REPLACE INTO market_prices
+            (asset_code, price_date, close, currency, source)
+            VALUES (?, ?, ?, ?, 'test')
+            """,
+            [
+                (asset_code, start_date, start_price, currency),
+                (asset_code, end_date, end_price, currency),
+            ],
+        )
+    conn.executemany(
+        """
+        INSERT OR REPLACE INTO fx_rates
+        (base_currency, quote_currency, rate_date, rate, source)
+        VALUES ('USD', 'KRW', ?, 1000.0, 'test')
+        """,
+        [(start_date,), (end_date,)],
+    )
+    conn.commit()
+    conn.close()
+
+
 def test_backtest_run_is_saved_with_curve_points(backtest_client):
     client, db_path = backtest_client
+    seed_market_data(db_path, "2020-01-01", "2020-12-31")
 
     res = client.post(
         "/api/backtests/run",
@@ -61,13 +94,20 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     conn = sqlite3.connect(db_path)
     run_count = conn.execute("SELECT COUNT(*) FROM backtest_runs").fetchone()[0]
     point_count = conn.execute("SELECT COUNT(*) FROM backtest_points").fetchone()[0]
+    position_count = conn.execute("SELECT COUNT(*) FROM backtest_positions").fetchone()[0]
+    trade_count = conn.execute("SELECT COUNT(*) FROM backtest_trades").fetchone()[0]
     conn.close()
     assert run_count == 1
     assert point_count == len(body["points"])
+    assert position_count == len(body["positions"])
+    assert trade_count == len(body["trades"])
+    assert position_count > 0
+    assert trade_count > 0
 
 
 def test_backtest_runs_are_listed_and_detail_can_be_loaded(backtest_client):
-    client, _ = backtest_client
+    client, db_path = backtest_client
+    seed_market_data(db_path, "2021-01-01", "2021-07-01")
     created = client.post(
         "/api/backtests/run",
         json={
@@ -108,3 +148,22 @@ def test_backtest_rejects_invalid_request(backtest_client):
 
     assert res.status_code == 400
     assert "startDate" in res.json()["detail"]
+
+
+def test_backtest_rejects_missing_market_data(backtest_client):
+    client, _ = backtest_client
+
+    res = client.post(
+        "/api/backtests/run",
+        json={
+            "name": "Missing data",
+            "startDate": "2022-01-01",
+            "endDate": "2022-12-31",
+            "initialCapital": 1000000,
+            "rebalanceFrequency": "monthly",
+            "targets": [{"assetClass": "FOREIGN_STOCK", "targetRatio": 1}],
+        },
+    )
+
+    assert res.status_code == 400
+    assert "Market data coverage is insufficient" in res.json()["detail"]
