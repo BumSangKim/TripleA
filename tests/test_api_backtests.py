@@ -66,12 +66,6 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
             "endDate": "2020-12-31",
             "initialCapital": 100000000,
             "rebalanceFrequency": "monthly",
-            "targets": [
-                {"assetClass": "DOMESTIC_STOCK", "targetRatio": 0.25},
-                {"assetClass": "FOREIGN_STOCK", "targetRatio": 0.35},
-                {"assetClass": "BOND", "targetRatio": 0.20},
-                {"assetClass": "CASH", "targetRatio": 0.20},
-            ],
         },
     )
 
@@ -116,7 +110,6 @@ def test_backtest_runs_are_listed_and_detail_can_be_loaded(backtest_client):
             "endDate": "2021-07-01",
             "initialCapital": 50000000,
             "rebalanceFrequency": "quarterly",
-            "targets": [],
         },
     ).json()
 
@@ -142,7 +135,6 @@ def test_backtest_rejects_invalid_request(backtest_client):
             "endDate": "2021-01-01",
             "initialCapital": 1000000,
             "rebalanceFrequency": "monthly",
-            "targets": [{"assetClass": "CASH", "targetRatio": 1}],
         },
     )
 
@@ -161,7 +153,6 @@ def test_backtest_rejects_missing_market_data(backtest_client):
             "endDate": "2022-12-31",
             "initialCapital": 1000000,
             "rebalanceFrequency": "monthly",
-            "targets": [{"assetClass": "FOREIGN_STOCK", "targetRatio": 1}],
         },
     )
 

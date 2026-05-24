@@ -1,26 +1,13 @@
 // app/backtests/BacktestsPageClient.tsx
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { APIRequestError, api } from "@/lib/api";
 import type { BacktestPoint, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 
 type Frequency = BacktestRunRequest["rebalanceFrequency"];
-
-interface TargetDraft {
-  id: string;
-  assetClass: string;
-  targetRatio: string;
-}
-
-const DEFAULT_TARGETS: TargetDraft[] = [
-  { id: "domestic", assetClass: "DOMESTIC_STOCK", targetRatio: "25" },
-  { id: "foreign", assetClass: "FOREIGN_STOCK", targetRatio: "35" },
-  { id: "bond", assetClass: "BOND", targetRatio: "20" },
-  { id: "cash", assetClass: "CASH", targetRatio: "20" },
-];
 
 const FREQUENCY_OPTIONS: { value: Frequency; label: string }[] = [
   { value: "monthly", label: "월간" },
@@ -47,28 +34,17 @@ function shortDate(value: string): string {
   return value.slice(2).replaceAll("-", ".");
 }
 
-function targetNumber(value: string): number {
-  const parsed = Number(value.replaceAll(",", "").trim());
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 export default function BacktestsPageClient() {
   const [name, setName] = useState("Core allocation");
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState("2024-12-31");
   const [initialCapital, setInitialCapital] = useState("100000000");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
-  const [targets, setTargets] = useState<TargetDraft[]>(DEFAULT_TARGETS);
   const [latest, setLatest] = useState<BacktestRunResponse | null>(null);
   const [runs, setRuns] = useState<BacktestRunResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-
-  const targetTotal = useMemo(
-    () => targets.reduce((sum, target) => sum + targetNumber(target.targetRatio), 0),
-    [targets],
-  );
 
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
@@ -88,20 +64,6 @@ export default function BacktestsPageClient() {
     return () => window.clearTimeout(timer);
   }, [fetchHistory]);
 
-  const updateTarget = (id: string, field: keyof Omit<TargetDraft, "id">, value: string) => {
-    setTargets((items) => items.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
-  };
-
-  const addTarget = () => {
-    setTargets((items) => [
-      ...items,
-      { id: `target-${Date.now()}`, assetClass: "ETF", targetRatio: "0" },
-    ]);
-  };
-
-  const removeTarget = (id: string) => {
-    setTargets((items) => items.filter((item) => item.id !== id));
-  };
 
   const handleRun = async () => {
     setLoading(true);
@@ -114,12 +76,6 @@ export default function BacktestsPageClient() {
         endDate,
         initialCapital: capital,
         rebalanceFrequency: frequency,
-        targets: targets
-          .map((target) => ({
-            assetClass: target.assetClass.trim(),
-            targetRatio: targetNumber(target.targetRatio),
-          }))
-          .filter((target) => target.assetClass && target.targetRatio > 0),
       };
       const result = await api.runBacktest(payload);
       setLatest(result);
@@ -133,7 +89,7 @@ export default function BacktestsPageClient() {
   };
 
   const initialAmount = parseAmount(initialCapital);
-  const canRun = !loading && Number.isFinite(initialAmount) && initialAmount > 0 && targetTotal > 0;
+  const canRun = !loading && Number.isFinite(initialAmount) && initialAmount > 0;
 
   return (
     <div className="space-y-6 p-6">
@@ -225,46 +181,6 @@ export default function BacktestsPageClient() {
               </label>
             </div>
 
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold text-slate-400">목표 비중</p>
-                <p className={cn("text-xs font-semibold", Math.abs(targetTotal - 100) < 0.01 ? "text-green-300" : "text-amber-300")}>
-                  {targetTotal.toFixed(1)}%
-                </p>
-              </div>
-              <div className="space-y-2">
-                {targets.map((target) => (
-                  <div key={target.id} className="grid grid-cols-[minmax(0,1fr)_88px_32px] gap-2">
-                    <input
-                      value={target.assetClass}
-                      onChange={(e) => updateTarget(target.id, "assetClass", e.target.value)}
-                      className="h-9 min-w-0 rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                    />
-                    <input
-                      value={target.targetRatio}
-                      onChange={(e) => updateTarget(target.id, "targetRatio", e.target.value)}
-                      inputMode="decimal"
-                      className="h-9 rounded-md border border-slate-600 bg-slate-900 px-3 text-right text-sm text-white outline-none focus:border-blue-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeTarget(target.id)}
-                      className="h-9 rounded-md border border-slate-600 text-sm text-slate-300 transition-colors hover:bg-slate-700"
-                      aria-label={`${target.assetClass} 제거`}
-                    >
-                      -
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={addTarget}
-                className="mt-3 h-9 w-full rounded-md border border-slate-600 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
-              >
-                + 추가
-              </button>
-            </div>
           </div>
         </Card>
 

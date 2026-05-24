@@ -764,7 +764,7 @@ def run_backtest(
         raise ValueError("initialCapital must be greater than zero")
 
     frequency = (request.rebalanceFrequency or "monthly").strip().lower()
-    weights = _normalize_backtest_targets(conn, request.targets)
+    weights = _resolve_backtest_target_weights(conn)
     result = BacktestEngine(conn).run(
         BacktestConfig(
             start_date=start,
@@ -944,38 +944,28 @@ def _parse_backtest_date(value: str, field_name: str) -> date:
         raise ValueError(f"{field_name} must be YYYY-MM-DD") from exc
 
 
-def _normalize_backtest_targets(
-    conn: sqlite3.Connection,
-    request_targets: list,
-) -> dict[str, float]:
-    raw_targets: list[tuple[str, float]] = []
-    if request_targets:
-        raw_targets = [
-            (target.assetClass, float(target.targetRatio))
-            for target in request_targets
-        ]
-    else:
-        rows = conn.execute("""
-            SELECT asset_class, target_value
-            FROM targets
-            WHERE target_type='asset_allocation'
-              AND COALESCE(target_value, 0) > 0
-        """).fetchall()
-        raw_targets = [(row["asset_class"], float(row["target_value"])) for row in rows]
+def _resolve_backtest_target_weights(conn: sqlite3.Connection) -> dict[str, float]:
+    rows = conn.execute("""
+        SELECT asset_class, target_value
+        FROM targets
+        WHERE target_type='asset_allocation'
+          AND COALESCE(target_value, 0) > 0
+    """).fetchall()
+    raw_targets = [(row["asset_class"], float(row["target_value"])) for row in rows]
 
     weights: dict[str, float] = {}
     for asset, ratio in raw_targets:
         asset_name = (asset or "").strip()
         if not asset_name:
-            raise ValueError("targets.assetClass must not be empty")
+            raise ValueError("Backtest target asset class must not be empty")
         if ratio < 0:
-            raise ValueError("targets.targetRatio must be zero or greater")
+            raise ValueError("Backtest target ratio must be zero or greater")
         normalized_ratio = ratio / 100.0 if ratio > 1 else ratio
         weights[asset_name] = weights.get(asset_name, 0.0) + normalized_ratio
 
     total = sum(weights.values())
     if total <= 0:
-        raise ValueError("At least one positive backtest target is required")
+        raise ValueError("At least one positive backtest target must be configured")
     return {asset: ratio / total for asset, ratio in weights.items()}
 
 

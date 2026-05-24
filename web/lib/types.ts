@@ -171,18 +171,12 @@ export interface OrderDraftResponse {
   message?: string | null;
 }
 
-export interface BacktestTarget {
-  assetClass: string;
-  targetRatio: number;
-}
-
 export interface BacktestRunRequest {
   name: string;
   startDate: string;
   endDate: string;
   initialCapital: number;
   rebalanceFrequency: "weekly" | "monthly" | "quarterly";
-  targets: BacktestTarget[];
 }
 
 export interface BacktestPoint {

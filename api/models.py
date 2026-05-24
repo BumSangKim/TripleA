@@ -203,19 +203,12 @@ class OrderDraftResponse(BaseModel):
     message: Optional[str] = None
 
 
-# ── Backtests ────────────────────────────────────────────────────────
-class BacktestTarget(BaseModel):
-    assetClass: str
-    targetRatio: float
-
-
 class BacktestRunRequest(BaseModel):
     name: str = "Backtest"
     startDate: str
     endDate: str
     initialCapital: float
     rebalanceFrequency: str = "monthly"
-    targets: List[BacktestTarget] = Field(default_factory=list)
 
 
 class BacktestPoint(BaseModel):
