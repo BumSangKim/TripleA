@@ -1,0 +1,45 @@
+profiles:
+  aggressive:
+    buckets:
+      AGGRESSIVE_ALPHA:
+        target: 0.65
+        min: 0.45
+        max: 0.80
+      DEFENSIVE_CORE:
+        target: 0.20
+        min: 0.10
+        max: 0.40
+      LIQUIDITY:
+        target: 0.15
+        min: 0.05
+        max: 0.30
+
+  balanced:
+    buckets:
+      AGGRESSIVE_ALPHA:
+        target: 0.45
+        min: 0.25
+        max: 0.65
+      DEFENSIVE_CORE:
+        target: 0.40
+        min: 0.25
+        max: 0.60
+      LIQUIDITY:
+        target: 0.15
+        min: 0.05
+        max: 0.30
+
+  defensive:
+    buckets:
+      AGGRESSIVE_ALPHA:
+        target: 0.25
+        min: 0.10
+        max: 0.40
+      DEFENSIVE_CORE:
+        target: 0.65
+        min: 0.50
+        max: 0.80
+      LIQUIDITY:
+        target: 0.10
+        min: 0.05
+        max: 0.25

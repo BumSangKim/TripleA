@@ -12,6 +12,9 @@ CONFIG_DIR   = Path(__file__).resolve().parent        # TripleA/config/
 PROJECT_ROOT = CONFIG_DIR.parent                      # TripleA/
 INDICATORS_YAML        = CONFIG_DIR / "indicators.yaml"
 ECONOMIC_EVENTS_YAML   = CONFIG_DIR / "economic_events.yaml"
+INVESTMENT_UNIVERSE_YAML = CONFIG_DIR / "investment_universe.yaml"
+STRATEGY_PROFILES_YAML = CONFIG_DIR / "strategy_profiles.yaml"
+SECTOR_TAXONOMY_YAML = CONFIG_DIR / "sector_taxonomy.yaml"
 ROOT_CONFIG_YAML       = PROJECT_ROOT / "config.yaml"
 
 load_dotenv(PROJECT_ROOT / ".env")

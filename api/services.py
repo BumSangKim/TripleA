@@ -15,10 +15,9 @@ from .models import (
 )
 from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
+from .strategy_config import list_risk_profiles, list_universe_ids
 
 BACKTEST_STRATEGY_MODES = {"triplea_dynamic"}
-BACKTEST_RISK_PROFILES = {"aggressive", "balanced", "defensive"}
-BACKTEST_UNIVERSES = {"default_global"}
 
 MACRO_KEY_MAP = {
     "cpi":          {"name": "CPI YoY",      "unit": "%"},
@@ -776,12 +775,12 @@ def run_backtest(
     risk_profile = _normalize_backtest_option(
         request.riskProfile,
         "riskProfile",
-        BACKTEST_RISK_PROFILES,
+        set(list_risk_profiles()),
     )
     universe_id = _normalize_backtest_option(
         request.universeId,
         "universeId",
-        BACKTEST_UNIVERSES,
+        set(list_universe_ids()),
     )
     base_currency = (request.baseCurrency or "KRW").strip().upper()
     if not base_currency:

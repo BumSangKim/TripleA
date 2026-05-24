@@ -1,0 +1,47 @@
+universes:
+  default_global:
+    base_currency: KRW
+    assets:
+      - asset_code: KOSPI
+        name: KOSPI Index
+        role: domestic_equity
+        bucket: AGGRESSIVE_ALPHA
+        currency: KRW
+
+      - asset_code: SPY
+        name: S&P 500 ETF
+        role: global_equity
+        bucket: AGGRESSIVE_ALPHA
+        currency: USD
+
+      - asset_code: QQQ
+        name: Nasdaq 100 ETF
+        role: growth_equity
+        bucket: AGGRESSIVE_ALPHA
+        currency: USD
+
+      - asset_code: SMH
+        name: Semiconductor ETF
+        role: semiconductor_satellite
+        bucket: AGGRESSIVE_ALPHA
+        sector: SEMICONDUCTOR
+        satellite: true
+        currency: USD
+
+      - asset_code: TLT
+        name: Long Treasury ETF
+        role: long_bond
+        bucket: DEFENSIVE_CORE
+        currency: USD
+
+      - asset_code: GOLD
+        name: Gold
+        role: real_asset
+        bucket: DEFENSIVE_CORE
+        currency: USD
+
+      - asset_code: CASH_KRW
+        name: KRW Cash
+        role: cash
+        bucket: LIQUIDITY
+        currency: KRW

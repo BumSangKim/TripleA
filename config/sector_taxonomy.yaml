@@ -1,0 +1,35 @@
+sectors:
+  SEMICONDUCTOR:
+    name: Semiconductor
+    bucket: AGGRESSIVE_ALPHA
+    assets: [SMH, SOXX]
+    trade_items:
+      - HS_8542
+      - HS_8486
+    indicators:
+      - KR_SEMI_EXPORT_YOY
+      - RS_SMH_SPY
+      - CAPEX_MSFT
+      - CAPEX_GOOGL
+
+  POWER_GRID:
+    name: Power Grid
+    bucket: DEFENSIVE_CORE
+    assets: [XLU]
+    trade_items:
+      - HS_8504
+      - HS_8535
+      - HS_8536
+    indicators:
+      - ERCOT_LOAD_MW
+      - ERCOT_RESERVE_MARGIN
+      - RS_XLU_SPY
+
+  BATTERY:
+    name: Battery
+    bucket: AGGRESSIVE_ALPHA
+    assets: [LIT]
+    trade_items:
+      - HS_8507
+    indicators:
+      - BATTERY_EXPORT_YOY
