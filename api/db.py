@@ -268,6 +268,102 @@ def ensure_dashboard_tables():
             CREATE INDEX IF NOT EXISTS idx_fx_rates_pair_date
             ON fx_rates(base_currency, quote_currency, rate_date);
 
+            CREATE TABLE IF NOT EXISTS data_collection_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                collector_type TEXT NOT NULL,
+                source TEXT,
+                universe_id TEXT,
+                start_date TEXT,
+                end_date TEXT,
+                status TEXT NOT NULL DEFAULT 'pending',
+                records_inserted INTEGER DEFAULT 0,
+                records_updated INTEGER DEFAULT 0,
+                error_message TEXT,
+                started_at TEXT DEFAULT (datetime('now','localtime')),
+                finished_at TEXT
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_data_collection_runs_type_started
+            ON data_collection_runs(collector_type, started_at);
+
+            CREATE TABLE IF NOT EXISTS trade_series (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                period TEXT NOT NULL,
+                country TEXT,
+                flow TEXT NOT NULL,
+                item_code TEXT NOT NULL,
+                item_name TEXT,
+                amount_usd REAL,
+                quantity REAL,
+                unit TEXT,
+                yoy REAL,
+                mom REAL,
+                source TEXT,
+                release_date TEXT,
+                fetched_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(period, country, flow, item_code, source)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_trade_series_release
+            ON trade_series(release_date, period);
+
+            CREATE INDEX IF NOT EXISTS idx_trade_series_item
+            ON trade_series(item_code, period);
+
+            CREATE TABLE IF NOT EXISTS trade_item_sector_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                item_code TEXT NOT NULL,
+                sector_code TEXT NOT NULL,
+                item_name TEXT,
+                weight REAL DEFAULT 1,
+                source TEXT,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(item_code, sector_code)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_trade_item_sector_map_sector
+            ON trade_item_sector_map(sector_code, is_active);
+
+            CREATE TABLE IF NOT EXISTS bottleneck_indicators (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                indicator_key TEXT NOT NULL,
+                indicator_name TEXT,
+                sector_code TEXT NOT NULL,
+                value_date TEXT NOT NULL,
+                release_date TEXT,
+                value REAL,
+                unit TEXT,
+                source TEXT,
+                layer TEXT,
+                fetched_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(indicator_key, sector_code, value_date, source)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_bottleneck_indicators_release
+            ON bottleneck_indicators(release_date, value_date);
+
+            CREATE INDEX IF NOT EXISTS idx_bottleneck_indicators_sector
+            ON bottleneck_indicators(sector_code, value_date);
+
+            CREATE TABLE IF NOT EXISTS sector_asset_map (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sector_code TEXT NOT NULL,
+                asset_code TEXT NOT NULL,
+                asset_name TEXT,
+                asset_type TEXT,
+                currency TEXT DEFAULT 'USD',
+                priority INTEGER DEFAULT 100,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(sector_code, asset_code)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_sector_asset_map_sector
+            ON sector_asset_map(sector_code, is_active, priority);
+
             CREATE TABLE IF NOT EXISTS backtest_positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
@@ -305,6 +401,47 @@ def ensure_dashboard_tables():
             CREATE INDEX IF NOT EXISTS idx_backtest_trades_run_date
             ON backtest_trades(run_id, trade_date);
 
+            CREATE TABLE IF NOT EXISTS backtest_decisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
+                decision_date TEXT NOT NULL,
+                strategy_mode TEXT NOT NULL,
+                risk_profile TEXT,
+                universe_id TEXT,
+                macro_regime TEXT,
+                macro_score INTEGER,
+                bucket_weights_json TEXT,
+                final_weights_json TEXT,
+                bottleneck_scores_json TEXT,
+                reasons_json TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_backtest_decisions_run_date
+            ON backtest_decisions(run_id, decision_date);
+
+            CREATE TABLE IF NOT EXISTS backtest_sector_decisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
+                decision_id INTEGER REFERENCES backtest_decisions(id),
+                decision_date TEXT NOT NULL,
+                sector_code TEXT NOT NULL,
+                total_score REAL,
+                trade_score REAL,
+                demand_score REAL,
+                supply_score REAL,
+                relative_strength_score REAL,
+                regime TEXT,
+                reasons_json TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_backtest_sector_decisions_run_date
+            ON backtest_sector_decisions(run_id, decision_date);
+
+            CREATE INDEX IF NOT EXISTS idx_backtest_sector_decisions_sector
+            ON backtest_sector_decisions(sector_code, decision_date);
+
             CREATE TABLE IF NOT EXISTS notification_channels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 channel_type TEXT NOT NULL,
@@ -332,6 +469,7 @@ def ensure_dashboard_tables():
         _seed_account_policies(conn)
         _seed_engine_allocations(conn)
         _seed_asset_universe(conn)
+        _seed_sector_maps(conn)
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -491,3 +629,74 @@ def _seed_asset_universe(conn: sqlite3.Connection):
             updated_at=datetime('now','localtime')
     """, rows)
     conn.commit()
+
+
+def _load_yaml_config(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def _seed_sector_maps(conn: sqlite3.Connection):
+    taxonomy = _load_yaml_config(PROJECT_ROOT / "config" / "sector_taxonomy.yaml")
+    universes = _load_yaml_config(PROJECT_ROOT / "config" / "investment_universe.yaml").get("universes") or {}
+    default_assets = {
+        item.get("asset_code"): item
+        for item in (universes.get("default_global") or {}).get("assets", [])
+        if item.get("asset_code")
+    }
+
+    trade_rows = []
+    sector_asset_rows = []
+    for sector_code, sector in (taxonomy.get("sectors") or {}).items():
+        for item_code in sector.get("trade_items") or []:
+            trade_rows.append((
+                item_code,
+                sector_code,
+                None,
+                1,
+                "sector_taxonomy.yaml",
+                1,
+            ))
+
+        for priority, asset_code in enumerate(sector.get("assets") or [], start=1):
+            asset = default_assets.get(asset_code, {})
+            sector_asset_rows.append((
+                sector_code,
+                asset_code,
+                asset.get("name"),
+                asset.get("role"),
+                asset.get("currency") or "USD",
+                priority,
+                1,
+            ))
+
+    if trade_rows:
+        conn.executemany("""
+            INSERT INTO trade_item_sector_map
+            (item_code, sector_code, item_name, weight, source, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(item_code, sector_code) DO UPDATE SET
+                item_name=excluded.item_name,
+                weight=excluded.weight,
+                source=excluded.source,
+                is_active=excluded.is_active,
+                updated_at=datetime('now','localtime')
+        """, trade_rows)
+
+    if sector_asset_rows:
+        conn.executemany("""
+            INSERT INTO sector_asset_map
+            (sector_code, asset_code, asset_name, asset_type, currency, priority, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(sector_code, asset_code) DO UPDATE SET
+                asset_name=excluded.asset_name,
+                asset_type=excluded.asset_type,
+                currency=excluded.currency,
+                priority=excluded.priority,
+                is_active=excluded.is_active,
+                updated_at=datetime('now','localtime')
+        """, sector_asset_rows)
+
+    if trade_rows or sector_asset_rows:
+        conn.commit()
