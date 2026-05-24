@@ -6,6 +6,7 @@ from typing import Any
 
 from api.strategy_config import load_investment_universe, load_strategy_profile
 
+from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
 from .types import AllocationDecision
 
 
@@ -42,7 +43,7 @@ class TripleAAllocator:
         )
 
     def asset_codes(self) -> list[str]:
-        weights, _ = self._profile_weights()
+        weights, _, _ = self._profile_weights()
         return [asset_code for asset_code, weight in weights.items() if weight > 0]
 
     def allocate(
@@ -51,11 +52,13 @@ class TripleAAllocator:
         *,
         previous_weights: dict[str, float] | None = None,
     ) -> AllocationDecision:
-        final_weights, bucket_weights = self._profile_weights()
+        final_weights, bucket_weights, risk_budget_reasons = self._profile_weights()
         reasons = [
             f"risk profile '{self.risk_profile}' selected bucket targets",
+            "risk budget min/max constraints checked",
             "manual target weights are ignored in triplea_dynamic mode",
             "satellite sector tilts are pending bottleneck engine implementation",
+            *risk_budget_reasons,
         ]
         if previous_weights:
             turnover = sum(
@@ -77,7 +80,7 @@ class TripleAAllocator:
             reasons=reasons,
         )
 
-    def _profile_weights(self) -> tuple[dict[str, float], dict[str, float]]:
+    def _profile_weights(self) -> tuple[dict[str, float], dict[str, float], list[str]]:
         universe = load_investment_universe(self.universe_id)
         profile = load_strategy_profile(self.risk_profile)
         assets = universe.get("assets") or []
@@ -97,9 +100,17 @@ class TripleAAllocator:
                 ]
             self._assign_bucket(weights, bucket_assets, float(policy["target"]))
 
-        final_weights = _normalize(weights)
-        bucket_weights = _bucket_weights(final_weights, assets)
-        return final_weights, bucket_weights
+        asset_to_bucket = _asset_to_bucket(assets)
+        risk_result = RiskBudgetEngine().apply(
+            _normalize(weights),
+            asset_to_bucket,
+            policy_from_profile(profile),
+        )
+        return (
+            risk_result.adjusted_weights,
+            risk_result.bucket_weights,
+            risk_result.reasons,
+        )
 
     def _assign_bucket(
         self,
@@ -124,19 +135,9 @@ def _normalize(weights: dict[str, float]) -> dict[str, float]:
     return {code: weight / total for code, weight in positive.items()}
 
 
-def _bucket_weights(
-    weights: dict[str, float],
-    assets: list[dict[str, Any]],
-) -> dict[str, float]:
-    buckets_by_asset = {
+def _asset_to_bucket(assets: list[dict[str, Any]]) -> dict[str, str]:
+    return {
         asset.get("asset_code"): asset.get("bucket")
         for asset in assets
         if asset.get("asset_code") and asset.get("bucket")
     }
-    bucket_weights: dict[str, float] = {}
-    for asset_code, weight in weights.items():
-        bucket = buckets_by_asset.get(asset_code)
-        if not bucket:
-            continue
-        bucket_weights[bucket] = bucket_weights.get(bucket, 0.0) + weight
-    return bucket_weights

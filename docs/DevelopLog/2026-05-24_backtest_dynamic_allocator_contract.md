@@ -19,12 +19,15 @@
   - 사용자가 비중을 입력하지 않는다.
   - `riskProfile + universeId`를 기준으로 bucket target을 자산 비중으로 변환한다.
   - 위성 섹터 tilt는 병목 엔진 구현 전까지 0으로 둔다.
+- `RiskBudgetEngine`을 추가했다.
+  - bucket별 min/max 위반을 보정한다.
+  - bucket 내부 자산 비율은 가능한 한 유지한다.
 - `BacktestEngine`이 정적 `targets` 테이블 대신 allocator decision을 사용하도록 변경했다.
   - 리밸런싱 날짜마다 `AllocationDecision`을 생성한다.
   - decision은 `backtest_decisions`에 저장된다.
 - 전체 Python 테스트를 실행했다.
   - `PYTHONPATH=. .venv/bin/python -m pytest tests`
-  - 결과: `112 passed`
+  - 결과: `114 passed`
 
 ## 커밋
 
@@ -32,13 +35,13 @@
 - `a8865c4 feat: add strategy universe configuration`
 - `18cc08a feat: add dynamic backtest data schema`
 - `970ce82 feat: use dynamic allocator for backtests`
+- `feat: add risk budget engine`
 
 ## 미작업 내용
 
 - `MacroEngine`은 아직 실제 과거 매크로 데이터로 regime을 판단하지 않는다.
   - 현재 decision은 `macro_regime="neutral"`, `macro_score=50`이다.
-- `RiskBudgetEngine`의 min/max 강제 로직은 아직 별도 모듈로 분리되지 않았다.
-  - 현재는 profile target을 직접 bucket 비중으로 사용한다.
+- `RiskBudgetEngine`은 추가됐지만 아직 macro/sector tilt 이후의 turnover guard와 연결되지 않았다.
 - `BottleneckSectorEngine`과 `SectorTiltEngine`은 아직 미구현이다.
   - `SMH` 같은 satellite 자산은 현재 기본 배분에서 제외된다.
   - 이후 `release_date <= as_of_date` 조건으로 수출입/병목 데이터를 조회해야 한다.
@@ -56,7 +59,7 @@
 ## 다음 실행 제안
 
 1. 작업 트리의 기존 미커밋 변경을 먼저 확인한다.
-2. `RiskBudgetEngine`을 추가하고 bucket min/max를 강제한다.
-3. `MacroEngine`을 추가하되 반드시 `as_of_date` 이후 데이터 사용 금지 테스트를 먼저 둔다.
-4. 수출입/병목 조회 서비스와 `BottleneckSectorEngine`을 추가한다.
+2. `MacroEngine`을 추가하되 반드시 `as_of_date` 이후 데이터 사용 금지 테스트를 먼저 둔다.
+3. 수출입/병목 조회 서비스와 `BottleneckSectorEngine`을 추가한다.
+4. `RiskBudgetEngine`을 macro/sector tilt 이후 단계와 turnover guard에 연결한다.
 5. `BacktestEngine`에 현금 장부와 비용 차감을 반영한다.
