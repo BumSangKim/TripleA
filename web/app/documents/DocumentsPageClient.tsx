@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { DocumentItem } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 const DOC_TYPES = [
   { value: "all",      label: "전체",         icon: "📋" },

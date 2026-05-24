@@ -1,12 +1,10 @@
 // app/macro/MacroPageClient.tsx
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, BASE_URL } from "@/lib/api";
 import type { MacroIndicator } from "@/lib/types";
 import StatusChip from "@/components/ui/StatusChip";
 import Card from "@/components/ui/Card";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 type HistoryPoint = { date: string; value: number };
 

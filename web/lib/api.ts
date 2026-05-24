@@ -22,7 +22,7 @@ import type {
   TradingMode,
 } from "./types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export class APIRequestError extends Error {
   status: number;

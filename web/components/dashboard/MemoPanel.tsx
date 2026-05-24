@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import Card from "@/components/ui/Card";
 
 export default function MemoPanel() {
-  const [memo, setMemo] = useState(
-    "시장 반동성 확대 대응입니다.\n리스크 관리 규칙을 준수하고, 현금 비중을 점검하세요."
-  );
+  const [memo, setMemo] = useState("");
   const [saved, setSaved] = useState(true);
   const [saving, setSaving] = useState(false);
 

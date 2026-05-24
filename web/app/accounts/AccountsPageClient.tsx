@@ -2,7 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { APIRequestError, api } from "@/lib/api";
+import { APIRequestError, api, BASE_URL } from "@/lib/api";
 import type {
   AccountPolicyItem,
   AccountSnapshotCreate,
@@ -14,8 +14,6 @@ import type {
 } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const MODE_OPTIONS: { value: TradingMode; label: string }[] = [
   { value: "mock", label: "Mock" },

@@ -1,8 +1,7 @@
 // app/settings/SettingsPageClient.tsx
 "use client";
 import { useEffect, useState } from "react";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 interface TargetSetting {
   id?: number;
@@ -244,7 +243,6 @@ function DataSyncSection() {
 
 // ── 보안 설정 섹션 ─────────────────────────────────────────────────────
 function SecuritySection() {
-  const [showPass, setShowPass] = useState(false);
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -262,26 +260,14 @@ function SecuritySection() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">데모 계정</span>
-          <span className="text-white">admin</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-slate-400">데모 비밀번호</span>
-          <div className="flex items-center gap-2">
-            <span className="text-white font-mono">{showPass ? "triplea123" : "••••••••"}</span>
-            <button
-              onClick={() => setShowPass(!showPass)}
-              className="text-slate-500 hover:text-slate-300 text-[10px]"
-            >
-              {showPass ? "숨기기" : "보기"}
-            </button>
-          </div>
+          <span className="text-white font-mono">{process.env.NEXT_PUBLIC_DEMO_USERNAME ?? "admin"}</span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-slate-400">CORS 허용 도메인</span>
-          <span className="text-white">localhost:3000</span>
+          <span className="text-white">{process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).host : "localhost:3000"}</span>
         </div>
         <p className="text-slate-600 text-[10px] pt-2 border-t border-slate-700 mt-2">
-          ⚠️ 운영 배포 시 JWT_SECRET 환경변수를 반드시 변경하세요.
+          ⚠️ 운영 배포 시 JWT_SECRET, DEMO_PASSWORD 환경변수를 반드시 변경하세요.
         </p>
       </div>
     </div>
@@ -289,16 +275,24 @@ function SecuritySection() {
 }
 
 // ── API 연동 섹션 ─────────────────────────────────────────────────────
+interface ApiKeyStatus {
+  label: string;
+  env: string;
+  status: boolean;
+}
+
 function ApiIntegrationSection() {
-  const apiKeys = [
-    { label: "FRED API",        env: "FRED_API_KEY",         status: true  },
-    { label: "ECOS API (BOK)",  env: "ECOS_API_KEY",         status: true  },
-    { label: "KOSIS API",       env: "KOSIS_API_KEY",        status: true  },
-    { label: "Telegram Bot",    env: "TELEGRAM_KEY",         status: true  },
-    { label: "Naver API",       env: "NAVER_API_KEY",        status: false },
-    { label: "KIS 증권사 API",  env: "KIS_API_KEY",          status: false },
-    { label: "FMP API",         env: "FINANCIAL_MODELING_PREP_KEY", status: false },
-  ];
+  const [apiKeys, setApiKeys] = useState<ApiKeyStatus[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/api/settings/api-keys`)
+      .then((r) => r.json())
+      .then((data: ApiKeyStatus[]) => setApiKeys(data))
+      .catch(() => setApiKeys([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="bg-slate-800 border border-slate-700 rounded-xl p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -306,19 +300,23 @@ function ApiIntegrationSection() {
         <h2 className="text-sm font-semibold text-white">API 연동 현황</h2>
       </div>
       <div className="space-y-2 text-xs">
-        {apiKeys.map((k) => (
-          <div key={k.label} className="flex justify-between items-center">
-            <div>
-              <span className="text-white">{k.label}</span>
-              <span className="text-slate-600 ml-2">{k.env}</span>
+        {loading ? (
+          <p className="text-slate-500">Loading...</p>
+        ) : (
+          apiKeys.map((k) => (
+            <div key={k.label} className="flex justify-between items-center">
+              <div>
+                <span className="text-white">{k.label}</span>
+                <span className="text-slate-600 ml-2">{k.env}</span>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${k.status ? "bg-green-500/10 text-green-400" : "bg-slate-700 text-slate-500"}`}>
+                {k.status ? "설정됨" : "미설정"}
+              </span>
             </div>
-            <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${k.status ? "bg-green-500/10 text-green-400" : "bg-slate-700 text-slate-500"}`}>
-              {k.status ? "설정됨" : "미설정"}
-            </span>
-          </div>
-        ))}
+          ))
+        )}
         <p className="text-slate-600 text-[10px] pt-2 border-t border-slate-700 mt-2">
-          API 키는 /Users/bumsangkim/Dev/TripleA/API_KEY/ 디렉터리에서 관리됩니다.
+          API 키는 ./API_KEY/ 디렉터리에서 관리됩니다.
         </p>
       </div>
     </div>

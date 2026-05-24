@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { KPISummary, TargetItem } from "@/lib/types";
 import { formatKRW } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 interface KPIBarProps {
   kpi: KPISummary;

@@ -7,7 +7,8 @@ from __future__ import annotations
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import List, Optional
 
 import csv
@@ -101,12 +102,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+_cors_raw = os.getenv("CORS_ORIGINS", "")
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()] or [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -114,14 +118,17 @@ app.add_middleware(
 
 
 # ── Auth ─────────────────────────────────────────────────────────────
-DEMO_USER = {"username": "admin", "password": "triplea123"}
+DEMO_USER = {
+    "username": os.getenv("DEMO_USERNAME", "admin"),
+    "password": os.getenv("DEMO_PASSWORD", "triplea123"),
+}
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if not JWT_AVAILABLE:
         return "demo-token"
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -830,3 +837,31 @@ def notify_telegram(level_filter: str = "danger"):
         with get_conn() as conn:
             _record_telegram_notification_logs(conn, pending, "FAILED", error_message=error_message)
         raise HTTPException(status_code=502, detail=f"Telegram 전송 실패: {error_message}")
+
+
+# ── 설정: API 키 상태 ────────────────────────────────────────────────
+_API_KEY_DIR = Path(__file__).resolve().parent.parent / "API_KEY"
+
+_API_KEY_CONFIGS = [
+    {"label": "FRED API",       "env": "FRED_API_KEY"},
+    {"label": "ECOS API (BOK)", "env": "ECOS_API_KEY"},
+    {"label": "KOSIS API",      "env": "KOSIS_API_KEY"},
+    {"label": "Telegram Bot",   "env": "TELEGRAM_KEY"},
+    {"label": "Naver API",      "env": "NAVER_API_KEY"},
+    {"label": "KIS 증권사 API", "env": "KIS_API_KEY"},
+    {"label": "FMP API",        "env": "FINANCIAL_MODELING_PREP_KEY"},
+]
+
+
+@app.get("/api/settings/api-keys", tags=["settings"])
+def get_api_keys_status():
+    """API_KEY 디렉터리의 키 파일 존재 여부를 반환합니다."""
+    result = []
+    for k in _API_KEY_CONFIGS:
+        file_path = _API_KEY_DIR / k["env"]
+        try:
+            is_set = file_path.exists() and bool(file_path.read_text(encoding="utf-8").strip())
+        except OSError:
+            is_set = False
+        result.append({"label": k["label"], "env": k["env"], "status": is_set})
+    return result

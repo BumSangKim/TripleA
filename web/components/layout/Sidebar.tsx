@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 const NAV_ITEMS = [
   { href: "/",           label: "대시보드",   icon: "⬛" },

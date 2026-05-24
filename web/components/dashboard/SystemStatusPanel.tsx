@@ -2,8 +2,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 interface SystemStatus {
   macro_last_update: string | null;

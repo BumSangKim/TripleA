@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { BASE_URL } from "@/lib/api";
 
 interface SearchResult {
   type: string;
@@ -16,8 +17,6 @@ interface TickerItem {
   change: string;
   down: boolean;
 }
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const TYPE_ICON: Record<string, string> = {
   macro: "📊",

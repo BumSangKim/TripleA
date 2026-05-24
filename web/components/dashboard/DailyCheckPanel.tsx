@@ -1,6 +1,6 @@
 // components/dashboard/DailyCheckPanel.tsx
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
@@ -11,11 +11,30 @@ const CHECK_ITEMS = [
   { id: "datasync", label: "데이터 동기화 확인",  desc: "모든 데이터 이상 없이 동기화" },
 ];
 
+const TODAY_KEY = () => `triplea_daily_check_${new Date().toISOString().slice(0, 10)}`;
+
 export default function DailyCheckPanel() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
 
-  const toggle = (id: string) =>
-    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
+  // 마운트 시 오늘 날짜 키로 localStorage에서 복원
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(TODAY_KEY());
+      if (raw) setChecked(JSON.parse(raw));
+    } catch {
+      // localStorage 접근 실패 시 기본값 유지
+    }
+  }, []);
+
+  const toggle = (id: string) => {
+    setChecked((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem(TODAY_KEY(), JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const doneCount = Object.values(checked).filter(Boolean).length;
 

@@ -130,11 +130,54 @@ def get_target_deviations(conn: sqlite3.Connection, mode: TradingMode = TradingM
         "국내주식": 28.7, "해외주식": 34.2, "채권": 7.8,
         "ETF": 14.9, "현금": 10.1, "기타/대기": 4.3,
     }
-    # 기타 목표: mock 현재 값
-    mock_special = {
-        "월 투자 목표":   8_200_000,  # 원
-        "연 수익률 목표": 5.2,         # %
-    }
+
+    # ── monthly_invest: 당월 account_snapshots 합계 ──────────────
+    def _monthly_invest_actual() -> float:
+        """당월 첫 스냅샷 대비 최신 스냅샷 총자산 증가분을 투자금액으로 근사"""
+        try:
+            today = date.today()
+            month_start = today.replace(day=1).isoformat()
+            rows = conn.execute(
+                """SELECT total_value FROM account_snapshots
+                   WHERE snapshot_at >= ? ORDER BY snapshot_at ASC LIMIT 1""",
+                (month_start,),
+            ).fetchone()
+            latest = conn.execute(
+                "SELECT SUM(total_value) AS s FROM account_snapshots WHERE account_id IN "
+                "(SELECT DISTINCT account_id FROM account_snapshots WHERE snapshot_at >= ?) "
+                "AND snapshot_at = (SELECT MAX(snapshot_at) FROM account_snapshots a2 "
+                "WHERE a2.account_id = account_snapshots.account_id)",
+                (month_start,),
+            ).fetchone()
+            if rows and latest and latest["s"]:
+                first_val = float(rows["total_value"])
+                last_val = float(latest["s"])
+                return max(0.0, last_val - first_val)
+        except Exception:
+            pass
+        return 0.0
+
+    # ── return_rate: YTD 수익률 계산 ─────────────────────────────
+    def _ytd_return_rate() -> float:
+        """연초 대비 현재 총자산 수익률(%) 계산"""
+        try:
+            year_start = date.today().replace(month=1, day=1).isoformat()
+            first = conn.execute(
+                "SELECT SUM(total_value) AS s FROM account_snapshots "
+                "WHERE snapshot_at >= ? ORDER BY snapshot_at ASC LIMIT 1",
+                (year_start,),
+            ).fetchone()
+            latest = conn.execute(
+                "SELECT SUM(total_value) AS s FROM account_snapshots "
+                "WHERE account_id IN (SELECT DISTINCT account_id FROM account_snapshots) "
+                "AND snapshot_at = (SELECT MAX(snapshot_at) FROM account_snapshots a2 "
+                "WHERE a2.account_id = account_snapshots.account_id)",
+            ).fetchone()
+            if first and latest and first["s"] and latest["s"] and float(first["s"]) > 0:
+                return round((float(latest["s"]) - float(first["s"])) / float(first["s"]) * 100, 2)
+        except Exception:
+            pass
+        return 0.0
 
     result = []
     for t in targets:
@@ -150,10 +193,10 @@ def get_target_deviations(conn: sqlite3.Connection, mode: TradingMode = TradingM
                 curr = 0.0
             unit = "%"
         elif t_type == "monthly_invest":
-            curr = mock_special.get(t["asset_class"], target_val * 0.8)
+            curr = _monthly_invest_actual()
             unit = "원"
         elif t_type == "return_rate":
-            curr = mock_special.get(t["asset_class"], target_val * 0.65)
+            curr = _ytd_return_rate()
             unit = "%"
         else:
             curr = target_val
@@ -1207,15 +1250,82 @@ def get_calendar_events(conn: sqlite3.Connection, from_date: Optional[str] = Non
 
 
 def build_insights(macro: list, kpi: KPISummary) -> Insights:
-    # USD/KRW 실제값 반영
-    usd_krw = next((i.value for i in macro if "KRW" in (i.unit or "") or "USD_KRW" in (i.key or "")), None)
-    krw_str = f" (USD/KRW {usd_krw:,.0f})" if usd_krw else ""
+    """실제 매크로 지표값을 분석하여 동적 인사이트 생성"""
+    def _find(keys: list[str]) -> float | None:
+        for k in keys:
+            m = next((i for i in macro if i.key == k), None)
+            if m is not None:
+                return m.value
+        return None
+
+    cpi      = _find(["CPIAUCSL", "cpi"])
+    rate     = _find(["FEDFUNDS", "interest"])
+    vix      = _find(["VIXCLS", "vix"])
+    usd_krw  = _find(["USD_KRW", "exchange_usd"])
+    dgs10    = _find(["DGS10"])
+    t10y2y   = _find(["T10Y2Y"])
+
+    # ── 매크로 요약 ────────────────────────────────────────────
+    macro_parts: list[str] = []
+    if cpi is not None:
+        if cpi >= 4.0:
+            macro_parts.append(f"CPI {cpi:.1f}% — 물가 상승 압력 지속")
+        elif cpi >= 2.5:
+            macro_parts.append(f"CPI {cpi:.1f}% — 물가 둔화 중, 목표(2%) 상회")
+        else:
+            macro_parts.append(f"CPI {cpi:.1f}% — 물가 안정 수준")
+    if rate is not None:
+        if rate >= 5.0:
+            macro_parts.append(f"기준금리 {rate:.2f}% — 긴축 기조 유지")
+        elif rate >= 3.0:
+            macro_parts.append(f"기준금리 {rate:.2f}% — 중립 수준")
+        else:
+            macro_parts.append(f"기준금리 {rate:.2f}% — 완화 기조")
+    if usd_krw is not None:
+        macro_parts.append(f"USD/KRW {usd_krw:,.0f}원")
+    macro_summary = ". ".join(macro_parts) + "." if macro_parts else "매크로 데이터를 불러오는 중입니다."
+
+    # ── 시장 위험도 ────────────────────────────────────────────
+    if vix is not None:
+        if vix >= 30:
+            risk = f"VIX {vix:.1f} — 시장 변동성 매우 높음 ⚠️"
+        elif vix >= 20:
+            risk = f"VIX {vix:.1f} — 시장 변동성 보통"
+        else:
+            risk = f"VIX {vix:.1f} — 시장 안정 구간"
+    elif t10y2y is not None:
+        if t10y2y < 0:
+            risk = f"장단기 금리 역전({t10y2y:.2f}%) — 경기 침체 신호 주의"
+        else:
+            risk = f"장단기 스프레드 {t10y2y:.2f}% — 정상 구간"
+    else:
+        risk = "시장 위험 지표 데이터 없음"
+
+    # ── 포트폴리오 요약 ────────────────────────────────────────
+    if kpi.totalAssets > 0:
+        port_summary = f"총자산 {kpi.totalAssets:,.0f}원, 전일 대비 {kpi.todayProfitRate:+.2f}% 변동."
+    else:
+        port_summary = "포트폴리오 데이터가 없습니다. 계좌/보유종목을 등록해 주세요."
+
+    # ── 권고사항 ───────────────────────────────────────────────
+    recs: list[str] = []
+    if vix is not None and vix >= 25:
+        recs.append("변동성 확대 구간 — 현금 비중 유지 또는 확대 검토")
+    if cpi is not None and cpi >= 3.5:
+        recs.append("물가 상승 지속 — 실물자산(원자재·TIPS) 비중 확인")
+    if usd_krw is not None and usd_krw >= 1380:
+        recs.append("고환율 구간 — 해외주식 환헤지 여부 점검")
+    if dgs10 is not None and dgs10 >= 4.5:
+        recs.append("미국 장기금리 고수준 — 채권 비중 재검토")
+    if not recs:
+        recs.append("목표 비중 유지 여부를 점검하고 리밸런싱 신호를 확인하세요")
+    recommendation = ". ".join(recs) + "."
+
     return Insights(
-        macroSummary=f"물가 상승률이 둔화되고 있으며 금리 인상 속도가 완화될 전망입니다.{krw_str}",
-        portfolioSummary=f"총자산은 전일 대비 {kpi.todayProfitRate:+.2f}% 변동했습니다." if kpi.totalAssets > 0
-                         else "포트폴리오 데이터가 없습니다. 계좌/보유종목을 등록해 주세요.",
-        marketRisk="현재 시장 위험도는 보통 수준입니다.",
-        recommendation="매크로 지표를 점검하고 목표 비중 유지 여부를 확인하십시오.",
+        macroSummary=macro_summary,
+        portfolioSummary=port_summary,
+        marketRisk=risk,
+        recommendation=recommendation,
     )
 
 

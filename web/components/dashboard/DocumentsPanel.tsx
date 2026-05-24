@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Card from "@/components/ui/Card";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 const DOC_TYPES = [
   { key: "report",   icon: "📋", label: "리포트" },

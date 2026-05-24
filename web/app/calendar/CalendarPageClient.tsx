@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import type { CalendarEvent } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
-
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+import { BASE_URL } from "@/lib/api";
 
 const IMPORTANCE_STYLE: Record<string, string> = {
   high: "bg-red-500/20 text-red-400",
