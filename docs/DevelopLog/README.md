@@ -1,6 +1,6 @@
 # TripleA 개발 로그 안내
 
-> 최종 업데이트: 2026-05-22
+> 최종 업데이트: 2026-05-24
 
 이 디렉터리는 실행 단위별 개발 기록을 보관합니다. 과거 경제지표 수집 파이프라인 로그는 히스토리 참고용이며, 현재 코드베이스의 실행 구조는 `api/`와 `web/` 중심입니다.
 
@@ -21,6 +21,7 @@ bash scripts/start_dashboard.sh
 
 | 파일 | 내용 |
 |------|------|
+| `2026-05-24_backtest_market_data_engine.md` | 백테스트 시장 데이터 스키마, 커버리지 서비스, 실제 가격 기반 엔진/API |
 | `2026-05-22_trading_modes_risk_budget_ui.md` | 포트폴리오 화면 RiskBudget 표시 |
 | `2026-05-22_trading_modes_risk_budget_engine.md` | RiskBudget 계산 API 및 리밸런싱 사유 연결 |
 | `2026-05-22_trading_modes_notification_dedup.md` | Telegram 알림 notification_logs 중복 방지 |
@@ -42,6 +43,8 @@ bash scripts/start_dashboard.sh
 
 ## 다음 대화에서 먼저 볼 파일
 
-1. `docs/DevelopPlans/trading-modes-development-plan.md`
-2. 최신 `docs/DevelopLog/2026-05-22_*`
-3. `README.md`
+1. `docs/DevelopPlans/back_test.md`
+2. `docs/DevelopPlans/trading-modes-development-plan.md`
+3. 최신 `docs/DevelopLog/2026-05-24_*`
+4. 최신 `docs/DevelopLog/2026-05-22_*`
+5. `README.md`
