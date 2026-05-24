@@ -1,0 +1,47 @@
+base_currency: KRW
+
+default_assets:
+  국내주식:
+    asset_code: KOSPI
+    symbol: "^KS11"
+    name: "KOSPI Index"
+    asset_class: "국내주식"
+    market: "KR"
+    currency: KRW
+    source_type: yahoo
+
+  해외주식:
+    asset_code: SPY
+    symbol: "SPY"
+    name: "SPDR S&P 500 ETF"
+    asset_class: "해외주식"
+    market: "US"
+    currency: USD
+    source_type: yahoo
+
+  채권:
+    asset_code: TLT
+    symbol: "TLT"
+    name: "iShares 20+ Year Treasury Bond ETF"
+    asset_class: "채권"
+    market: "US"
+    currency: USD
+    source_type: yahoo
+
+  ETF:
+    asset_code: QQQ
+    symbol: "QQQ"
+    name: "Invesco QQQ ETF"
+    asset_class: "ETF"
+    market: "US"
+    currency: USD
+    source_type: yahoo
+
+  현금:
+    asset_code: CASH_KRW
+    symbol: "CASH_KRW"
+    name: "KRW Cash"
+    asset_class: "현금"
+    market: "KR"
+    currency: KRW
+    source_type: manual

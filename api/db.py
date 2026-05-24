@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 import os
+import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DB_PATH = os.getenv("DB_PATH", str(PROJECT_ROOT / "data" / "economic_data.db"))
@@ -212,6 +213,90 @@ def ensure_dashboard_tables():
                 created_at TEXT DEFAULT (datetime('now','localtime'))
             );
 
+            CREATE TABLE IF NOT EXISTS asset_universe (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_code TEXT NOT NULL UNIQUE,
+                symbol TEXT NOT NULL,
+                name TEXT,
+                asset_class TEXT NOT NULL,
+                market TEXT,
+                currency TEXT NOT NULL DEFAULT 'KRW',
+                source_type TEXT NOT NULL,
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT (datetime('now','localtime')),
+                updated_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE TABLE IF NOT EXISTS market_prices (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                asset_code TEXT NOT NULL,
+                price_date TEXT NOT NULL,
+                open REAL,
+                high REAL,
+                low REAL,
+                close REAL NOT NULL,
+                adj_close REAL,
+                volume REAL,
+                currency TEXT NOT NULL,
+                source TEXT NOT NULL,
+                fetched_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(asset_code, price_date)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_market_prices_asset_date
+            ON market_prices(asset_code, price_date);
+
+            CREATE TABLE IF NOT EXISTS fx_rates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                base_currency TEXT NOT NULL,
+                quote_currency TEXT NOT NULL,
+                rate_date TEXT NOT NULL,
+                rate REAL NOT NULL,
+                source TEXT NOT NULL,
+                fetched_at TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(base_currency, quote_currency, rate_date)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_fx_rates_pair_date
+            ON fx_rates(base_currency, quote_currency, rate_date);
+
+            CREATE TABLE IF NOT EXISTS backtest_positions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
+                point_date TEXT NOT NULL,
+                asset_code TEXT NOT NULL,
+                quantity REAL NOT NULL,
+                price REAL NOT NULL,
+                fx_rate REAL DEFAULT 1,
+                market_value REAL NOT NULL,
+                weight REAL NOT NULL,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_backtest_positions_run_date
+            ON backtest_positions(run_id, point_date);
+
+            CREATE TABLE IF NOT EXISTS backtest_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                run_id INTEGER NOT NULL REFERENCES backtest_runs(id),
+                trade_date TEXT NOT NULL,
+                asset_code TEXT NOT NULL,
+                side TEXT NOT NULL,
+                quantity REAL NOT NULL,
+                price REAL NOT NULL,
+                fx_rate REAL DEFAULT 1,
+                gross_amount REAL NOT NULL,
+                fee REAL DEFAULT 0,
+                slippage REAL DEFAULT 0,
+                tax REAL DEFAULT 0,
+                net_amount REAL NOT NULL,
+                reason TEXT,
+                created_at TEXT DEFAULT (datetime('now','localtime'))
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_backtest_trades_run_date
+            ON backtest_trades(run_id, trade_date);
+
             CREATE TABLE IF NOT EXISTS notification_channels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 channel_type TEXT NOT NULL,
@@ -238,6 +323,7 @@ def ensure_dashboard_tables():
         _seed_default_targets(conn)
         _seed_account_policies(conn)
         _seed_engine_allocations(conn)
+        _seed_asset_universe(conn)
 
 
 def _table_columns(conn: sqlite3.Connection, table: str) -> set[str]:
@@ -340,4 +426,51 @@ def _seed_engine_allocations(conn: sqlite3.Connection):
             max_ratio=excluded.max_ratio,
             updated_at=datetime('now','localtime')
     """, defaults)
+    conn.commit()
+
+
+def _seed_asset_universe(conn: sqlite3.Connection):
+    config_path = PROJECT_ROOT / "config" / "backtest_assets.yaml"
+    if not config_path.exists():
+        return
+
+    data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    default_assets = data.get("default_assets") or {}
+    rows = []
+    for item in default_assets.values():
+        asset_code = (item.get("asset_code") or "").strip()
+        symbol = (item.get("symbol") or "").strip()
+        asset_class = (item.get("asset_class") or "").strip()
+        source_type = (item.get("source_type") or "").strip()
+        currency = (item.get("currency") or "KRW").strip()
+        if not all([asset_code, symbol, asset_class, source_type, currency]):
+            continue
+        rows.append((
+            asset_code,
+            symbol,
+            item.get("name"),
+            asset_class,
+            item.get("market"),
+            currency,
+            source_type,
+            1 if item.get("is_active", True) else 0,
+        ))
+
+    if not rows:
+        return
+
+    conn.executemany("""
+        INSERT INTO asset_universe
+        (asset_code, symbol, name, asset_class, market, currency, source_type, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(asset_code) DO UPDATE SET
+            symbol=excluded.symbol,
+            name=excluded.name,
+            asset_class=excluded.asset_class,
+            market=excluded.market,
+            currency=excluded.currency,
+            source_type=excluded.source_type,
+            is_active=excluded.is_active,
+            updated_at=datetime('now','localtime')
+    """, rows)
     conn.commit()
