@@ -16,6 +16,10 @@ from .models import (
 from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
 
+BACKTEST_STRATEGY_MODES = {"triplea_dynamic"}
+BACKTEST_RISK_PROFILES = {"aggressive", "balanced", "defensive"}
+BACKTEST_UNIVERSES = {"default_global"}
+
 MACRO_KEY_MAP = {
     "cpi":          {"name": "CPI YoY",      "unit": "%"},
     "interest":     {"name": "기준금리",       "unit": "%"},
@@ -764,6 +768,30 @@ def run_backtest(
         raise ValueError("initialCapital must be greater than zero")
 
     frequency = (request.rebalanceFrequency or "monthly").strip().lower()
+    strategy_mode = _normalize_backtest_option(
+        request.strategyMode,
+        "strategyMode",
+        BACKTEST_STRATEGY_MODES,
+    )
+    risk_profile = _normalize_backtest_option(
+        request.riskProfile,
+        "riskProfile",
+        BACKTEST_RISK_PROFILES,
+    )
+    universe_id = _normalize_backtest_option(
+        request.universeId,
+        "universeId",
+        BACKTEST_UNIVERSES,
+    )
+    base_currency = (request.baseCurrency or "KRW").strip().upper()
+    if not base_currency:
+        raise ValueError("baseCurrency must not be empty")
+    fee_bps = _non_negative_bps(request.feeBps, "feeBps")
+    slippage_bps = _non_negative_bps(request.slippageBps, "slippageBps")
+    tax_bps = _non_negative_bps(request.taxBps, "taxBps")
+    if request.dataLookbackYears < 1:
+        raise ValueError("dataLookbackYears must be at least 1")
+
     weights = _resolve_backtest_target_weights(conn)
     result = BacktestEngine(conn).run(
         BacktestConfig(
@@ -772,20 +800,38 @@ def run_backtest(
             initial_capital=request.initialCapital,
             rebalance_frequency=frequency,
             target_weights=weights,
-        )
+            strategy_mode=strategy_mode,
+            risk_profile=risk_profile,
+            universe_id=universe_id,
+            base_currency=base_currency,
+            fee_bps=fee_bps,
+            slippage_bps=slippage_bps,
+            tax_bps=tax_bps,
+            data_lookback_years=request.dataLookbackYears,
+        ),
     )
 
     cur = conn.execute("""
         INSERT INTO backtest_runs
-        (name, start_date, end_date, initial_capital, rebalance_frequency,
-         status, total_return, annual_return, max_drawdown, volatility)
-        VALUES (?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)
+        (name, start_date, end_date, initial_capital, strategy_mode, risk_profile,
+         universe_id, rebalance_frequency, base_currency, fee_bps, slippage_bps,
+         tax_bps, data_lookback_years, status, total_return, annual_return,
+         max_drawdown, volatility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)
     """, (
-        (request.name or "Backtest").strip() or "Backtest",
+        (request.name or "TripleA Dynamic Backtest").strip() or "TripleA Dynamic Backtest",
         start.isoformat(),
         end.isoformat(),
         request.initialCapital,
+        strategy_mode,
+        risk_profile,
+        universe_id,
         frequency,
+        base_currency,
+        fee_bps,
+        slippage_bps,
+        tax_bps,
+        request.dataLookbackYears,
         result.total_return,
         result.annual_return,
         result.max_drawdown,
@@ -890,7 +936,15 @@ def get_backtest_run(
         startDate=row["start_date"],
         endDate=row["end_date"],
         initialCapital=row["initial_capital"],
+        strategyMode=row["strategy_mode"] or "triplea_dynamic",
+        riskProfile=row["risk_profile"] or "balanced",
+        universeId=row["universe_id"] or "default_global",
         rebalanceFrequency=row["rebalance_frequency"] or "monthly",
+        baseCurrency=row["base_currency"] or "KRW",
+        feeBps=row["fee_bps"] or 0,
+        slippageBps=row["slippage_bps"] or 0,
+        taxBps=row["tax_bps"] or 0,
+        dataLookbackYears=row["data_lookback_years"] or 5,
         status=row["status"] or "COMPLETED",
         totalReturn=row["total_return"] or 0,
         annualReturn=row["annual_return"] or 0,
@@ -942,6 +996,21 @@ def _parse_backtest_date(value: str, field_name: str) -> date:
         return date.fromisoformat(value)
     except (TypeError, ValueError) as exc:
         raise ValueError(f"{field_name} must be YYYY-MM-DD") from exc
+
+
+def _normalize_backtest_option(value: str, field_name: str, allowed: set[str]) -> str:
+    normalized = (value or "").strip().lower()
+    if normalized not in allowed:
+        options = ", ".join(sorted(allowed))
+        raise ValueError(f"{field_name} must be one of {options}")
+    return normalized
+
+
+def _non_negative_bps(value: float, field_name: str) -> float:
+    parsed = float(value)
+    if parsed < 0:
+        raise ValueError(f"{field_name} must be zero or greater")
+    return parsed
 
 
 def _resolve_backtest_target_weights(conn: sqlite3.Connection) -> dict[str, float]:

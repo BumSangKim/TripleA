@@ -176,7 +176,15 @@ export interface BacktestRunRequest {
   startDate: string;
   endDate: string;
   initialCapital: number;
+  strategyMode: "triplea_dynamic";
+  riskProfile: "aggressive" | "balanced" | "defensive";
+  universeId: "default_global";
   rebalanceFrequency: "weekly" | "monthly" | "quarterly";
+  baseCurrency: "KRW";
+  feeBps: number;
+  slippageBps: number;
+  taxBps: number;
+  dataLookbackYears: number;
 }
 
 export interface BacktestPoint {
@@ -217,7 +225,15 @@ export interface BacktestRunResponse {
   startDate: string;
   endDate: string;
   initialCapital: number;
+  strategyMode: string;
+  riskProfile: string;
+  universeId: string;
   rebalanceFrequency: string;
+  baseCurrency: string;
+  feeBps: number;
+  slippageBps: number;
+  taxBps: number;
+  dataLookbackYears: number;
   status: string;
   totalReturn: number;
   annualReturn: number;

@@ -66,6 +66,14 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
             "endDate": "2020-12-31",
             "initialCapital": 100000000,
             "rebalanceFrequency": "monthly",
+            "strategyMode": "triplea_dynamic",
+            "riskProfile": "balanced",
+            "universeId": "default_global",
+            "baseCurrency": "KRW",
+            "feeBps": 5,
+            "slippageBps": 5,
+            "taxBps": 0,
+            "dataLookbackYears": 5,
         },
     )
 
@@ -75,6 +83,11 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     assert body["status"] == "COMPLETED"
     assert body["runId"] > 0
     assert body["initialCapital"] == 100000000
+    assert body["strategyMode"] == "triplea_dynamic"
+    assert body["riskProfile"] == "balanced"
+    assert body["universeId"] == "default_global"
+    assert body["feeBps"] == 5
+    assert body["slippageBps"] == 5
     assert body["points"][0] == {
         "date": "2020-01-01",
         "value": 100000000.0,
@@ -97,6 +110,8 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     assert trade_count == len(body["trades"])
     assert position_count > 0
     assert trade_count > 0
+    assert body["trades"][0]["fee"] > 0
+    assert body["trades"][0]["slippage"] > 0
 
 
 def test_backtest_runs_are_listed_and_detail_can_be_loaded(backtest_client):
@@ -158,3 +173,24 @@ def test_backtest_rejects_missing_market_data(backtest_client):
 
     assert res.status_code == 400
     assert "Market data coverage is insufficient" in res.json()["detail"]
+
+
+def test_backtest_rejects_manual_targets_contract(backtest_client):
+    client, _ = backtest_client
+
+    res = client.post(
+        "/api/backtests/run",
+        json={
+            "name": "Manual targets should fail",
+            "startDate": "2022-01-01",
+            "endDate": "2022-12-31",
+            "initialCapital": 1000000,
+            "strategyMode": "triplea_dynamic",
+            "riskProfile": "balanced",
+            "universeId": "default_global",
+            "rebalanceFrequency": "monthly",
+            "targets": [{"assetClass": "FOREIGN_STOCK", "targetRatio": 1}],
+        },
+    )
+
+    assert res.status_code == 422

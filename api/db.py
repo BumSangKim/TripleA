@@ -195,7 +195,15 @@ def ensure_dashboard_tables():
                 start_date TEXT,
                 end_date TEXT,
                 initial_capital REAL,
+                strategy_mode TEXT DEFAULT 'triplea_dynamic',
+                risk_profile TEXT DEFAULT 'balanced',
+                universe_id TEXT DEFAULT 'default_global',
                 rebalance_frequency TEXT,
+                base_currency TEXT DEFAULT 'KRW',
+                fee_bps REAL DEFAULT 0,
+                slippage_bps REAL DEFAULT 0,
+                tax_bps REAL DEFAULT 0,
+                data_lookback_years INTEGER DEFAULT 5,
                 status TEXT,
                 total_return REAL,
                 annual_return REAL,
@@ -365,6 +373,15 @@ def _migrate_dashboard_tables(conn: sqlite3.Connection):
     """)
     conn.execute("UPDATE holdings SET price=current_price WHERE price IS NULL")
     conn.execute("UPDATE holdings SET value=market_value WHERE value IS NULL")
+
+    _add_column_if_missing(conn, "backtest_runs", "strategy_mode", "TEXT DEFAULT 'triplea_dynamic'")
+    _add_column_if_missing(conn, "backtest_runs", "risk_profile", "TEXT DEFAULT 'balanced'")
+    _add_column_if_missing(conn, "backtest_runs", "universe_id", "TEXT DEFAULT 'default_global'")
+    _add_column_if_missing(conn, "backtest_runs", "base_currency", "TEXT DEFAULT 'KRW'")
+    _add_column_if_missing(conn, "backtest_runs", "fee_bps", "REAL DEFAULT 0")
+    _add_column_if_missing(conn, "backtest_runs", "slippage_bps", "REAL DEFAULT 0")
+    _add_column_if_missing(conn, "backtest_runs", "tax_bps", "REAL DEFAULT 0")
+    _add_column_if_missing(conn, "backtest_runs", "data_lookback_years", "INTEGER DEFAULT 5")
 
 
 def _seed_default_targets(conn: sqlite3.Connection):

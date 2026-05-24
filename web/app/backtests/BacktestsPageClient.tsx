@@ -15,6 +15,12 @@ const FREQUENCY_OPTIONS: { value: Frequency; label: string }[] = [
   { value: "weekly", label: "주간" },
 ];
 
+const RISK_PROFILE_OPTIONS: { value: BacktestRunRequest["riskProfile"]; label: string }[] = [
+  { value: "balanced", label: "Balanced" },
+  { value: "aggressive", label: "Aggressive" },
+  { value: "defensive", label: "Defensive" },
+];
+
 function getErrorMessage(error: unknown): string {
   if (error instanceof APIRequestError && error.detail?.userAction) {
     return `${error.message} ${error.detail.userAction}`;
@@ -39,7 +45,14 @@ export default function BacktestsPageClient() {
   const [startDate, setStartDate] = useState("2020-01-01");
   const [endDate, setEndDate] = useState("2024-12-31");
   const [initialCapital, setInitialCapital] = useState("100000000");
+  const [strategyMode] = useState<BacktestRunRequest["strategyMode"]>("triplea_dynamic");
+  const [riskProfile, setRiskProfile] = useState<BacktestRunRequest["riskProfile"]>("balanced");
+  const [universeId] = useState<BacktestRunRequest["universeId"]>("default_global");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [feeBps, setFeeBps] = useState("5");
+  const [slippageBps, setSlippageBps] = useState("5");
+  const [taxBps, setTaxBps] = useState("0");
+  const [dataLookbackYears, setDataLookbackYears] = useState("5");
   const [latest, setLatest] = useState<BacktestRunResponse | null>(null);
   const [runs, setRuns] = useState<BacktestRunResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -75,7 +88,15 @@ export default function BacktestsPageClient() {
         startDate,
         endDate,
         initialCapital: capital,
+        strategyMode,
+        riskProfile,
+        universeId,
         rebalanceFrequency: frequency,
+        baseCurrency: "KRW",
+        feeBps: Number(feeBps),
+        slippageBps: Number(slippageBps),
+        taxBps: Number(taxBps),
+        dataLookbackYears: Number(dataLookbackYears),
       };
       const result = await api.runBacktest(payload);
       setLatest(result);
@@ -89,7 +110,14 @@ export default function BacktestsPageClient() {
   };
 
   const initialAmount = parseAmount(initialCapital);
-  const canRun = !loading && Number.isFinite(initialAmount) && initialAmount > 0;
+  const costInputs = [feeBps, slippageBps, taxBps].map((value) => Number(value));
+  const lookbackYears = Number(dataLookbackYears);
+  const canRun = !loading
+    && Number.isFinite(initialAmount)
+    && initialAmount > 0
+    && costInputs.every((value) => Number.isFinite(value) && value >= 0)
+    && Number.isFinite(lookbackYears)
+    && lookbackYears >= 1;
 
   return (
     <div className="space-y-6 p-6">
@@ -157,6 +185,40 @@ export default function BacktestsPageClient() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
+                <span className="text-xs text-slate-400">전략 모드</span>
+                <select
+                  value={strategyMode}
+                  disabled
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
+                >
+                  <option value="triplea_dynamic">TripleA Dynamic</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">위험 프로파일</span>
+                <select
+                  value={riskProfile}
+                  onChange={(e) => setRiskProfile(e.target.value as BacktestRunRequest["riskProfile"])}
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                >
+                  {RISK_PROFILE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">투자 유니버스</span>
+                <select
+                  value={universeId}
+                  disabled
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
+                >
+                  <option value="default_global">default_global</option>
+                </select>
+              </label>
+              <label className="block">
                 <span className="text-xs text-slate-400">초기자본</span>
                 <input
                   value={initialCapital}
@@ -180,7 +242,44 @@ export default function BacktestsPageClient() {
                 </select>
               </label>
             </div>
-
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block">
+                <span className="text-xs text-slate-400">수수료 bps</span>
+                <input
+                  value={feeBps}
+                  onChange={(e) => setFeeBps(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">슬리피지 bps</span>
+                <input
+                  value={slippageBps}
+                  onChange={(e) => setSlippageBps(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">세금 bps</span>
+                <input
+                  value={taxBps}
+                  onChange={(e) => setTaxBps(e.target.value)}
+                  inputMode="decimal"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-xs text-slate-400">데이터 룩백</span>
+                <input
+                  value={dataLookbackYears}
+                  onChange={(e) => setDataLookbackYears(e.target.value)}
+                  inputMode="numeric"
+                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                />
+              </label>
+            </div>
           </div>
         </Card>
 

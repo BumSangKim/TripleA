@@ -22,7 +22,14 @@ class BacktestConfig:
     initial_capital: float
     rebalance_frequency: str
     target_weights: dict[str, float]
+    strategy_mode: str = "triplea_dynamic"
+    risk_profile: str = "balanced"
+    universe_id: str = "default_global"
     base_currency: str = "KRW"
+    fee_bps: float = 0.0
+    slippage_bps: float = 0.0
+    tax_bps: float = 0.0
+    data_lookback_years: int = 5
 
 
 @dataclass(frozen=True)
@@ -132,6 +139,9 @@ class BacktestEngine:
                     current_date,
                     portfolio_value,
                     config.base_currency,
+                    config.fee_bps,
+                    config.slippage_bps,
+                    config.tax_bps,
                     initial=current_date == config.start_date,
                 )
                 trades.extend(new_trades)
@@ -260,6 +270,9 @@ def _rebalance(
     current_date: date,
     portfolio_value: float,
     base_currency: str,
+    fee_bps: float,
+    slippage_bps: float,
+    tax_bps: float,
     *,
     initial: bool,
 ) -> list[BacktestTradeResult]:
@@ -277,6 +290,10 @@ def _rebalance(
         side = "BUY" if delta > 0 else "SELL"
         trade_quantity = abs(delta)
         gross_amount = trade_quantity * price * fx_rate
+        fee = gross_amount * max(fee_bps, 0.0) / 10000.0
+        slippage = gross_amount * max(slippage_bps, 0.0) / 10000.0
+        tax = gross_amount * max(tax_bps, 0.0) / 10000.0
+        net_amount = gross_amount + fee + slippage + tax if side == "BUY" else gross_amount - fee - slippage - tax
         quantities[target.asset_code] = desired_quantity
         trades.append(BacktestTradeResult(
             trade_date=current_date,
@@ -286,10 +303,10 @@ def _rebalance(
             price=price,
             fx_rate=fx_rate,
             gross_amount=round(gross_amount, 2),
-            fee=0.0,
-            slippage=0.0,
-            tax=0.0,
-            net_amount=round(gross_amount, 2),
+            fee=round(fee, 2),
+            slippage=round(slippage, 2),
+            tax=round(tax, 2),
+            net_amount=round(net_amount, 2),
             reason=reason,
         ))
     return trades

@@ -4,7 +4,7 @@ Pydantic 스키마 정의
 """
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .modes import TradingMode
 
@@ -204,11 +204,21 @@ class OrderDraftResponse(BaseModel):
 
 
 class BacktestRunRequest(BaseModel):
-    name: str = "Backtest"
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = "TripleA Dynamic Backtest"
     startDate: str
     endDate: str
     initialCapital: float
+    strategyMode: str = "triplea_dynamic"
+    riskProfile: str = "balanced"
+    universeId: str = "default_global"
     rebalanceFrequency: str = "monthly"
+    baseCurrency: str = "KRW"
+    feeBps: float = 5.0
+    slippageBps: float = 5.0
+    taxBps: float = 0.0
+    dataLookbackYears: int = 5
 
 
 class BacktestPoint(BaseModel):
@@ -249,7 +259,15 @@ class BacktestRunResponse(BaseModel):
     startDate: str
     endDate: str
     initialCapital: float
+    strategyMode: str = "triplea_dynamic"
+    riskProfile: str = "balanced"
+    universeId: str = "default_global"
     rebalanceFrequency: str
+    baseCurrency: str = "KRW"
+    feeBps: float = 0
+    slippageBps: float = 0
+    taxBps: float = 0
+    dataLookbackYears: int = 5
     status: str
     totalReturn: float
     annualReturn: float
