@@ -74,7 +74,7 @@ function HistoryChart({ indicator, unit }: { indicator: string; unit?: string | 
     return () => window.clearTimeout(timer);
   }, [fetchHistory]);
 
-  if (loading) return <div className="h-40 flex items-center justify-center text-slate-600 text-sm">로딩 중...</div>;
+  if (loading) return <div className="h-40 flex items-center justify-center text-slate-600 text-sm">데이터 확인 중...</div>;
   if (!data.length) return <div className="h-40 flex items-center justify-center text-slate-600 text-sm">데이터 없음</div>;
 
   const values = data.map((d) => d.value);

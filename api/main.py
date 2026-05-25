@@ -962,7 +962,7 @@ _API_KEY_CONFIGS = [
     {"label": "Telegram Bot",   "env": "TELEGRAM_KEY"},
     {"label": "Naver API",      "env": "NAVER_API_KEY"},
     {"label": "KIS 증권사 API", "env": "KIS_API_KEY"},
-    {"label": "FMP API",        "env": "FINANCIAL_MODELING_PREP_KEY"},
+    {"label": "FMP API",        "env": "FMP_API_KEY"},
 ]
 
 

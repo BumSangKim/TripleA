@@ -19,6 +19,7 @@ from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
 from .market_data_service import validate_market_data_coverage
 from .market_data_collector import collect_for_asset_codes
+from .macro_indicator_collector import collect_indicator_history, get_indicator_meta
 from .strategy.triplea_allocator import TripleAAllocator
 from .strategy_config import list_risk_profiles, list_universe_ids
 
@@ -1531,24 +1532,74 @@ def build_insights(macro: list, kpi: KPISummary) -> Insights:
 
 
 def get_indicator_history(conn: sqlite3.Connection, indicator: str, days: int = 180) -> list:
-    """특정 지표의 최근 N일 히스토리 반환 (chart용)."""
+    """특정 지표의 최근 N일 히스토리 반환. 필요하면 지원되는 외부 소스에서 보강한다."""
     safe_days = max(1, min(int(days or 180), 365 * 5))
+    end_date = date.today()
+    start = end_date - timedelta(days=safe_days)
+    rows = _query_indicator_history(conn, indicator, start, end_date)
+    if rows:
+        return rows
+
+    meta = get_indicator_meta(indicator) or {}
+    latest_date = _latest_indicator_date(conn, indicator)
+    if _should_collect_indicator(latest_date, end_date, meta):
+        collect_start = _expanded_history_start(start, safe_days, meta)
+        collect_indicator_history(conn, indicator, collect_start, end_date)
+        rows = _query_indicator_history(conn, indicator, start, end_date)
+        if rows:
+            return rows
+
+    fallback_start = _expanded_history_start(start, safe_days, meta)
+    if fallback_start < start:
+        return _query_indicator_history(conn, indicator, fallback_start, end_date)
+    return []
+
+
+def _query_indicator_history(
+    conn: sqlite3.Connection,
+    indicator: str,
+    start: date,
+    end: date,
+) -> list[dict[str, float | str]]:
+    rows = conn.execute(
+        """
+        SELECT date, value FROM indicators
+        WHERE indicator = ? AND date >= ? AND date <= ?
+        ORDER BY date ASC
+        """,
+        (indicator, start.isoformat(), end.isoformat()),
+    ).fetchall()
+    return [{"date": r["date"], "value": r["value"]} for r in rows]
+
+
+def _latest_indicator_date(conn: sqlite3.Connection, indicator: str) -> date | None:
     latest = conn.execute(
         "SELECT MAX(date) AS max_date FROM indicators WHERE indicator = ?",
         (indicator,),
     ).fetchone()
     if not latest or not latest["max_date"]:
-        return []
-
+        return None
     try:
-        end_date = date.fromisoformat(str(latest["max_date"])[:10])
+        return date.fromisoformat(str(latest["max_date"])[:10])
     except ValueError:
-        return []
-    start = (end_date - timedelta(days=safe_days)).isoformat()
+        return None
 
-    rows = conn.execute("""
-        SELECT date, value FROM indicators
-        WHERE indicator = ? AND date >= ?
-        ORDER BY date ASC
-    """, (indicator, start)).fetchall()
-    return [{"date": r["date"], "value": r["value"]} for r in rows]
+
+def _should_collect_indicator(latest_date: date | None, end_date: date, meta: dict) -> bool:
+    if not meta:
+        return False
+    if latest_date is None:
+        return True
+    stale_days = int(meta.get("stale_days") or 0)
+    return stale_days > 0 and latest_date < end_date - timedelta(days=stale_days)
+
+
+def _expanded_history_start(start: date, requested_days: int, meta: dict) -> date:
+    frequency = (meta.get("frequency") or "").strip().lower()
+    if frequency == "quarterly":
+        return start - timedelta(days=max(365 * 5 - requested_days, 0))
+    if frequency == "monthly":
+        return start - timedelta(days=max(365 * 2 - requested_days, 0))
+    if frequency == "weekly":
+        return start - timedelta(days=max(365 - requested_days, 0))
+    return start
