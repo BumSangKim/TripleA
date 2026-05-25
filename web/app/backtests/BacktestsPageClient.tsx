@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { APIRequestError, api } from "@/lib/api";
-import type { BacktestPoint, BacktestPosition, BacktestTrade, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
+import type { BacktestDecision, BacktestPoint, BacktestPosition, BacktestTrade, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 
@@ -356,6 +356,10 @@ export default function BacktestsPageClient() {
         <PositionsTable positions={latest.positions} />
       )}
 
+      {latest && latest.decisions.length > 0 && (
+        <DecisionLog decisions={latest.decisions} />
+      )}
+
       {latest && latest.trades.length > 0 && (
         <TradesTable trades={latest.trades} />
       )}
@@ -366,14 +370,15 @@ export default function BacktestsPageClient() {
 function PositionsTable({ positions }: { positions: BacktestPosition[] }) {
   const dates = [...new Set(positions.map((p) => p.date))].sort().reverse();
   const [selectedDate, setSelectedDate] = useState<string>(dates[0] ?? "");
-  const rows = positions.filter((p) => p.date === selectedDate);
+  const activeDate = dates.includes(selectedDate) ? selectedDate : dates[0] ?? "";
+  const rows = positions.filter((p) => p.date === activeDate);
 
   return (
     <Card
       title="포지션 상세"
       extra={
         <select
-          value={selectedDate}
+          value={activeDate}
           onChange={(e) => setSelectedDate(e.target.value)}
           className="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none focus:border-blue-500"
         >
@@ -405,13 +410,90 @@ function PositionsTable({ positions }: { positions: BacktestPosition[] }) {
                 <td className="px-3 py-2 text-right text-slate-300">{pos.price.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right text-slate-400">{pos.fxRate.toFixed(2)}</td>
                 <td className="px-3 py-2 text-right text-white">{formatKRW(pos.marketValue)}</td>
-                <td className="px-3 py-2 text-right text-slate-300">{pos.weight.toFixed(1)}%</td>
+                <td className="px-3 py-2 text-right text-slate-300">{(pos.weight * 100).toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
     </Card>
+  );
+}
+
+function DecisionLog({ decisions }: { decisions: BacktestDecision[] }) {
+  const dates = decisions.map((decision) => decision.date).sort().reverse();
+  const [selectedDate, setSelectedDate] = useState<string>(dates[0] ?? "");
+  const activeDate = dates.includes(selectedDate) ? selectedDate : dates[0] ?? "";
+  const decision = decisions.find((item) => item.date === activeDate) ?? decisions[0];
+
+  return (
+    <Card
+      title="Decision log"
+      extra={
+        <select
+          value={activeDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="rounded border border-slate-600 bg-slate-900 px-2 py-1 text-xs text-slate-200 outline-none focus:border-blue-500"
+        >
+          {dates.map((date) => (
+            <option key={date} value={date}>
+              {date}
+            </option>
+          ))}
+        </select>
+      }
+    >
+      <div className="grid gap-4 xl:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="rounded-md border border-slate-700 bg-slate-900/60 p-3">
+          <p className="text-xs text-slate-500">Macro regime</p>
+          <p className="mt-1 text-lg font-semibold text-white">{decision.macroRegime ?? "-"}</p>
+          <p className="mt-1 text-sm text-slate-400">score {decision.macroScore ?? "-"}</p>
+        </div>
+        <div className="space-y-3">
+          <WeightList title="Bucket weights" weights={decision.bucketWeights} />
+          <WeightList title="Final weights" weights={decision.finalWeights} />
+          {Object.keys(decision.bottleneckScores).length > 0 && (
+            <WeightList title="Bottleneck scores" weights={decision.bottleneckScores} valueScale="score" />
+          )}
+        </div>
+      </div>
+      {decision.reasons.length > 0 && (
+        <ul className="mt-4 grid gap-2 text-xs text-slate-300 md:grid-cols-2">
+          {decision.reasons.slice(0, 8).map((reason, index) => (
+            <li key={`${decision.date}-${index}`} className="rounded-md border border-slate-700 bg-slate-900/50 px-3 py-2">
+              {reason}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+function WeightList({
+  title,
+  weights,
+  valueScale = "weight",
+}: {
+  title: string;
+  weights: Record<string, number>;
+  valueScale?: "weight" | "score";
+}) {
+  const rows = Object.entries(weights).sort((a, b) => b[1] - a[1]);
+  return (
+    <div>
+      <p className="mb-2 text-xs font-semibold text-slate-400">{title}</p>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {rows.map(([key, value]) => (
+          <div key={key} className="flex items-center justify-between gap-3 rounded-md border border-slate-700 bg-slate-900/60 px-3 py-2 text-xs">
+            <span className="truncate font-mono text-sky-300">{key}</span>
+            <span className="shrink-0 text-white">
+              {valueScale === "score" ? value.toFixed(1) : `${(value * 100).toFixed(1)}%`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -457,7 +539,8 @@ function TradesTable({ trades }: { trades: BacktestTrade[] }) {
   );
 }
 
-function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "good" | "bad" | "warn" | "neutral" }) {  const color = {
+function Metric({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "good" | "bad" | "warn" | "neutral" }) {
+  const color = {
     good: "text-green-300",
     bad: "text-red-300",
     warn: "text-amber-300",

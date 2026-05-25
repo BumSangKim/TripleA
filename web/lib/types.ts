@@ -218,6 +218,19 @@ export interface BacktestTrade {
   reason?: string | null;
 }
 
+export interface BacktestDecision {
+  date: string;
+  strategyMode: string;
+  riskProfile?: string | null;
+  universeId?: string | null;
+  macroRegime?: string | null;
+  macroScore?: number | null;
+  bucketWeights: Record<string, number>;
+  finalWeights: Record<string, number>;
+  bottleneckScores: Record<string, number>;
+  reasons: string[];
+}
+
 export interface BacktestRunResponse {
   ok: boolean;
   runId: number;
@@ -242,6 +255,7 @@ export interface BacktestRunResponse {
   points: BacktestPoint[];
   positions: BacktestPosition[];
   trades: BacktestTrade[];
+  decisions: BacktestDecision[];
   createdAt?: string | null;
 }
 
