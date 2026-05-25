@@ -181,6 +181,7 @@ def get_price_on_or_before(
     conn: sqlite3.Connection,
     asset_code: str,
     value_date: date,
+    max_forward_days: int = 7,
 ) -> tuple[date, float]:
     row = conn.execute(
         """
@@ -194,6 +195,20 @@ def get_price_on_or_before(
         (asset_code, value_date.isoformat()),
     ).fetchone()
     if not row:
+        # Fallback: look slightly ahead for holidays/weekends at start of dataset
+        row = conn.execute(
+            """
+            SELECT price_date, COALESCE(adj_close, close) AS price
+            FROM market_prices
+            WHERE asset_code=?
+              AND price_date > ?
+              AND price_date <= ?
+            ORDER BY price_date ASC
+            LIMIT 1
+            """,
+            (asset_code, value_date.isoformat(), (value_date + timedelta(days=max_forward_days)).isoformat()),
+        ).fetchone()
+    if not row:
         raise KeyError(f"No price for {asset_code} on or before {value_date.isoformat()}")
     return _parse_date(row["price_date"]), float(row["price"])
 
@@ -204,6 +219,7 @@ def get_fx_rate_on_or_before(
     value_date: date,
     *,
     quote_currency: str = "KRW",
+    max_forward_days: int = 7,
 ) -> tuple[date, float]:
     if base_currency == quote_currency:
         return value_date, 1.0
@@ -219,6 +235,26 @@ def get_fx_rate_on_or_before(
         """,
         (base_currency, quote_currency, value_date.isoformat()),
     ).fetchone()
+    if not row:
+        # Fallback: look slightly ahead for holidays/weekends at start of dataset
+        row = conn.execute(
+            """
+            SELECT rate_date, rate
+            FROM fx_rates
+            WHERE base_currency=?
+              AND quote_currency=?
+              AND rate_date > ?
+              AND rate_date <= ?
+            ORDER BY rate_date ASC
+            LIMIT 1
+            """,
+            (
+                base_currency,
+                quote_currency,
+                value_date.isoformat(),
+                (value_date + timedelta(days=max_forward_days)).isoformat(),
+            ),
+        ).fetchone()
     if not row:
         raise KeyError(
             f"No FX rate for {base_currency}/{quote_currency} on or before {value_date.isoformat()}"

@@ -29,7 +29,7 @@ def test_db():
         CREATE TABLE IF NOT EXISTS indicators (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             indicator TEXT, value REAL, unit TEXT, date TEXT,
-            source TEXT, created_at TEXT DEFAULT (datetime('now'))
+            source TEXT, updated TEXT DEFAULT (datetime('now'))
         )
     """)
     conn.executemany(

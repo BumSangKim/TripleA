@@ -81,8 +81,12 @@ def _collect_yahoo(
         logger.warning("[collector] yfinance not installed; skipping %s", asset_code)
         return 0
 
-    ticker = yf.Ticker(symbol)
-    df = ticker.history(start=start.isoformat(), end=end.isoformat(), auto_adjust=True)
+    try:
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(start=start.isoformat(), end=end.isoformat(), auto_adjust=True)
+    except Exception as exc:
+        logger.warning("[collector] yfinance error for %s (%s): %s", asset_code, symbol, exc)
+        return 0
     if df is None or df.empty:
         logger.warning("[collector] No Yahoo data for %s (%s)", asset_code, symbol)
         return 0

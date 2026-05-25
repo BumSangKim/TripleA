@@ -203,7 +203,7 @@ def test_backtest_rejects_missing_market_data(backtest_client, monkeypatch):
     )
 
     assert res.status_code == 400
-    assert "Market data coverage is insufficient" in res.json()["detail"]
+    assert "데이터가 부족" in res.json()["detail"]
 
 
 def test_backtest_auto_collects_and_runs(backtest_client, monkeypatch):

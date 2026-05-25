@@ -795,7 +795,7 @@ def system_status():
     with get_conn() as conn:
         # 마지막 지표 수집 시각
         macro_last = conn.execute(
-            "SELECT MAX(created_at) as t FROM indicators"
+            "SELECT MAX(updated) as t FROM indicators"
         ).fetchone()["t"]
 
         # 총 지표 수 및 최근 7일 수집 건수

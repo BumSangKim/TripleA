@@ -815,7 +815,9 @@ def run_backtest(
         # 수집 후 재검증 (여전히 부족하면 엔진이 명확한 오류를 발생시킴)
         coverage = validate_market_data_coverage(conn, asset_codes, start, end)
         if not coverage.ok:
-            logger.warning("[run_backtest] coverage still incomplete after collection: %s", "; ".join(coverage.missing_messages))
+            missing = "; ".join(coverage.missing_messages)
+            logger.warning("[run_backtest] coverage still incomplete after collection: %s", missing)
+            raise ValueError(f"시장 데이터 수집 후에도 데이터가 부족합니다: {missing}")
 
     result = BacktestEngine(conn, allocator=allocator).run(
         BacktestConfig(
