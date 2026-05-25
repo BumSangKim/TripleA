@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import date, timedelta
 
-from api.macro_indicator_collector import collect_indicator_history
+from api.macro_indicator_collector import collect_indicator_history, resolve_indicator_meta
 from api.services import get_indicator_history
 
 
@@ -18,6 +18,7 @@ def _indicator_conn() -> sqlite3.Connection:
             source TEXT,
             unit TEXT,
             updated TEXT,
+            frequency TEXT,
             UNIQUE(date, indicator)
         )
         """
@@ -25,18 +26,34 @@ def _indicator_conn() -> sqlite3.Connection:
     return conn
 
 
-def test_get_indicator_history_collects_when_local_range_is_missing(monkeypatch):
+def _insert_indicator(
+    conn: sqlite3.Connection,
+    indicator: str,
+    value_date: date,
+    value: float,
+    source: str = "test",
+    unit: str = "pt",
+    frequency: str | None = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO indicators
+        (date, indicator, value, source, unit, frequency)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (value_date.isoformat(), indicator, value, source, unit, frequency),
+    )
+    conn.commit()
+
+
+def test_get_indicator_history_collects_when_local_data_is_missing(monkeypatch):
     conn = _indicator_conn()
     today = date.today()
     calls = []
 
     def fake_collect(conn_arg, indicator, start, end):
         calls.append((indicator, start, end))
-        conn_arg.execute(
-            "INSERT INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-            (today.isoformat(), indicator, 18.5, "test", "B USD"),
-        )
-        conn_arg.commit()
+        _insert_indicator(conn_arg, indicator, today, 18.5, unit="B USD")
         return 1
 
     monkeypatch.setattr("api.services.collect_indicator_history", fake_collect)
@@ -49,95 +66,79 @@ def test_get_indicator_history_collects_when_local_range_is_missing(monkeypatch)
 
 def test_get_indicator_history_uses_sparse_recent_data_without_refetch(monkeypatch):
     conn = _indicator_conn()
-    today = date.today()
-    recent_quarter = today - timedelta(days=60)
-    conn.execute(
-        "INSERT INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-        (recent_quarter.isoformat(), "CAPEX_MSFT", 18.5, "test", "B USD"),
-    )
-    conn.commit()
+    recent_quarter = date.today() - timedelta(days=60)
+    _insert_indicator(conn, "CAPEX_MSFT", recent_quarter, 18.5, unit="B USD")
 
     def fail_collect(*_args):
         raise AssertionError("fresh sparse quarterly data should not be refetched")
 
     monkeypatch.setattr("api.services.collect_indicator_history", fail_collect)
 
-    history = get_indicator_history(conn, "CAPEX_MSFT", days=30)
+    history = get_indicator_history(conn, "CAPEX_MSFT", days=7)
 
     assert history == [{"date": recent_quarter.isoformat(), "value": 18.5}]
 
 
 def test_get_indicator_history_fetches_when_range_not_covered(monkeypatch):
-    """DB에 1년치 데이터만 있을 때 3년 요청 시 자동으로 수집한다."""
     conn = _indicator_conn()
     today = date.today()
-
-    # Insert 1 year of monthly data
     for months_back in range(1, 13):
-        d = today - timedelta(days=months_back * 30)
-        conn.execute(
-            "INSERT INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-            (d.isoformat(), "KOSPI", float(2500 + months_back * 10), "test", "pt"),
-        )
-    conn.commit()
+        _insert_indicator(conn, "KOSPI", today - timedelta(days=months_back * 30), 2500 + months_back * 10)
 
     collect_calls = []
 
     def fake_collect(conn_arg, indicator, start, end):
         collect_calls.append((indicator, start, end))
-        # Insert data going back 3 years
-        d = today - timedelta(days=365 * 3)
-        conn_arg.execute(
-            "INSERT OR REPLACE INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-            (d.isoformat(), indicator, 2000.0, "test", "pt"),
-        )
-        conn_arg.commit()
+        _insert_indicator(conn_arg, indicator, today - timedelta(days=365 * 3), 2000.0)
         return 1
 
     monkeypatch.setattr("api.services.collect_indicator_history", fake_collect)
 
     history = get_indicator_history(conn, "KOSPI", days=365 * 3)
 
-    # Collection should have been triggered because DB only had 1 year
-    assert collect_calls, "Expected collection to be triggered for extended range"
-    assert any(r["date"] <= (today - timedelta(days=365 * 2)).isoformat() for r in history), (
-        "Expected data points older than 2 years in result"
-    )
+    assert collect_calls
+    assert any(item["date"] <= (today - timedelta(days=365 * 2)).isoformat() for item in history)
 
 
-def test_get_indicator_history_no_redundant_collection_when_range_covered(monkeypatch):
-    """DB에 충분한 히스토리와 최신 데이터가 있을 때 불필요한 재수집을 하지 않는다."""
+def test_get_indicator_history_no_collection_when_range_is_covered(monkeypatch):
     conn = _indicator_conn()
     today = date.today()
-
-    # Insert data going back 4 years (covers a 3-year request) including a recent point
     for years_back in range(1, 5):
-        d = today - timedelta(days=years_back * 365)
-        conn.execute(
-            "INSERT INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-            (d.isoformat(), "KOSPI", float(2500 + years_back * 100), "test", "pt"),
-        )
-    # Add recent data point to avoid staleness trigger (KOSPI stale_days=3)
-    conn.execute(
-        "INSERT INTO indicators (date, indicator, value, source, unit) VALUES (?, ?, ?, ?, ?)",
-        (today.isoformat(), "KOSPI", 2600.0, "test", "pt"),
-    )
-    conn.commit()
+        _insert_indicator(conn, "KOSPI", today - timedelta(days=years_back * 365), 2500 + years_back * 100)
+    _insert_indicator(conn, "KOSPI", today, 2600.0)
 
     def fail_collect(*_args):
         raise AssertionError("should not re-collect when range is already covered and data is fresh")
 
     monkeypatch.setattr("api.services.collect_indicator_history", fail_collect)
 
-    # 3년 요청 - DB에 4년치 + 최신 데이터가 있으므로 수집 불필요
-    history = get_indicator_history(conn, "KOSPI", days=365 * 3)
-    assert history, "Expected data to be returned"
+    assert get_indicator_history(conn, "KOSPI", days=365 * 3)
 
 
+def test_resolve_indicator_meta_infers_fred_source():
+    conn = _indicator_conn()
+    _insert_indicator(
+        conn,
+        "DXY_FRED",
+        date.today() - timedelta(days=10),
+        119.2,
+        source="FRED:DTWEXBGS",
+        unit="pt",
+    )
 
+    meta = resolve_indicator_meta(conn, "DXY_FRED")
+
+    assert meta
+    assert meta["source_type"] == "fred"
+    assert meta["symbol"] == "DTWEXBGS"
+
+
+def test_fmp_capex_collector_saves_quarterly_rows(monkeypatch):
     conn = _indicator_conn()
 
     class FakeResponse:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 

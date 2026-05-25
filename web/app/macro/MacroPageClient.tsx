@@ -10,6 +10,7 @@ type HistoryPoint = { date: string; value: number };
 type HistoryRange = { days: number; label: string };
 
 const HISTORY_RANGES: HistoryRange[] = [
+  { days: 7, label: "1주" },
   { days: 30, label: "1개월" },
   { days: 90, label: "3개월" },
   { days: 180, label: "6개월" },

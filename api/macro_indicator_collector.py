@@ -18,6 +18,24 @@ logger = logging.getLogger("uvicorn.error")
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 INDICATORS_YAML = PROJECT_ROOT / "config" / "indicators.yaml"
 API_KEY_DIR = PROJECT_ROOT / "API_KEY"
+_UNAVAILABLE_COLLECTORS: set[str] = set()
+
+_INDICATOR_OVERRIDES: dict[str, dict[str, Any]] = {
+    "USD_KRW": {
+        "source_type": "yahoo_quote",
+        "symbol": "USDKRW=X",
+        "unit": "원",
+        "frequency": "daily",
+        "stale_days": 3,
+    },
+    "BRENT": {
+        "source_type": "yahoo_quote",
+        "symbol": "BZ=F",
+        "unit": "USD",
+        "frequency": "daily",
+        "stale_days": 3,
+    },
+}
 
 
 def load_indicator_catalog() -> dict[str, dict[str, Any]]:
@@ -31,6 +49,14 @@ def get_indicator_meta(indicator: str) -> dict[str, Any] | None:
     return load_indicator_catalog().get(indicator)
 
 
+def resolve_indicator_meta(conn: sqlite3.Connection, indicator: str) -> dict[str, Any] | None:
+    meta = get_indicator_meta(indicator) or {}
+    inferred = _infer_indicator_meta(conn, indicator)
+    override = _INDICATOR_OVERRIDES.get(indicator, {})
+    resolved = {**inferred, **meta, **override}
+    return resolved or None
+
+
 def collect_indicator_history(
     conn: sqlite3.Connection,
     indicator: str,
@@ -41,12 +67,18 @@ def collect_indicator_history(
     if start > end:
         return 0
 
-    meta = get_indicator_meta(indicator)
+    meta = resolve_indicator_meta(conn, indicator)
     if not meta:
         logger.info("[macro_collector] %s has no indicator metadata; skipped", indicator)
         return 0
 
     source_type = (meta.get("source_type") or "").strip()
+    symbol = (meta.get("symbol") or indicator).strip()
+    collector_key = f"{source_type}:{symbol}"
+    if collector_key in _UNAVAILABLE_COLLECTORS:
+        logger.info("[macro_collector] %s is marked unavailable; skipped", collector_key)
+        return 0
+
     if source_type == "yahoo_quote":
         return _collect_yahoo_indicator(conn, indicator, meta, start, end)
     if source_type == "fred":
@@ -161,6 +193,8 @@ def _collect_fmp_capex(
             params={"period": "quarter", "limit": period_count, "apikey": api_key},
             timeout=15,
         )
+        if getattr(response, "status_code", None) in {401, 403}:
+            _UNAVAILABLE_COLLECTORS.add(f"fmp_capex:{symbol}")
         response.raise_for_status()
         payload = response.json()
     except Exception as exc:
@@ -189,6 +223,78 @@ def _collect_fmp_capex(
             continue
         rows.append((value_date.isoformat(), indicator, value, f"FMP:{symbol}", meta.get("unit") or "B USD"))
     return _upsert_indicator_rows(conn, rows)
+
+
+def _infer_indicator_meta(conn: sqlite3.Connection, indicator: str) -> dict[str, Any]:
+    frequency_column = _has_column(conn, "indicators", "frequency")
+    frequency_expr = ", frequency" if frequency_column else ""
+    row = conn.execute(
+        f"""
+        SELECT source, unit{frequency_expr} FROM indicators
+        WHERE indicator = ?
+        ORDER BY date DESC
+        LIMIT 1
+        """,
+        (indicator,),
+    ).fetchone()
+    if not row:
+        return {}
+
+    source = str(row["source"] or "")
+    unit = row["unit"]
+    raw_frequency = row["frequency"] if frequency_column else None
+    frequency = raw_frequency or ("quarterly" if source.startswith("FMP:") else "daily")
+    stale_days = _default_stale_days(str(frequency))
+
+    if source.startswith("Yahoo:"):
+        return {
+            "source_type": "yahoo_quote",
+            "symbol": source.split(":", 1)[1],
+            "unit": unit,
+            "frequency": frequency,
+            "stale_days": stale_days,
+        }
+    if source == "Yahoo":
+        return {
+            "source_type": "yahoo_quote",
+            "symbol": indicator,
+            "unit": unit,
+            "frequency": frequency,
+            "stale_days": stale_days,
+        }
+    if source.startswith("FRED:"):
+        return {
+            "source_type": "fred",
+            "symbol": source.split(":", 1)[1],
+            "unit": unit,
+            "frequency": frequency,
+            "stale_days": stale_days,
+        }
+    if source.startswith("FMP:"):
+        return {
+            "source_type": "fmp_capex",
+            "symbol": source.split(":", 1)[1],
+            "unit": unit or "B USD",
+            "frequency": frequency if frequency_column else "quarterly",
+            "stale_days": 100,
+        }
+    return {}
+
+
+def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any(row["name"] == column for row in rows)
+
+
+def _default_stale_days(frequency: str) -> int:
+    normalized = frequency.strip().lower()
+    if normalized == "quarterly":
+        return 100
+    if normalized == "monthly":
+        return 40
+    if normalized == "weekly":
+        return 10
+    return 3
 
 
 def _upsert_indicator_rows(conn: sqlite3.Connection, rows: list[tuple[str, str, float, str, str | None]]) -> int:

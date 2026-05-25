@@ -19,7 +19,7 @@ from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
 from .market_data_service import validate_market_data_coverage
 from .market_data_collector import collect_for_asset_codes
-from .macro_indicator_collector import collect_indicator_history, get_indicator_meta
+from .macro_indicator_collector import collect_indicator_history, resolve_indicator_meta
 from .strategy.triplea_allocator import TripleAAllocator
 from .strategy_config import list_risk_profiles, list_universe_ids
 
@@ -114,7 +114,13 @@ def get_macro_indicators(conn: sqlite3.Connection) -> List[MacroIndicator]:
 
 
 def _indicator_history_values(conn: sqlite3.Connection, indicator: str, days: int) -> list[float]:
-    return [point["value"] for point in get_indicator_history(conn, indicator, days) if point["value"] is not None]
+    end_date = date.today()
+    start = end_date - timedelta(days=max(1, min(int(days or 180), 365 * 5)))
+    return [
+        point["value"]
+        for point in _query_indicator_history(conn, indicator, start, end_date)
+        if point["value"] is not None
+    ]
 
 
 def _allocation_from_holdings(conn: sqlite3.Connection) -> dict[str, float]:
@@ -1537,35 +1543,20 @@ def get_indicator_history(conn: sqlite3.Connection, indicator: str, days: int = 
     end_date = date.today()
     start = end_date - timedelta(days=safe_days)
 
-    meta = get_indicator_meta(indicator) or {}
+    meta = resolve_indicator_meta(conn, indicator) or {}
     collect_start = _expanded_history_start(start, safe_days, meta)
-    earliest_in_db = _earliest_indicator_date(conn, indicator)
     latest_in_db = _latest_indicator_date(conn, indicator)
-    tolerance = _coverage_tolerance(meta)
 
-    # Collect when: (a) no data at all, (b) historical range not covered yet,
-    # or (c) recent data is stale — but only if we have metadata for this indicator.
-    missing_history = earliest_in_db is None or earliest_in_db > start + timedelta(days=tolerance)
-    # Skip re-collection when we already fetched as far back as collect_start would request
-    already_at_collect_start = (
-        earliest_in_db is not None
-        and earliest_in_db <= collect_start + timedelta(days=tolerance)
-    )
-    is_stale = _should_collect_indicator(latest_in_db, end_date, meta)
-
-    needs_collection = bool(meta) and (
-        (missing_history and not already_at_collect_start) or is_stale
-    )
-
-    if needs_collection:
+    if _needs_indicator_collection(conn, indicator, start, end_date, meta, latest_in_db):
         collect_indicator_history(conn, indicator, collect_start, end_date)
 
     rows = _query_indicator_history(conn, indicator, start, end_date)
     if rows:
         return rows
 
-    if collect_start < start:
-        return _query_indicator_history(conn, indicator, collect_start, end_date)
+    latest = _query_latest_indicator_point(conn, indicator, end_date)
+    if latest:
+        return [latest]
     return []
 
 
@@ -1610,6 +1601,46 @@ def _earliest_indicator_date(conn: sqlite3.Connection, indicator: str) -> date |
         return date.fromisoformat(str(earliest["min_date"])[:10])
     except ValueError:
         return None
+
+
+def _query_latest_indicator_point(
+    conn: sqlite3.Connection,
+    indicator: str,
+    end: date,
+) -> dict[str, float | str] | None:
+    row = conn.execute(
+        """
+        SELECT date, value FROM indicators
+        WHERE indicator = ? AND date <= ?
+        ORDER BY date DESC
+        LIMIT 1
+        """,
+        (indicator, end.isoformat()),
+    ).fetchone()
+    if not row:
+        return None
+    return {"date": row["date"], "value": row["value"]}
+
+
+def _needs_indicator_collection(
+    conn: sqlite3.Connection,
+    indicator: str,
+    start: date,
+    end: date,
+    meta: dict,
+    latest_date: date | None,
+) -> bool:
+    if not meta:
+        return False
+    earliest_date = _earliest_indicator_date(conn, indicator)
+    if earliest_date is None:
+        return True
+    if meta.get("source_type") == "fmp_capex":
+        return False
+    if _should_collect_indicator(latest_date, end, meta):
+        return True
+    tolerance = _coverage_tolerance(meta)
+    return earliest_date > start + timedelta(days=tolerance)
 
 
 def _should_collect_indicator(latest_date: date | None, end_date: date, meta: dict) -> bool:
