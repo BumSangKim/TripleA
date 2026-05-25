@@ -1536,22 +1536,36 @@ def get_indicator_history(conn: sqlite3.Connection, indicator: str, days: int = 
     safe_days = max(1, min(int(days or 180), 365 * 5))
     end_date = date.today()
     start = end_date - timedelta(days=safe_days)
+
+    meta = get_indicator_meta(indicator) or {}
+    collect_start = _expanded_history_start(start, safe_days, meta)
+    earliest_in_db = _earliest_indicator_date(conn, indicator)
+    latest_in_db = _latest_indicator_date(conn, indicator)
+    tolerance = _coverage_tolerance(meta)
+
+    # Collect when: (a) no data at all, (b) historical range not covered yet,
+    # or (c) recent data is stale — but only if we have metadata for this indicator.
+    missing_history = earliest_in_db is None or earliest_in_db > start + timedelta(days=tolerance)
+    # Skip re-collection when we already fetched as far back as collect_start would request
+    already_at_collect_start = (
+        earliest_in_db is not None
+        and earliest_in_db <= collect_start + timedelta(days=tolerance)
+    )
+    is_stale = _should_collect_indicator(latest_in_db, end_date, meta)
+
+    needs_collection = bool(meta) and (
+        (missing_history and not already_at_collect_start) or is_stale
+    )
+
+    if needs_collection:
+        collect_indicator_history(conn, indicator, collect_start, end_date)
+
     rows = _query_indicator_history(conn, indicator, start, end_date)
     if rows:
         return rows
 
-    meta = get_indicator_meta(indicator) or {}
-    latest_date = _latest_indicator_date(conn, indicator)
-    if _should_collect_indicator(latest_date, end_date, meta):
-        collect_start = _expanded_history_start(start, safe_days, meta)
-        collect_indicator_history(conn, indicator, collect_start, end_date)
-        rows = _query_indicator_history(conn, indicator, start, end_date)
-        if rows:
-            return rows
-
-    fallback_start = _expanded_history_start(start, safe_days, meta)
-    if fallback_start < start:
-        return _query_indicator_history(conn, indicator, fallback_start, end_date)
+    if collect_start < start:
+        return _query_indicator_history(conn, indicator, collect_start, end_date)
     return []
 
 
@@ -1585,6 +1599,19 @@ def _latest_indicator_date(conn: sqlite3.Connection, indicator: str) -> date | N
         return None
 
 
+def _earliest_indicator_date(conn: sqlite3.Connection, indicator: str) -> date | None:
+    earliest = conn.execute(
+        "SELECT MIN(date) AS min_date FROM indicators WHERE indicator = ?",
+        (indicator,),
+    ).fetchone()
+    if not earliest or not earliest["min_date"]:
+        return None
+    try:
+        return date.fromisoformat(str(earliest["min_date"])[:10])
+    except ValueError:
+        return None
+
+
 def _should_collect_indicator(latest_date: date | None, end_date: date, meta: dict) -> bool:
     if not meta:
         return False
@@ -1592,6 +1619,18 @@ def _should_collect_indicator(latest_date: date | None, end_date: date, meta: di
         return True
     stale_days = int(meta.get("stale_days") or 0)
     return stale_days > 0 and latest_date < end_date - timedelta(days=stale_days)
+
+
+def _coverage_tolerance(meta: dict) -> int:
+    """Acceptable gap (days) between requested start and earliest DB data before triggering collection."""
+    frequency = (meta.get("frequency") or "").strip().lower()
+    if frequency == "quarterly":
+        return 120
+    if frequency == "monthly":
+        return 60
+    if frequency == "weekly":
+        return 14
+    return 7
 
 
 def _expanded_history_start(start: date, requested_days: int, meta: dict) -> date:
