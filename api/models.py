@@ -252,6 +252,19 @@ class BacktestTrade(BaseModel):
     reason: Optional[str] = None
 
 
+class BacktestDecision(BaseModel):
+    date: str
+    strategyMode: str
+    riskProfile: Optional[str] = None
+    universeId: Optional[str] = None
+    macroRegime: Optional[str] = None
+    macroScore: Optional[int] = None
+    bucketWeights: dict[str, float] = Field(default_factory=dict)
+    finalWeights: dict[str, float] = Field(default_factory=dict)
+    bottleneckScores: dict[str, float] = Field(default_factory=dict)
+    reasons: List[str] = Field(default_factory=list)
+
+
 class BacktestRunResponse(BaseModel):
     ok: bool
     runId: int
@@ -276,6 +289,7 @@ class BacktestRunResponse(BaseModel):
     points: List[BacktestPoint]
     positions: List[BacktestPosition] = Field(default_factory=list)
     trades: List[BacktestTrade] = Field(default_factory=list)
+    decisions: List[BacktestDecision] = Field(default_factory=list)
     createdAt: Optional[str] = None
 
 

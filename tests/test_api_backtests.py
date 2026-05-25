@@ -100,6 +100,8 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     assert isinstance(body["totalReturn"], float)
     assert isinstance(body["annualReturn"], float)
     assert body["maxDrawdown"] >= 0
+    assert body["decisions"]
+    assert body["decisions"][0]["finalWeights"]
 
     conn = sqlite3.connect(db_path)
     run_count = conn.execute("SELECT COUNT(*) FROM backtest_runs").fetchone()[0]
@@ -148,6 +150,16 @@ def test_backtest_runs_are_listed_and_detail_can_be_loaded(backtest_client):
     detail_res = client.get(f"/api/backtests/runs/{created['runId']}")
     assert detail_res.status_code == 200
     assert detail_res.json()["name"] == "Default target test"
+
+    decision_res = client.get(f"/api/backtests/runs/{created['runId']}/decisions")
+    trade_res = client.get(f"/api/backtests/runs/{created['runId']}/trades")
+    position_res = client.get(f"/api/backtests/runs/{created['runId']}/positions")
+    assert decision_res.status_code == 200
+    assert trade_res.status_code == 200
+    assert position_res.status_code == 200
+    assert decision_res.json()[0]["macroRegime"] == "neutral"
+    assert trade_res.json()
+    assert position_res.json()
 
 
 def test_backtest_rejects_invalid_request(backtest_client):

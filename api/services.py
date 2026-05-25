@@ -13,6 +13,7 @@ from .models import (
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RiskBudgetItem, OrderDraftResponse, OrderItem,
     BacktestRunRequest, BacktestRunResponse, BacktestPoint, BacktestPosition, BacktestTrade,
+    BacktestDecision,
 )
 from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
@@ -956,6 +957,14 @@ def get_backtest_run(
         WHERE run_id=?
         ORDER BY trade_date ASC, id ASC
     """, (run_id,)).fetchall()
+    decision_rows = conn.execute("""
+        SELECT decision_date, strategy_mode, risk_profile, universe_id,
+               macro_regime, macro_score, bucket_weights_json,
+               final_weights_json, bottleneck_scores_json, reasons_json
+        FROM backtest_decisions
+        WHERE run_id=?
+        ORDER BY decision_date ASC, id ASC
+    """, (run_id,)).fetchall()
     return BacktestRunResponse(
         ok=True,
         runId=row["id"],
@@ -1014,8 +1023,123 @@ def get_backtest_run(
             )
             for trade in trade_rows
         ],
+        decisions=[
+            _backtest_decision_from_row(decision)
+            for decision in decision_rows
+        ],
         createdAt=row["created_at"],
     )
+
+
+def get_backtest_positions(
+    conn: sqlite3.Connection,
+    run_id: int,
+) -> list[BacktestPosition]:
+    _ensure_backtest_run(conn, run_id)
+    rows = conn.execute("""
+        SELECT point_date, asset_code, quantity, price, fx_rate, market_value, weight
+        FROM backtest_positions
+        WHERE run_id=?
+        ORDER BY point_date ASC, id ASC
+    """, (run_id,)).fetchall()
+    return [
+        BacktestPosition(
+            date=row["point_date"],
+            assetCode=row["asset_code"],
+            quantity=row["quantity"],
+            price=row["price"],
+            fxRate=row["fx_rate"],
+            marketValue=row["market_value"],
+            weight=row["weight"],
+        )
+        for row in rows
+    ]
+
+
+def get_backtest_trades(
+    conn: sqlite3.Connection,
+    run_id: int,
+) -> list[BacktestTrade]:
+    _ensure_backtest_run(conn, run_id)
+    rows = conn.execute("""
+        SELECT trade_date, asset_code, side, quantity, price, fx_rate,
+               gross_amount, fee, slippage, tax, net_amount, reason
+        FROM backtest_trades
+        WHERE run_id=?
+        ORDER BY trade_date ASC, id ASC
+    """, (run_id,)).fetchall()
+    return [
+        BacktestTrade(
+            date=row["trade_date"],
+            assetCode=row["asset_code"],
+            side=row["side"],
+            quantity=row["quantity"],
+            price=row["price"],
+            fxRate=row["fx_rate"],
+            grossAmount=row["gross_amount"],
+            fee=row["fee"],
+            slippage=row["slippage"],
+            tax=row["tax"],
+            netAmount=row["net_amount"],
+            reason=row["reason"],
+        )
+        for row in rows
+    ]
+
+
+def get_backtest_decisions(
+    conn: sqlite3.Connection,
+    run_id: int,
+) -> list[BacktestDecision]:
+    _ensure_backtest_run(conn, run_id)
+    rows = conn.execute("""
+        SELECT decision_date, strategy_mode, risk_profile, universe_id,
+               macro_regime, macro_score, bucket_weights_json,
+               final_weights_json, bottleneck_scores_json, reasons_json
+        FROM backtest_decisions
+        WHERE run_id=?
+        ORDER BY decision_date ASC, id ASC
+    """, (run_id,)).fetchall()
+    return [_backtest_decision_from_row(row) for row in rows]
+
+
+def _ensure_backtest_run(conn: sqlite3.Connection, run_id: int) -> None:
+    row = conn.execute("SELECT 1 FROM backtest_runs WHERE id=?", (run_id,)).fetchone()
+    if not row:
+        raise KeyError(f"backtest run {run_id} not found")
+
+
+def _backtest_decision_from_row(row) -> BacktestDecision:
+    return BacktestDecision(
+        date=row["decision_date"],
+        strategyMode=row["strategy_mode"],
+        riskProfile=row["risk_profile"],
+        universeId=row["universe_id"],
+        macroRegime=row["macro_regime"],
+        macroScore=row["macro_score"],
+        bucketWeights=_decode_json_object(row["bucket_weights_json"]),
+        finalWeights=_decode_json_object(row["final_weights_json"]),
+        bottleneckScores=_decode_json_object(row["bottleneck_scores_json"]),
+        reasons=_decode_json_list(row["reasons_json"]),
+    )
+
+
+def _decode_json_object(value: str | None) -> dict[str, float]:
+    if not value:
+        return {}
+    parsed = json.loads(value)
+    if not isinstance(parsed, dict):
+        return {}
+    return {str(key): float(item) for key, item in parsed.items()}
+
+
+def _decode_json_list(value: str | None) -> list[str]:
+    if not value:
+        return []
+    parsed = json.loads(value)
+    if not isinstance(parsed, list):
+        return []
+    return [str(item) for item in parsed]
 
 
 def _parse_backtest_date(value: str, field_name: str) -> date:

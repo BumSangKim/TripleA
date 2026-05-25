@@ -25,7 +25,7 @@ from .models import (
     AccountPolicyItem, AccountSnapshotCreate, AccountSnapshotItem,
     RebalanceResultItem, RebalanceRunResponse, RiskBudgetItem, ProviderSyncResult,
     OrderDraftRequest, OrderDraftResponse, OrderExecuteRequest,
-    BacktestRunRequest, BacktestRunResponse,
+    BacktestRunRequest, BacktestRunResponse, BacktestDecision, BacktestPosition, BacktestTrade,
     AssetUniverseItem, MarketDataCoverageResponse, AssetCoverageItem, FxCoverageItem,
 )
 from .kis import KISAPIError, KISConfigError, KISNetworkError
@@ -45,7 +45,15 @@ from .services import (
     record_rebalance_results, get_rebalance_results,
     create_order_draft, approve_order_draft, list_order_drafts,
     run_backtest, list_backtest_runs, get_backtest_run,
+    get_backtest_decisions, get_backtest_positions, get_backtest_trades,
     get_risk_budget_items,
+)
+from .strategy_config import (
+    list_risk_profiles,
+    list_universe_ids,
+    load_investment_universe,
+    load_sector_taxonomy,
+    load_strategy_profile,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -483,6 +491,55 @@ def backtest_run(run_id: int):
             return get_backtest_run(conn, run_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.get("/api/backtests/runs/{run_id}/decisions", response_model=List[BacktestDecision], tags=["backtests"])
+def backtest_decisions(run_id: int):
+    try:
+        with get_conn() as conn:
+            return get_backtest_decisions(conn, run_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.get("/api/backtests/runs/{run_id}/positions", response_model=List[BacktestPosition], tags=["backtests"])
+def backtest_positions(run_id: int):
+    try:
+        with get_conn() as conn:
+            return get_backtest_positions(conn, run_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.get("/api/backtests/runs/{run_id}/trades", response_model=List[BacktestTrade], tags=["backtests"])
+def backtest_trades(run_id: int):
+    try:
+        with get_conn() as conn:
+            return get_backtest_trades(conn, run_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+# ── Strategy Metadata ────────────────────────────────────────────────
+@app.get("/api/strategy/universes", tags=["strategy"])
+def strategy_universes():
+    return {
+        universe_id: load_investment_universe(universe_id)
+        for universe_id in list_universe_ids()
+    }
+
+
+@app.get("/api/strategy/profiles", tags=["strategy"])
+def strategy_profiles():
+    return {
+        profile_id: load_strategy_profile(profile_id)
+        for profile_id in list_risk_profiles()
+    }
+
+
+@app.get("/api/strategy/sector-taxonomy", tags=["strategy"])
+def strategy_sector_taxonomy():
+    return load_sector_taxonomy()
 
 
 # ── Market Data ──────────────────────────────────────────────────────
