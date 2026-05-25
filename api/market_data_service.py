@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 
 @dataclass(frozen=True)
@@ -255,6 +255,7 @@ def _validate_asset_coverage(
             ok=True,
         )
 
+    # start_row: start 날짜가 휴장일/주말일 경우 max_stale_days 이내의 다음 거래일을 허용
     start_row = conn.execute(
         """
         SELECT price_date
@@ -263,7 +264,7 @@ def _validate_asset_coverage(
         ORDER BY price_date DESC
         LIMIT 1
         """,
-        (asset_code, start.isoformat()),
+        (asset_code, (start + timedelta(days=max_stale_days)).isoformat()),
     ).fetchone()
     end_row = conn.execute(
         """
@@ -318,6 +319,7 @@ def _validate_fx_coverage(
     end: date,
     max_stale_days: int,
 ) -> FxCoverage:
+    # start_row: start 날짜가 휴장일/주말일 경우 max_stale_days 이내의 다음 거래일을 허용
     start_row = conn.execute(
         """
         SELECT rate_date
@@ -326,7 +328,7 @@ def _validate_fx_coverage(
         ORDER BY rate_date DESC
         LIMIT 1
         """,
-        (base_currency, quote_currency, start.isoformat()),
+        (base_currency, quote_currency, (start + timedelta(days=max_stale_days)).isoformat()),
     ).fetchone()
     end_row = conn.execute(
         """
