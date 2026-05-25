@@ -183,8 +183,13 @@ def test_backtest_rejects_invalid_request(backtest_client):
     assert "startDate" in res.json()["detail"]
 
 
-def test_backtest_rejects_missing_market_data(backtest_client):
+def test_backtest_rejects_missing_market_data(backtest_client, monkeypatch):
+    """수집기가 아무 데이터도 가져오지 못한 경우 400 반환."""
     client, _ = backtest_client
+
+    # 수집기가 빈 결과를 반환하도록 mock (네트워크 없는 환경 시뮬레이션)
+    import api.services as svc
+    monkeypatch.setattr(svc, "collect_for_asset_codes", lambda *a, **k: {})
 
     res = client.post(
         "/api/backtests/run",
@@ -199,6 +204,40 @@ def test_backtest_rejects_missing_market_data(backtest_client):
 
     assert res.status_code == 400
     assert "Market data coverage is insufficient" in res.json()["detail"]
+
+
+def test_backtest_auto_collects_and_runs(backtest_client, monkeypatch):
+    """커버리지 부족 시 수집기가 호출되고, 수집 후 백테스트가 성공적으로 완료된다."""
+    client, db_path = backtest_client
+
+    import api.services as svc
+
+    collected: list[str] = []
+
+    def mock_collect(conn, asset_codes, start, end):
+        # 수집기 호출을 기록하고 DB에 테스트 데이터 삽입
+        collected.extend(asset_codes)
+        seed_market_data(db_path, start.isoformat(), end.isoformat())
+        return {code: 2 for code in asset_codes}
+
+    monkeypatch.setattr(svc, "collect_for_asset_codes", mock_collect)
+
+    res = client.post(
+        "/api/backtests/run",
+        json={
+            "name": "Auto-collect test",
+            "startDate": "2023-01-01",
+            "endDate": "2023-06-30",
+            "initialCapital": 50000000,
+            "rebalanceFrequency": "quarterly",
+        },
+    )
+
+    assert res.status_code == 200, res.text
+    assert collected, "collect_for_asset_codes should have been called"
+    body = res.json()
+    assert body["ok"] is True
+    assert len(body["points"]) > 0
 
 
 def test_backtest_rejects_manual_targets_contract(backtest_client):

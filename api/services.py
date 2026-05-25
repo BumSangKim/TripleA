@@ -17,6 +17,8 @@ from .models import (
 )
 from .modes import TradingMode
 from .backtest_engine import BacktestConfig, BacktestEngine
+from .market_data_service import validate_market_data_coverage
+from .market_data_collector import collect_for_asset_codes
 from .strategy.triplea_allocator import TripleAAllocator
 from .strategy_config import list_risk_profiles, list_universe_ids
 
@@ -800,6 +802,21 @@ def run_backtest(
         universe_id=universe_id,
         strategy_mode=strategy_mode,
     )
+
+    # 커버리지 확인 → 부족하면 자동 수집
+    asset_codes = allocator.asset_codes()
+    coverage = validate_market_data_coverage(conn, asset_codes, start, end)
+    if not coverage.ok:
+        import logging
+        logger = logging.getLogger("uvicorn.error")
+        missing = "; ".join(coverage.missing_messages)
+        logger.info("[run_backtest] coverage insufficient (%s) — collecting data", missing)
+        collect_for_asset_codes(conn, asset_codes, start, end)
+        # 수집 후 재검증 (여전히 부족하면 엔진이 명확한 오류를 발생시킴)
+        coverage = validate_market_data_coverage(conn, asset_codes, start, end)
+        if not coverage.ok:
+            logger.warning("[run_backtest] coverage still incomplete after collection: %s", "; ".join(coverage.missing_messages))
+
     result = BacktestEngine(conn, allocator=allocator).run(
         BacktestConfig(
             start_date=start,
