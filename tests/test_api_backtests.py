@@ -110,6 +110,10 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
         "SELECT final_weights_json FROM backtest_decisions WHERE run_id=? ORDER BY decision_date",
         (body["runId"],),
     ).fetchall()
+    sector_decision_count = conn.execute(
+        "SELECT COUNT(*) FROM backtest_sector_decisions WHERE run_id=?",
+        (body["runId"],),
+    ).fetchone()[0]
     conn.close()
     assert run_count == 1
     assert point_count == len(body["points"])
@@ -119,6 +123,7 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     final_weights = json.loads(decision_rows[0][0])
     assert "SMH" not in final_weights
     assert final_weights["CASH_KRW"] == 0.15
+    assert sector_decision_count >= len(decision_rows)
     assert position_count > 0
     assert trade_count > 0
     assert body["trades"][0]["fee"] > 0

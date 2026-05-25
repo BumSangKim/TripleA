@@ -25,6 +25,7 @@ class AllocationDecision:
     final_weights: dict[str, float]
     reasons: list[str]
     bottleneck_scores: dict[str, float] = field(default_factory=dict)
+    sector_scores: list[SectorBottleneckScore] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

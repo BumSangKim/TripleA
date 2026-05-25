@@ -892,14 +892,14 @@ def run_backtest(
         )
         for trade in result.trades
     ])
-    conn.executemany("""
-        INSERT INTO backtest_decisions
-        (run_id, decision_date, strategy_mode, risk_profile, universe_id,
-         macro_regime, macro_score, bucket_weights_json, final_weights_json,
-         bottleneck_scores_json, reasons_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, [
-        (
+    for decision in result.decisions:
+        decision_cur = conn.execute("""
+            INSERT INTO backtest_decisions
+            (run_id, decision_date, strategy_mode, risk_profile, universe_id,
+             macro_regime, macro_score, bucket_weights_json, final_weights_json,
+             bottleneck_scores_json, reasons_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
             run_id,
             decision.as_of_date.isoformat(),
             decision.strategy_mode,
@@ -911,9 +911,30 @@ def run_backtest(
             json.dumps(decision.final_weights, ensure_ascii=False, sort_keys=True),
             json.dumps(decision.bottleneck_scores, ensure_ascii=False, sort_keys=True),
             json.dumps(decision.reasons, ensure_ascii=False),
-        )
-        for decision in result.decisions
-    ])
+        ))
+        decision_id = int(decision_cur.lastrowid)
+        conn.executemany("""
+            INSERT INTO backtest_sector_decisions
+            (run_id, decision_id, decision_date, sector_code, total_score,
+             trade_score, demand_score, supply_score, relative_strength_score,
+             regime, reasons_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, [
+            (
+                run_id,
+                decision_id,
+                decision.as_of_date.isoformat(),
+                score.sector_code,
+                score.total_score,
+                score.trade_score,
+                score.demand_score,
+                score.supply_score,
+                score.relative_strength_score,
+                score.regime,
+                json.dumps(score.reasons, ensure_ascii=False),
+            )
+            for score in decision.sector_scores
+        ])
     conn.commit()
     return get_backtest_run(conn, run_id)
 

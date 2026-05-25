@@ -11,7 +11,7 @@ from .bottleneck_sector_engine import BottleneckSectorEngine
 from .macro_engine import MacroEngine, MacroRegimeDecision
 from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
 from .sector_tilt_engine import SectorTiltEngine
-from .types import AllocationDecision
+from .types import AllocationDecision, SectorBottleneckScore
 
 
 class TripleAAllocator:
@@ -61,7 +61,7 @@ class TripleAAllocator:
         previous_weights: dict[str, float] | None = None,
     ) -> AllocationDecision:
         macro = MacroEngine(self.conn).evaluate(as_of_date)
-        final_weights, bucket_weights, profile_reasons, bottleneck_scores = self._profile_weights(
+        final_weights, bucket_weights, profile_reasons, bottleneck_scores, sector_scores = self._profile_weights(
             as_of_date,
             macro,
         )
@@ -90,6 +90,7 @@ class TripleAAllocator:
             bucket_weights=bucket_weights,
             final_weights=final_weights,
             bottleneck_scores=bottleneck_scores,
+            sector_scores=sector_scores,
             reasons=reasons,
         )
 
@@ -97,7 +98,7 @@ class TripleAAllocator:
         self,
         as_of_date: date,
         macro: MacroRegimeDecision,
-    ) -> tuple[dict[str, float], dict[str, float], list[str], dict[str, float]]:
+    ) -> tuple[dict[str, float], dict[str, float], list[str], dict[str, float], list[SectorBottleneckScore]]:
         universe = load_investment_universe(self.universe_id)
         profile = _macro_adjusted_profile(load_strategy_profile(self.risk_profile), macro.regime)
         assets = universe.get("assets") or []
@@ -137,6 +138,7 @@ class TripleAAllocator:
             risk_result.bucket_weights,
             [*tilt_result.reasons, *risk_result.reasons],
             {score.sector_code: score.total_score for score in sector_scores},
+            sector_scores,
         )
 
     def _assign_bucket(
