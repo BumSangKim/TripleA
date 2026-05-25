@@ -27,6 +27,15 @@ def test_power_bottleneck_indicators_registered():
         assert indicators[key]["report_section"] == "전력 병목"
 
 
+def test_capex_indicators_are_chart_enabled():
+    data = yaml.safe_load(INDICATORS_YAML.read_text(encoding="utf-8"))
+    indicators = data["indicators"]
+    capex_keys = ["CAPEX_MSFT", "CAPEX_GOOGL", "CAPEX_META", "CAPEX_AMZN", "CAPEX_NEE", "CAPEX_DUK", "CAPEX_SO"]
+
+    for key in capex_keys:
+        assert indicators[key]["chart"] is True
+
+
 def test_economic_events_yaml_contains_required_events():
     data = yaml.safe_load(ECONOMIC_EVENTS_YAML.read_text(encoding="utf-8"))
     names = {event["name"] for event in data["events"]}

@@ -249,7 +249,7 @@ indicators:
     stale_days: 100
     layer: ai_bottleneck
     report_section: "AI 병목"
-    chart: false
+    chart: true
 
   CAPEX_GOOGL:
     id: CAPEX_GOOGL
@@ -261,7 +261,7 @@ indicators:
     stale_days: 100
     layer: ai_bottleneck
     report_section: "AI 병목"
-    chart: false
+    chart: true
 
   CAPEX_META:
     id: CAPEX_META
@@ -273,7 +273,7 @@ indicators:
     stale_days: 100
     layer: ai_bottleneck
     report_section: "AI 병목"
-    chart: false
+    chart: true
 
   CAPEX_AMZN:
     id: CAPEX_AMZN
@@ -285,7 +285,7 @@ indicators:
     stale_days: 100
     layer: ai_bottleneck
     report_section: "AI 병목"
-    chart: false
+    chart: true
 
   SMH:
     id: SMH
@@ -417,7 +417,7 @@ indicators:
     stale_days: 100
     layer: power
     report_section: "전력 병목"
-    chart: false
+    chart: true
 
   CAPEX_DUK:
     id: CAPEX_DUK
@@ -429,7 +429,7 @@ indicators:
     stale_days: 100
     layer: power
     report_section: "전력 병목"
-    chart: false
+    chart: true
 
   CAPEX_SO:
     id: CAPEX_SO
@@ -441,4 +441,4 @@ indicators:
     stale_days: 100
     layer: power
     report_section: "전력 병목"
-    chart: false
+    chart: true

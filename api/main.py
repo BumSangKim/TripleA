@@ -46,7 +46,7 @@ from .services import (
     create_order_draft, approve_order_draft, list_order_drafts,
     run_backtest, list_backtest_runs, get_backtest_run,
     get_backtest_decisions, get_backtest_positions, get_backtest_trades,
-    get_risk_budget_items,
+    get_risk_budget_items, get_indicator_history,
 )
 from .strategy_config import (
     list_risk_profiles,
@@ -252,29 +252,15 @@ def macro_summary():
 @app.get("/api/macro/history/{indicator}", tags=["macro"])
 def macro_history(indicator: str, days: int = 30):
     """지표 히스토리 반환. days 기준으로 최근 N일치 (오름차순)"""
-    from datetime import date, timedelta as td
-    start = (date.today() - td(days=days)).isoformat()
     with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT date, value FROM indicators
-            WHERE indicator = ? AND date >= ?
-            ORDER BY date ASC
-        """, (indicator, start)).fetchall()
-    return [{"date": r["date"], "value": r["value"]} for r in rows]
+        return get_indicator_history(conn, indicator, days)
 
 
 @app.get("/api/indicators/{key}/history", tags=["macro"])
 def indicator_history(key: str, days: int = 180):
     """차트용 지표 히스토리 (alias)"""
-    from datetime import date, timedelta as td
-    start = (date.today() - td(days=days)).isoformat()
     with get_conn() as conn:
-        rows = conn.execute("""
-            SELECT date, value FROM indicators
-            WHERE indicator = ? AND date >= ?
-            ORDER BY date ASC
-        """, (key, start)).fetchall()
-    return [{"date": r["date"], "value": r["value"]} for r in rows]
+        return get_indicator_history(conn, key, days)
 
 
 # ── Accounts ─────────────────────────────────────────────────────────

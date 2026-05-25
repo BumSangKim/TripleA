@@ -5,7 +5,7 @@ api/services.py
 from __future__ import annotations
 import json
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 from typing import List, Optional
 from .models import (
     MacroIndicator, TargetItem, SuggestionItem, AlertItem,
@@ -41,75 +41,79 @@ MACRO_KEY_MAP = {
     "USD_KRW":      {"name": "USD/KRW",       "unit": "원"},
     "WTI":          {"name": "WTI 유가",      "unit": "$"},
     "DXY":          {"name": "달러인덱스",     "unit": "pt"},
+    "CAPEX_MSFT":   {"name": "Microsoft CapEx", "unit": "B USD"},
+    "CAPEX_GOOGL":  {"name": "Alphabet CapEx", "unit": "B USD"},
+    "CAPEX_META":   {"name": "Meta CapEx",      "unit": "B USD"},
+    "CAPEX_AMZN":   {"name": "Amazon CapEx",    "unit": "B USD"},
+    "CAPEX_NEE":    {"name": "NextEra CapEx",   "unit": "B USD"},
+    "CAPEX_DUK":    {"name": "Duke Energy CapEx", "unit": "B USD"},
+    "CAPEX_SO":     {"name": "Southern CapEx",  "unit": "B USD"},
 }
 
 PREFERRED_MACRO_KEYS = [
     "CPIAUCSL", "cpi", "FEDFUNDS", "interest",
     "UNRATE", "unemployment", "USD_KRW", "exchange_usd",
-    "VIXCLS", "vix", "ISM_PMI", "pmi", "DGS10", "T10Y2Y", "WTI", "DXY"
+    "VIXCLS", "vix", "ISM_PMI", "pmi", "DGS10", "T10Y2Y", "WTI", "DXY",
+    "CPI", "BASE_RATE", "UNEMPLOYMENT", "US_CPI", "FED_RATE", "US10Y",
+    "PMI_SDT", "CAPEX_MSFT", "CAPEX_GOOGL", "CAPEX_META", "CAPEX_AMZN",
+    "ERCOT_LOAD_MW", "ERCOT_RESERVE_MARGIN", "PJM_LOAD_MW",
+    "CAPEX_NEE", "CAPEX_DUK", "CAPEX_SO",
 ]
 
 
 def get_macro_indicators(conn: sqlite3.Connection) -> List[MacroIndicator]:
-    """DB에서 최신 경제지표 로드 (최대 12개)"""
+    """DB에서 최신 경제지표와 스파크라인 히스토리를 로드."""
     rows = conn.execute("""
-        SELECT i.indicator, i.value, i.unit, i.date, i.source,
-               prev.value AS prev_value
-        FROM indicators i
-        INNER JOIN (
+        WITH latest AS (
             SELECT indicator, MAX(date) AS max_date
             FROM indicators GROUP BY indicator
-        ) latest ON i.indicator = latest.indicator AND i.date = latest.max_date
-        LEFT JOIN (
-            SELECT indicator, value, date FROM indicators
-        ) prev ON prev.indicator = i.indicator AND prev.date < i.date
+        )
+        SELECT i.indicator, i.value, i.unit, i.date, i.source,
+               (
+                   SELECT p.value
+                   FROM indicators p
+                   WHERE p.indicator = i.indicator AND p.date < i.date
+                   ORDER BY p.date DESC
+                   LIMIT 1
+               ) AS prev_value
+        FROM indicators i
+        INNER JOIN latest ON i.indicator = latest.indicator AND i.date = latest.max_date
         ORDER BY i.indicator
     """).fetchall()
 
     rows_dict = {r["indicator"]: r for r in rows}
     result = []
 
-    for key in PREFERRED_MACRO_KEYS:
-        if key in rows_dict:
-            r = rows_dict[key]
-            meta = MACRO_KEY_MAP.get(key, {"name": key, "unit": r["unit"] or ""})
-            val = r["value"]
-            prev = r["prev_value"]
-            change = round(val - prev, 4) if val is not None and prev is not None else None
-            if change is None:
-                status = "stable"
-            elif change > 0:
-                status = "rising"
-            else:
-                status = "falling"
-            result.append(MacroIndicator(
-                key=key,
-                name=meta["name"],
-                value=val,
-                unit=r["unit"] or meta["unit"],
-                change=change,
-                status=status,
-                date=r["date"],
-            ))
+    ordered_keys = [key for key in PREFERRED_MACRO_KEYS if key in rows_dict]
+    ordered_keys.extend(sorted(key for key in rows_dict if key not in set(PREFERRED_MACRO_KEYS)))
 
-    # 지정 키 외 나머지도 추가 (최대 12개)
-    for key, r in rows_dict.items():
-        if len(result) >= 12:
-            break
-        if key in PREFERRED_MACRO_KEYS:
-            continue
+    for key in ordered_keys:
+        r = rows_dict[key]
         meta = MACRO_KEY_MAP.get(key, {"name": key, "unit": r["unit"] or ""})
         val = r["value"]
+        prev = r["prev_value"]
+        change = round(val - prev, 4) if val is not None and prev is not None else None
+        if change is None:
+            status = "stable"
+        elif change > 0:
+            status = "rising"
+        else:
+            status = "falling"
         result.append(MacroIndicator(
             key=key,
             name=meta["name"],
             value=val,
             unit=r["unit"] or meta["unit"],
-            change=None,
-            status="stable",
+            change=change,
+            status=status,
             date=r["date"],
+            history=_indicator_history_values(conn, key, days=365 * 5),
         ))
     return result
+
+
+def _indicator_history_values(conn: sqlite3.Connection, indicator: str, days: int) -> list[float]:
+    return [point["value"] for point in get_indicator_history(conn, indicator, days) if point["value"] is not None]
 
 
 def _allocation_from_holdings(conn: sqlite3.Connection) -> dict[str, float]:
@@ -1527,11 +1531,24 @@ def build_insights(macro: list, kpi: KPISummary) -> Insights:
 
 
 def get_indicator_history(conn: sqlite3.Connection, indicator: str, days: int = 180) -> list:
-    """특정 지표의 히스토리 반환 (chart용)"""
+    """특정 지표의 최근 N일 히스토리 반환 (chart용)."""
+    safe_days = max(1, min(int(days or 180), 365 * 5))
+    latest = conn.execute(
+        "SELECT MAX(date) AS max_date FROM indicators WHERE indicator = ?",
+        (indicator,),
+    ).fetchone()
+    if not latest or not latest["max_date"]:
+        return []
+
+    try:
+        end_date = date.fromisoformat(str(latest["max_date"])[:10])
+    except ValueError:
+        return []
+    start = (end_date - timedelta(days=safe_days)).isoformat()
+
     rows = conn.execute("""
         SELECT date, value FROM indicators
-        WHERE indicator = ?
+        WHERE indicator = ? AND date >= ?
         ORDER BY date ASC
-        LIMIT ?
-    """, (indicator, days)).fetchall()
+    """, (indicator, start)).fetchall()
     return [{"date": r["date"], "value": r["value"]} for r in rows]

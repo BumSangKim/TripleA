@@ -38,6 +38,8 @@ def test_db():
             ("CPIAUCSL", 3.4, "%", "2024-05-01", "FRED"),
             ("FEDFUNDS", 5.5, "%", "2024-05-01", "FRED"),
             ("UNRATE",   3.9, "%", "2024-05-01", "FRED"),
+            ("CAPEX_MSFT", 12.3, "B USD", "2023-03-31", "FMP:MSFT"),
+            ("CAPEX_MSFT", 15.7, "B USD", "2024-03-31", "FMP:MSFT"),
         ]
     )
     conn.commit()
@@ -208,6 +210,22 @@ class TestMacroEndpoints:
         for item in data:
             assert "date" in item
             assert "value" in item
+
+    def test_macro_summary_includes_capex_history(self, client):
+        res = client.get("/api/macro/summary")
+        assert res.status_code == 200
+        indicators = {item["key"]: item for item in res.json()}
+
+        capex = indicators["CAPEX_MSFT"]
+        assert capex["name"] == "Microsoft CapEx"
+        assert capex["history"] == [12.3, 15.7]
+
+    def test_macro_history_supports_five_year_range(self, client):
+        res = client.get("/api/macro/history/CAPEX_MSFT?days=1825")
+        assert res.status_code == 200
+
+        data = res.json()
+        assert [item["date"] for item in data] == ["2023-03-31", "2024-03-31"]
 
 
 # ── 목표 관리 ────────────────────────────────────────────────────────
