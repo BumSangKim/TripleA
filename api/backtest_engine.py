@@ -328,7 +328,13 @@ def _rebalance(
 ) -> list[BacktestTradeResult]:
     trades: list[BacktestTradeResult] = []
     reason = "INITIAL_ALLOCATE" if initial else "REBALANCE"
+    target_by_asset = {target.asset_code: target for target in targets}
+    cash_asset_code = _cash_asset_code(assets, target_by_asset)
+    total_cost = 0.0
+
     for target in targets:
+        if target.asset_code == cash_asset_code:
+            continue
         asset = assets[target.asset_code]
         price, fx_rate = _pricing(conn, asset, current_date, base_currency)
         unit_value = price * fx_rate
@@ -345,6 +351,7 @@ def _rebalance(
         tax = gross_amount * max(tax_bps, 0.0) / 10000.0
         net_amount = gross_amount + fee + slippage + tax if side == "BUY" else gross_amount - fee - slippage - tax
         quantities[target.asset_code] = desired_quantity
+        total_cost += fee + slippage + tax
         trades.append(BacktestTradeResult(
             trade_date=current_date,
             asset_code=target.asset_code,
@@ -359,6 +366,35 @@ def _rebalance(
             net_amount=round(net_amount, 2),
             reason=reason,
         ))
+
+    if cash_asset_code:
+        cash_asset = assets[cash_asset_code]
+        old_quantity = quantities.get(cash_asset_code, 0.0)
+        non_cash_value = sum(
+            _asset_value(conn, asset, quantities.get(asset_code, 0.0), current_date, base_currency)
+            for asset_code, asset in assets.items()
+            if asset_code != cash_asset_code
+        )
+        new_cash_quantity = max(portfolio_value - non_cash_value - total_cost, 0.0)
+        delta = new_cash_quantity - old_quantity
+        quantities[cash_asset_code] = new_cash_quantity
+        if abs(delta) > 1e-10:
+            price, fx_rate = _pricing(conn, cash_asset, current_date, base_currency)
+            gross_amount = abs(delta) * price * fx_rate
+            trades.append(BacktestTradeResult(
+                trade_date=current_date,
+                asset_code=cash_asset_code,
+                side="BUY" if delta > 0 else "SELL",
+                quantity=abs(delta),
+                price=price,
+                fx_rate=fx_rate,
+                gross_amount=round(gross_amount, 2),
+                fee=0.0,
+                slippage=0.0,
+                tax=0.0,
+                net_amount=round(gross_amount, 2),
+                reason=f"{reason}_CASH_BALANCE",
+            ))
     return trades
 
 
@@ -419,6 +455,32 @@ def _pricing(
         quote_currency=base_currency,
     )
     return price, fx_rate
+
+
+def _asset_value(
+    conn: sqlite3.Connection,
+    asset: AssetUniverseItem,
+    quantity: float,
+    current_date: date,
+    base_currency: str,
+) -> float:
+    price, fx_rate = _pricing(conn, asset, current_date, base_currency)
+    return quantity * price * fx_rate
+
+
+def _cash_asset_code(
+    assets: dict[str, AssetUniverseItem],
+    targets: dict[str, AllocationTarget],
+) -> str | None:
+    for asset_code in targets:
+        asset = assets.get(asset_code)
+        if asset and _is_cash_asset(asset):
+            return asset_code
+    return None
+
+
+def _is_cash_asset(asset: AssetUniverseItem) -> bool:
+    return asset.source_type == "manual" or asset.asset_code.startswith("CASH_")
 
 
 def _annualized_volatility(period_returns: list[float], period_days: list[int]) -> float:

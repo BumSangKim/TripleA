@@ -91,11 +91,9 @@ def test_backtest_run_is_saved_with_curve_points(backtest_client):
     assert body["universeId"] == "default_global"
     assert body["feeBps"] == 5
     assert body["slippageBps"] == 5
-    assert body["points"][0] == {
-        "date": "2020-01-01",
-        "value": 100000000.0,
-        "drawdown": 0.0,
-    }
+    assert body["points"][0]["date"] == "2020-01-01"
+    assert body["points"][0]["value"] < 100000000.0
+    assert body["points"][0]["drawdown"] < 0.0
     assert body["points"][-1]["date"] == "2020-12-31"
     assert isinstance(body["totalReturn"], float)
     assert isinstance(body["annualReturn"], float)
