@@ -4,10 +4,13 @@ import sqlite3
 from datetime import date
 from typing import Any
 
+from api.bottleneck_data_service import get_sector_asset_mappings
 from api.strategy_config import load_investment_universe, load_strategy_profile
 
+from .bottleneck_sector_engine import BottleneckSectorEngine
 from .macro_engine import MacroEngine, MacroRegimeDecision
 from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
+from .sector_tilt_engine import SectorTiltEngine
 from .types import AllocationDecision
 
 
@@ -44,8 +47,12 @@ class TripleAAllocator:
         )
 
     def asset_codes(self) -> list[str]:
-        weights, _, _ = self._profile_weights(_neutral_macro())
-        return [asset_code for asset_code, weight in weights.items() if weight > 0]
+        universe = load_investment_universe(self.universe_id)
+        return [
+            asset["asset_code"]
+            for asset in universe.get("assets") or []
+            if asset.get("asset_code")
+        ]
 
     def allocate(
         self,
@@ -54,7 +61,10 @@ class TripleAAllocator:
         previous_weights: dict[str, float] | None = None,
     ) -> AllocationDecision:
         macro = MacroEngine(self.conn).evaluate(as_of_date)
-        final_weights, bucket_weights, profile_reasons = self._profile_weights(macro)
+        final_weights, bucket_weights, profile_reasons, bottleneck_scores = self._profile_weights(
+            as_of_date,
+            macro,
+        )
         reasons = [
             f"macro regime {macro.regime} scored {macro.score}",
             *macro.reasons,
@@ -79,14 +89,15 @@ class TripleAAllocator:
             macro_score=macro.score,
             bucket_weights=bucket_weights,
             final_weights=final_weights,
-            bottleneck_scores={},
+            bottleneck_scores=bottleneck_scores,
             reasons=reasons,
         )
 
     def _profile_weights(
         self,
+        as_of_date: date,
         macro: MacroRegimeDecision,
-    ) -> tuple[dict[str, float], dict[str, float], list[str]]:
+    ) -> tuple[dict[str, float], dict[str, float], list[str], dict[str, float]]:
         universe = load_investment_universe(self.universe_id)
         profile = _macro_adjusted_profile(load_strategy_profile(self.risk_profile), macro.regime)
         assets = universe.get("assets") or []
@@ -103,19 +114,29 @@ class TripleAAllocator:
                     asset
                     for asset in assets
                     if asset.get("bucket") == bucket
-                ]
+            ]
             self._assign_bucket(weights, bucket_assets, float(policy["target"]))
 
         asset_to_bucket = _asset_to_bucket(assets)
-        risk_result = RiskBudgetEngine().apply(
+        sector_scores = BottleneckSectorEngine(self.conn).score(as_of_date)
+        sector_assets = _sector_asset_codes(self.conn, assets)
+        tilt_result = SectorTiltEngine().apply(
             _normalize(weights),
+            sector_scores,
+            sector_assets,
+            asset_to_bucket,
+            macro_regime=macro.regime,
+        )
+        risk_result = RiskBudgetEngine().apply(
+            tilt_result.adjusted_weights,
             asset_to_bucket,
             policy_from_profile(profile),
         )
         return (
             risk_result.adjusted_weights,
             risk_result.bucket_weights,
-            risk_result.reasons,
+            [*tilt_result.reasons, *risk_result.reasons],
+            {score.sector_code: score.total_score for score in sector_scores},
         )
 
     def _assign_bucket(
@@ -147,6 +168,25 @@ def _asset_to_bucket(assets: list[dict[str, Any]]) -> dict[str, str]:
         for asset in assets
         if asset.get("asset_code") and asset.get("bucket")
     }
+
+
+def _sector_asset_codes(
+    conn: sqlite3.Connection,
+    assets: list[dict[str, Any]],
+) -> dict[str, list[str]]:
+    mappings = get_sector_asset_mappings(conn)
+    configured = {
+        sector: [item.asset_code for item in items]
+        for sector, items in mappings.items()
+    }
+    for asset in assets:
+        sector = asset.get("sector")
+        asset_code = asset.get("asset_code")
+        if sector and asset_code:
+            configured.setdefault(sector, [])
+            if asset_code not in configured[sector]:
+                configured[sector].append(asset_code)
+    return configured
 
 
 def _macro_adjusted_profile(profile: dict[str, Any], macro_regime: str) -> dict[str, Any]:
@@ -184,13 +224,3 @@ def _shift_bucket_weight(
         return
     source_rule["target"] = float(source_rule["target"]) - amount
     destination_rule["target"] = float(destination_rule["target"]) + amount
-
-
-def _neutral_macro() -> MacroRegimeDecision:
-    return MacroRegimeDecision(
-        as_of_date=date.min,
-        regime="neutral",
-        score=50,
-        indicators={},
-        reasons=[],
-    )

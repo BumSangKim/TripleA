@@ -30,6 +30,7 @@ def seed_market_data(db_path, start_date: str, end_date: str):
         "SPY": (100.0, 120.0, "USD"),
         "TLT": (100.0, 90.0, "USD"),
         "QQQ": (100.0, 130.0, "USD"),
+        "SMH": (100.0, 135.0, "USD"),
         "GOLD": (100.0, 105.0, "USD"),
     }
     for asset_code, (start_price, end_price, currency) in prices.items():

@@ -25,3 +25,15 @@ class AllocationDecision:
     final_weights: dict[str, float]
     reasons: list[str]
     bottleneck_scores: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SectorBottleneckScore:
+    sector_code: str
+    total_score: float
+    trade_score: float
+    demand_score: float
+    supply_score: float
+    relative_strength_score: float
+    regime: str
+    reasons: list[str] = field(default_factory=list)
