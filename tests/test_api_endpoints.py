@@ -227,6 +227,17 @@ class TestMacroEndpoints:
         data = res.json()
         assert [item["date"] for item in data] == ["2023-03-31", "2024-03-31"]
 
+    def test_macro_telegram_dry_run_uses_macro_data(self, client):
+        res = client.post("/api/macro/notify/telegram?dry_run=true")
+        assert res.status_code == 200
+
+        data = res.json()
+        assert data["ok"] is True
+        assert data["sent"] == 0
+        assert data["indicatorCount"] >= 1
+        assert "TripleA 금일 경제 현황 요약" in data["text"]
+        assert "Microsoft CapEx" in data["text"]
+
 
 # ── 목표 관리 ────────────────────────────────────────────────────────
 
@@ -298,6 +309,9 @@ class TestAlertsEndpoints:
         class DummyResponse:
             def raise_for_status(self):
                 return None
+
+            def json(self):
+                return {"ok": True, "result": {"message_id": 1}}
 
         def fake_post(url, json, timeout):
             posted.append({"url": url, "json": json, "timeout": timeout})

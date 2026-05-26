@@ -36,6 +36,7 @@ from .market_data_service import (
     validate_market_data_coverage,
     AssetUniverseItem as _AssetUniverseItem,
 )
+from .macro_telegram_report import send_daily_macro_report
 from .services import (
     get_macro_indicators, get_rebalancing_suggestions,
     get_recent_alerts, get_kpi_summary,
@@ -48,6 +49,7 @@ from .services import (
     get_backtest_decisions, get_backtest_positions, get_backtest_trades,
     get_risk_budget_items, get_indicator_history,
 )
+from .telegram_service import TelegramConfigError, TelegramSendError, send_telegram_message
 from .strategy_config import (
     list_risk_profiles,
     list_universe_ids,
@@ -821,12 +823,6 @@ def _telegram_alert_dedup_key(alert: dict, send_date: str) -> str:
     return f"telegram:{send_date}:{alert.get('level')}:{category}:{alert.get('title')}"
 
 
-def _mask_secret(value: str, secret: str) -> str:
-    if not secret:
-        return value
-    return value.replace(secret, "***")
-
-
 def _pending_telegram_alerts(conn, alerts: list[dict], send_date: str) -> tuple[list[tuple[dict, str]], int]:
     pending: list[tuple[dict, str]] = []
     skipped = 0
@@ -876,30 +872,6 @@ def notify_telegram(level_filter: str = "danger"):
     미읽은 알림을 Telegram으로 전송합니다.
     level_filter: 'danger' | 'warning' | 'all'
     """
-    import os, requests as _req
-    tg_token = os.getenv("TELEGRAM_BOT_TOKEN", "")
-    tg_chat = os.getenv("TELEGRAM_CHAT_ID", "")
-
-    # API_KEY 파일에서 읽기 (환경변수 없을 경우 fallback)
-    if not tg_token:
-        key_file = os.path.join(os.path.dirname(__file__), "..", "API_KEY", "TELEGRAM_KEY")
-        try:
-            with open(key_file) as f:
-                lines = f.read().strip().splitlines()
-                for line in lines:
-                    if line.startswith("BOT_TOKEN="):
-                        tg_token = line.split("=", 1)[1].strip()
-                    elif line.startswith("CHAT_ID="):
-                        tg_chat = line.split("=", 1)[1].strip()
-        except Exception:
-            pass
-
-    if not tg_token or not tg_chat:
-        raise HTTPException(
-            status_code=503,
-            detail="Telegram 설정 미완료 (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)"
-        )
-
     with get_conn() as conn:
         if level_filter == "all":
             rows = conn.execute(
@@ -936,20 +908,38 @@ def notify_telegram(level_filter: str = "danger"):
     text = "\n".join(lines).strip()
 
     try:
-        res = _req.post(
-            f"https://api.telegram.org/bot{tg_token}/sendMessage",
-            json={"chat_id": tg_chat, "text": text, "parse_mode": "Markdown"},
-            timeout=15,
-        )
-        res.raise_for_status()
+        send_telegram_message(text, parse_mode="Markdown")
         with get_conn() as conn:
             _record_telegram_notification_logs(conn, pending, "SENT")
         return {"ok": True, "sent": len(pending), "skipped": skipped}
-    except Exception as e:
-        error_message = _mask_secret(str(e), tg_token)
+    except TelegramConfigError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except TelegramSendError as e:
+        error_message = str(e)
         with get_conn() as conn:
             _record_telegram_notification_logs(conn, pending, "FAILED", error_message=error_message)
         raise HTTPException(status_code=502, detail=f"Telegram 전송 실패: {error_message}")
+
+
+@app.post("/api/macro/notify/telegram", tags=["macro"])
+def notify_macro_telegram(force: bool = False, dry_run: bool = False):
+    """현재 매크로 DB와 연동된 금일 경제 현황 요약을 Telegram으로 전송합니다."""
+    try:
+        with get_conn() as conn:
+            result = send_daily_macro_report(conn, force=force, dry_run=dry_run)
+        return {
+            "ok": result.ok,
+            "sent": result.sent,
+            "skipped": result.skipped,
+            "indicatorCount": result.indicator_count,
+            "message": result.message,
+            "messageId": result.message_id,
+            "text": result.text if dry_run else None,
+        }
+    except TelegramConfigError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except TelegramSendError as e:
+        raise HTTPException(status_code=502, detail=f"Telegram 전송 실패: {e}") from e
 
 
 # ── 설정: API 키 상태 ────────────────────────────────────────────────

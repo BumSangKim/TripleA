@@ -126,10 +126,7 @@ function ModeBadge({ data }: { data: DashboardSummary }) {
 export default function DashboardClient({ initialData }: DashboardClientProps) {
   const [data, setData] = useState<DashboardSummary>(initialData ?? MOCK_DATA);
   const [loading, setLoading] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState("");
-  useEffect(() => {
-    setLastUpdate(new Date().toLocaleTimeString("ko-KR"));
-  }, []);
+  const [lastUpdate, setLastUpdate] = useState(() => new Date().toLocaleTimeString("ko-KR"));
   const [apiError, setApiError] = useState(!initialData);
 
   const refresh = useCallback(async () => {
