@@ -1,6 +1,6 @@
-# Development Status
+# Development Status Pointer
 
-This file is retained only as a compatibility pointer.
+This file is retained only as a compatibility pointer. It is not the canonical global status file and should not be used for task selection.
 
 The canonical status file is:
 

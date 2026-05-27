@@ -1,5 +1,7 @@
 # Phase 1 Status - Asset Universe Definition
 
+This file is retained as Phase 1 detail only. The canonical global task/progress status is `DevelopPlans/STATUS.md`.
+
 ## Current Task
 
 - Task ID: TASK_109_UNIVERSE_SNAPSHOT_EXPORT

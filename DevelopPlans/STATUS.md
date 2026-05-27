@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Phase 1 — Asset universe definition completed
+Phase 1 — Asset universe definition completed; documentation/status consolidation checkpoint completed
 
 ## Current Task
 
-None — all Phase 1 tasks completed.
+None — Phase 2 has not started.
 
 ## Completed Tasks
 
@@ -31,6 +31,12 @@ None — all Phase 1 tasks completed.
 
 None
 
+## Partial / Unclear Tasks
+
+- Phase 2+ implementation tasks are not started as formal task files in the canonical status.
+- Existing legacy/current engine behavior for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates is partial relative to `docs/MASTER_DEVELOPMENT_GUIDE.md`.
+- Documentation tree normalization still has a pending approval item: tracked files under `docs/DevelopLog/` and `docs/DevelopPlans/` are currently deleted in the working tree and require an explicit restore/archive/delete decision.
+
 ## Last Test Command
 
 ```bash
@@ -40,6 +46,32 @@ None
 ## Last Test Result
 
 Passed — 189 passed in 3.04s.
+
+## Documentation / Status Consolidation Checkpoint
+
+- Date: 2026-05-27
+- Scope: documentation/status normalization only; no strategy, allocation, rebalancing, order candidate, broker/KIS, execution, or backtest behavior was changed.
+- Canonical source map:
+  - Master architecture/rules: `docs/MASTER_DEVELOPMENT_GUIDE.md`
+  - Coding-agent operations: `AGENTS.md`
+  - Global task/progress status: `DevelopPlans/STATUS.md`
+  - Phase 1 detail log: `docs/PHASE_1_STATUS.md`
+  - Documentation index: `docs/00_INDEX.md`
+- Status normalization completed:
+  - `docs/STATUS.md` is a compatibility pointer only.
+  - `docs/PHASE_1_STATUS.md` is marked as Phase 1 detail only.
+  - `docs/00_INDEX.md` links to canonical files and no longer duplicates stale Phase 0 TODO status.
+- Untracked workflow docs:
+  - Keep and track in the next documentation commit: `AGENTS.md`, `docs/MASTER_DEVELOPMENT_GUIDE.md`, `docs/00_INDEX.md`, `docs/TASK_TEMPLATE.md`, `docs/phase0/`.
+  - Removed as temporary extraction artifact: `phase1_codex_tasks/`.
+- Tracked deleted docs requiring approval:
+  - `docs/DevelopLog/` deleted files: leave unresolved until the user chooses restore, archive, or commit deletion.
+  - `docs/DevelopPlans/back_test.md`: leave unresolved until the user chooses restore, archive, or commit deletion.
+  - `docs/DevelopPlans/trading-modes-development-plan.md`: leave unresolved until the user chooses restore, archive, or commit deletion.
+- Generated/cache cleanup:
+  - Removed safe generated/cache artifacts outside secrets/runtime data: Python `__pycache__/`, `.pytest_cache/`, root/docs `.DS_Store`, and `web/.next/`.
+  - Left untouched: `API_KEY/`, `data/economic_data.db`, and `web/node_modules/`.
+- Next recommended task: resolve the deleted tracked docs decision, then begin Phase 2 with a dedicated account-constraint task file before any order-candidate or execution-adjacent work.
 
 ## Notes
 
