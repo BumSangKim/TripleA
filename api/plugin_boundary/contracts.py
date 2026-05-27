@@ -175,6 +175,45 @@ class PluginSignal:
             raise PluginBoundaryContractError("PluginSignal metadata must include usage_reason")
 
 
+@dataclass(frozen=True)
+class FeatureValue:
+    feature_id: str
+    entity_type: str
+    entity_id: str
+    feature_value: float | str | bool | None
+    unit: str
+    as_of_date: date
+    available_at: datetime
+    source_dataset_ids: list[str]
+    source_plugin_ids: list[str]
+    calculation_method: str
+    feature_version: str
+    parameter_version: str | None
+    data_quality: float
+    missing_ratio: float
+    is_stale: bool
+    warnings: list[str] = field(default_factory=list)
+    reason_codes: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        _require_text(self.feature_id, "feature_id")
+        _require_text(self.entity_type, "entity_type")
+        _require_text(self.entity_id, "entity_id")
+        _require_text(self.unit, "unit")
+        _require_text(self.calculation_method, "calculation_method")
+        _require_text(self.feature_version, "feature_version")
+        if self.available_at is None:
+            raise PluginBoundaryContractError("available_at is required")
+        _require_ratio(self.data_quality, "data_quality")
+        _require_ratio(self.missing_ratio, "missing_ratio")
+        if not self.source_dataset_ids:
+            raise PluginBoundaryContractError("source_dataset_ids must be non-empty")
+        if any(not str(dataset_id).strip() for dataset_id in self.source_dataset_ids):
+            raise PluginBoundaryContractError("source_dataset_ids must contain non-empty ids")
+        _reject_decision_namespace(self.feature_id, "feature_id")
+
+
 def _require_text(value: str, field_name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise PluginBoundaryContractError(f"{field_name} must be a non-empty string")
@@ -183,3 +222,10 @@ def _require_text(value: str, field_name: str) -> None:
 def _require_ratio(value: float, field_name: str) -> None:
     if not 0.0 <= float(value) <= 1.0:
         raise PluginBoundaryContractError(f"{field_name} must be between 0.0 and 1.0")
+
+
+def _reject_decision_namespace(value: str, field_name: str) -> None:
+    lowered = value.lower()
+    blocked = ["score", "buy", "sell", "weight", "allocation", "rebalance", "order"]
+    if any(token in lowered for token in blocked):
+        raise PluginBoundaryContractError(f"{field_name} must not use score/action terminology")

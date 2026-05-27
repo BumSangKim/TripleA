@@ -1,4 +1,5 @@
 from api.plugin_boundary.contracts import (
+    FeatureValue,
     PluginBoundaryContractError,
     PluginDataset,
     PluginHealthStatus,
@@ -9,6 +10,7 @@ from api.plugin_boundary.contracts import (
 
 __all__ = [
     "PluginBoundaryContractError",
+    "FeatureValue",
     "PluginDataset",
     "PluginHealthStatus",
     "PluginQualityScore",
