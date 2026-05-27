@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Phase 1 — Asset universe definition completed; documentation/status consolidation checkpoint completed
+Phase 2 — Account constraint model completed
 
 ## Current Task
 
-None — Phase 2 has not started.
+None — Phase 2 completed. Next recommended phase is Phase 3 Build data pipeline.
 
 ## Completed Tasks
 
@@ -26,6 +26,17 @@ None — Phase 2 has not started.
 - `TASK_108_DATA_REQUIREMENT_METADATA.md`
 - `TASK_109_UNIVERSE_SNAPSHOT_EXPORT.md`
 - `TASK_110_PHASE1_INTEGRATION_AUDIT.md`
+- `TASK_000_PHASE2_BASELINE_AUDIT.md`
+- `TASK_001_ACCOUNT_CONSTRAINT_SPEC.md`
+- `TASK_002_ACCOUNT_CONFIG_SCHEMA.md`
+- `TASK_003_ACCOUNT_DOMAIN_MODELS.md`
+- `TASK_004_CONSTRAINT_RULE_ENGINE.md`
+- `TASK_005_IRP_RISKY_ASSET_LIMIT.md`
+- `TASK_006_TRADE_ELIGIBILITY_VALIDATOR.md`
+- `TASK_007_CONSERVATIVE_FALLBACKS.md`
+- `TASK_008_BACKTEST_COMPATIBILITY.md`
+- `TASK_009_REPORTING_AUDIT_INTEGRATION.md`
+- `TASK_010_PHASE2_FINAL_VALIDATION.md`
 
 ## Blocked Tasks
 
@@ -33,8 +44,8 @@ None
 
 ## Partial / Unclear Tasks
 
-- Phase 2+ implementation tasks are not started as formal task files in the canonical status.
-- Existing legacy/current engine behavior for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates is partial relative to `docs/MASTER_DEVELOPMENT_GUIDE.md`.
+- Phase 3+ implementation tasks are not started as formal task files in the canonical status.
+- Existing legacy/current engine behavior for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates remains partial relative to `docs/MASTER_DEVELOPMENT_GUIDE.md`.
 - Documentation tree normalization still has a pending approval item: tracked files under `docs/DevelopLog/` and `docs/DevelopPlans/` are currently deleted in the working tree and require an explicit restore/archive/delete decision.
 
 ## Last Test Command
@@ -45,7 +56,28 @@ None
 
 ## Last Test Result
 
-Passed — 189 passed in 3.04s.
+Passed — 233 passed in 3.43s.
+
+## Phase 2 Account Constraint Model
+
+- Status: complete.
+- Scope: deterministic account constraint model only; no strategy, allocation, rebalancing, order candidate, broker/KIS, execution, or backtest behavior was changed.
+- Major files:
+  - `docs/PHASE_2_ACCOUNT_CONSTRAINT_AUDIT.md`
+  - `docs/ACCOUNT_CONSTRAINT_ENGINE_SPEC.md`
+  - `docs/PHASE_2_ACCOUNT_CONSTRAINT_SUMMARY.md`
+  - `config/account_constraints.yaml`
+  - `api/strategy/account_constraints/`
+  - `tests/strategy/`
+- Test commands:
+  - `.venv/bin/python -m pytest tests/strategy -q`
+  - `.venv/bin/python -m pytest -q`
+- Test result: passed.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Integrate the account constraint engine into future order candidate/allocation/rebalancing paths only through an explicit approved task.
+  - Review account/product rule defaults before any production or execution-adjacent use.
+  - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
+- Next recommended task: Phase 3 Build data pipeline.
 
 ## Documentation / Status Consolidation Checkpoint
 

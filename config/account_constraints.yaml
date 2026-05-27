@@ -1,0 +1,75 @@
+version: phase2.0
+unknown_account_behavior: REVIEW_REQUIRED
+accounts:
+  taxable:
+    type: taxable
+    role: aggressive_growth
+    allow_satellite: true
+    allowed_asset_classes:
+      - cash
+      - equity
+      - bond
+      - commodity
+      - real_asset
+      - alternative
+    blocked_product_flags:
+      - leveraged
+      - inverse
+      - futures_like
+    max_account_weight_by_asset_class: {}
+    risky_asset_limit: null
+    minimum_cash_buffer_ratio: 0.0
+    unknown_behavior: REVIEW_REQUIRED
+
+  isa:
+    type: isa
+    role: tax_efficient_growth
+    allow_satellite: true
+    allowed_asset_classes:
+      - cash
+      - equity
+      - bond
+    blocked_product_flags:
+      - leveraged
+      - inverse
+      - futures_like
+    max_account_weight_by_asset_class: {}
+    risky_asset_limit: null
+    minimum_cash_buffer_ratio: 0.0
+    unknown_behavior: REVIEW_REQUIRED
+
+  pension:
+    type: pension
+    role: long_term_growth
+    allow_satellite: limited
+    allowed_asset_classes:
+      - cash
+      - equity
+      - bond
+      - real_asset
+    blocked_product_flags:
+      - leveraged
+      - inverse
+      - futures_like
+    max_account_weight_by_asset_class: {}
+    risky_asset_limit: null
+    minimum_cash_buffer_ratio: 0.0
+    unknown_behavior: REVIEW_REQUIRED
+
+  irp:
+    type: irp
+    role: defensive_growth
+    allow_satellite: false
+    allowed_asset_classes:
+      - cash
+      - equity
+      - bond
+      - real_asset
+    blocked_product_flags:
+      - leveraged
+      - inverse
+      - futures_like
+    max_account_weight_by_asset_class: {}
+    risky_asset_limit: 0.70
+    minimum_cash_buffer_ratio: 0.0
+    unknown_behavior: RISK_REDUCE_ONLY
