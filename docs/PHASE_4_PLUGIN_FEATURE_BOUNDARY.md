@@ -110,3 +110,9 @@ Use these questions to classify a value:
 Reusable FeatureCalculator implementations must receive PluginDataset inputs selected by a dataset-type resolver. They must not import concrete plugin classes or depend on plugin IDs.
 
 The resolver architecture is documented in `docs/FEATURE_INPUT_RESOLVER_SPEC.md`.
+
+## 11. Traceability Storage Boundary
+
+FeatureValue and PluginSignal traceability rules are documented in `docs/FEATURE_TRACEABILITY_SPEC.md`.
+
+Phase 4 stores boundary artifacts separately from legacy score-flow feature and score tables so raw/plugin datasets, FeatureValue rows, PluginSignal rows, and later Score Layer outputs remain logically distinct.
