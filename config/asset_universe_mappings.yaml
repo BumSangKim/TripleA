@@ -1,0 +1,76 @@
+version: phase1.0
+asset_classes:
+  cash:
+    aliases:
+      - CASH
+      - cash_equivalent
+  equity:
+    aliases:
+      - domestic_equity
+      - global_equity
+      - sector_equity
+      - thematic_equity
+      - stock
+  bond:
+    aliases:
+      - fixed_income
+      - treasury
+  commodity:
+    aliases:
+      - commodity_futures_proxy
+  real_asset:
+    aliases:
+      - gold
+      - real_assets
+  alternative:
+    aliases:
+      - alternatives
+  hedge:
+    aliases:
+      - hedging
+  unknown:
+    aliases:
+      - REVIEW_REQUIRED
+      - unknown_asset_class
+sectors:
+  none:
+    aliases:
+      - NONE
+      - not_applicable
+  broad_market:
+    aliases:
+      - broad_equity
+      - market
+  semiconductor:
+    aliases:
+      - SEMICONDUCTOR
+      - semiconductors
+  robot:
+    aliases:
+      - ROBOT
+      - ROBOTICS
+      - robotics
+  bio:
+    aliases:
+      - biotechnology
+      - healthcare_bio
+  energy:
+    aliases:
+      - power_grid
+      - POWER_GRID
+  financials:
+    aliases:
+      - finance
+  consumer:
+    aliases:
+      - consumer_discretionary
+      - consumer_staples
+  industrial:
+    aliases:
+      - industrials
+  technology:
+    aliases:
+      - tech
+  defensive:
+    aliases:
+      - defensive_core

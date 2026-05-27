@@ -1,0 +1,47 @@
+version: phase1.0
+requirements:
+  price_daily:
+    description: Daily close/adjusted close price history.
+    required_for_score: true
+    stale_after_days: 7
+  volume_daily:
+    description: Daily trading volume history.
+    required_for_score: false
+    stale_after_days: 7
+  fx_daily:
+    description: Daily FX rate into base currency.
+    required_for_score: true
+    stale_after_days: 7
+  interest_rate_daily:
+    description: Daily interest-rate series relevant to bond or duration-sensitive assets.
+    required_for_score: false
+    stale_after_days: 14
+  macro_monthly:
+    description: Monthly macroeconomic indicator input.
+    required_for_score: false
+    stale_after_days: 60
+  export_import_monthly:
+    description: Monthly export/import data for sector context.
+    required_for_score: false
+    stale_after_days: 60
+  sector_index_daily:
+    description: Daily sector index or sector ETF proxy history.
+    required_for_score: false
+    stale_after_days: 14
+  financial_statement_quarterly:
+    description: Quarterly financial statement data.
+    required_for_score: false
+    stale_after_days: 120
+  etf_holdings_periodic:
+    description: ETF holdings or constituent data.
+    required_for_score: false
+    stale_after_days: 45
+  account_balance_snapshot:
+    description: Account or manual cash balance snapshot.
+    required_for_score: false
+    stale_after_days: 7
+  REVIEW_REQUIRED:
+    description: Conservative placeholder for incomplete watchlist data requirements.
+    required_for_score: false
+    stale_after_days: null
+    review_required: true

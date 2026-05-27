@@ -1,0 +1,252 @@
+universe_id: phase1_initial_asset_universe
+version: phase1.0
+description: >
+  Controlled Phase 1 candidate asset universe. Inclusion is not a buy,
+  overweight, allocation, rebalancing, order-candidate, or execution signal.
+base_currency: KRW
+assets:
+  - asset_id: CASH_KRW
+    symbol: CASH_KRW
+    name: KRW Cash Placeholder
+    asset_class: cash
+    sector: none
+    region: KR
+    currency: KRW
+    instrument_type: cash
+    enabled: true
+    role: cash
+    risk_tier: low
+    liquidity_tier: high
+    min_order_unit: null
+    data_requirements:
+      - account_balance_snapshot
+    account_eligibility:
+      taxable:
+        eligible: true
+        review_required: false
+        restrictions: []
+      isa:
+        eligible: true
+        review_required: true
+        restrictions:
+          - account_constraint_review_required
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - not_reviewed
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - product_restriction_review_required
+    review_required: true
+    notes: Cash placeholder for universe completeness; account treatment requires later constraint validation.
+
+  - asset_id: KOSPI
+    symbol: "^KS11"
+    name: KOSPI Broad Market Index Placeholder
+    asset_class: equity
+    sector: broad_market
+    region: KR
+    currency: KRW
+    instrument_type: index_proxy
+    enabled: true
+    role: core
+    risk_tier: high
+    liquidity_tier: high
+    min_order_unit: null
+    data_requirements:
+      - price_daily
+      - volume_daily
+    account_eligibility:
+      taxable:
+        eligible: true
+        review_required: true
+        restrictions:
+          - tradable_product_mapping_required
+      isa:
+        eligible: false
+        review_required: true
+        restrictions:
+          - domestic_listing_required
+          - tradable_product_mapping_required
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - not_reviewed
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - risky_asset_limit_review_required
+          - product_restriction_review_required
+    review_required: true
+    notes: Broad domestic equity proxy; concrete tradable product must be reviewed before order candidates.
+
+  - asset_id: SPY
+    symbol: SPY
+    name: S&P 500 ETF Placeholder
+    asset_class: equity
+    sector: broad_market
+    region: US
+    currency: USD
+    instrument_type: ETF
+    enabled: true
+    role: core
+    risk_tier: high
+    liquidity_tier: high
+    min_order_unit: 1
+    data_requirements:
+      - price_daily
+      - volume_daily
+      - fx_daily
+    account_eligibility:
+      taxable:
+        eligible: true
+        review_required: true
+        restrictions:
+          - broker_product_support_review_required
+      isa:
+        eligible: false
+        review_required: true
+        restrictions:
+          - domestic_listing_required
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - not_reviewed
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - risky_asset_limit_review_required
+          - product_restriction_review_required
+    review_required: true
+    notes: Broad global equity ETF placeholder; broker/account eligibility is not assumed.
+
+  - asset_id: TLT
+    symbol: TLT
+    name: Long Treasury ETF Placeholder
+    asset_class: bond
+    sector: none
+    region: US
+    currency: USD
+    instrument_type: ETF
+    enabled: true
+    role: defensive
+    risk_tier: medium
+    liquidity_tier: high
+    min_order_unit: 1
+    data_requirements:
+      - price_daily
+      - volume_daily
+      - fx_daily
+      - interest_rate_daily
+    account_eligibility:
+      taxable:
+        eligible: true
+        review_required: true
+        restrictions:
+          - duration_risk_review_required
+      isa:
+        eligible: false
+        review_required: true
+        restrictions:
+          - domestic_listing_required
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - not_reviewed
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - product_restriction_review_required
+    review_required: true
+    notes: Defensive bond placeholder; duration and account suitability require review.
+
+  - asset_id: SMH
+    symbol: SMH
+    name: Semiconductor ETF Placeholder
+    asset_class: equity
+    sector: semiconductor
+    region: US
+    currency: USD
+    instrument_type: ETF
+    enabled: true
+    role: satellite
+    risk_tier: very_high
+    liquidity_tier: high
+    min_order_unit: 1
+    data_requirements:
+      - price_daily
+      - volume_daily
+      - fx_daily
+      - sector_index_daily
+    account_eligibility:
+      taxable:
+        eligible: true
+        review_required: true
+        restrictions:
+          - satellite_review_required
+      isa:
+        eligible: false
+        review_required: true
+        restrictions:
+          - domestic_listing_required
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - not_reviewed
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - risky_asset_limit_review_required
+          - product_restriction_review_required
+    review_required: true
+    notes: Satellite sector placeholder; inclusion is not a sector overweight signal.
+
+  - asset_id: ROBOT_WATCHLIST
+    symbol: REVIEW_REQUIRED
+    name: Robotics Theme Watchlist Placeholder
+    asset_class: equity
+    sector: robot
+    region: GLOBAL
+    currency: USD
+    instrument_type: watchlist_placeholder
+    enabled: false
+    role: watchlist
+    risk_tier: very_high
+    liquidity_tier: low
+    min_order_unit: null
+    data_requirements:
+      - REVIEW_REQUIRED
+    account_eligibility:
+      taxable:
+        eligible: false
+        review_required: true
+        restrictions:
+          - unknown_tradable_asset
+      isa:
+        eligible: false
+        review_required: true
+        restrictions:
+          - unknown_tradable_asset
+      pension:
+        eligible: false
+        review_required: true
+        restrictions:
+          - unknown_tradable_asset
+      irp:
+        eligible: false
+        review_required: true
+        restrictions:
+          - unknown_tradable_asset
+    review_required: true
+    notes: Watchlist placeholder only; concrete tradable asset and data requirements are REVIEW_REQUIRED.
