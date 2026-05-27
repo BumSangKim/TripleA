@@ -7,6 +7,8 @@ from api.plugin_boundary.contracts import (
     PluginRunMetadata,
     PluginSignal,
 )
+from api.plugin_boundary.input_resolver import FeatureInputResolution, FeatureInputResolver, FeatureSpec, PluginSignalSpec
+from api.plugin_boundary.registry import PluginRegistration, PluginRegistry
 
 __all__ = [
     "PluginBoundaryContractError",
@@ -16,4 +18,10 @@ __all__ = [
     "PluginQualityScore",
     "PluginRunMetadata",
     "PluginSignal",
+    "FeatureInputResolution",
+    "FeatureInputResolver",
+    "FeatureSpec",
+    "PluginRegistration",
+    "PluginRegistry",
+    "PluginSignalSpec",
 ]

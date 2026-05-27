@@ -104,3 +104,9 @@ Use these questions to classify a value:
    Use FeatureValue.
 4. Is the value normalized for investment judgment?
    It belongs to SignalScore, FactorScore, or DecisionScore in Phase 5 or later.
+
+## 10. Registry And Resolver Boundary
+
+Reusable FeatureCalculator implementations must receive PluginDataset inputs selected by a dataset-type resolver. They must not import concrete plugin classes or depend on plugin IDs.
+
+The resolver architecture is documented in `docs/FEATURE_INPUT_RESOLVER_SPEC.md`.
