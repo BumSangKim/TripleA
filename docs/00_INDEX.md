@@ -14,6 +14,8 @@ This file is an index only. It is not the global project status.
 | Phase Pre-3 market data DB spec | `docs/MARKET_DATA_DB_INTEGRATION_SPEC.md` |
 | Phase 3 data pipeline spec | `docs/DATA_PIPELINE_SPEC.md` |
 | Score-flow testbed architecture | `docs/SCOREFLOW_TESTBED_ARCHITECTURE.md` |
+| Intraday monitoring spec | `docs/INTRADAY_MONITORING_SPEC.md` |
+| Intraday monitoring operations | `docs/INTRADAY_MONITORING_OPERATIONS.md` |
 
 ## Phase 0 — Baseline and Guardrails
 
@@ -54,3 +56,12 @@ Supporting docs:
 - `docs/DATA_LAYER_AND_TESTBED_SCHEMA.md`
 - `docs/SECTOR_INDICATOR_PLUGIN_SPEC.md`
 - `docs/BACKTEST_OPTIMIZATION_TESTBED_SPEC.md`
+
+## Intraday Monitoring
+
+Intraday monitoring is display/alert-only according to `DevelopPlans/STATUS.md`. Supporting docs:
+
+- `docs/INTRADAY_MONITORING_INTEGRATION_PLAN.md`
+- `docs/INTRADAY_MONITORING_SPEC.md`
+- `docs/INTRADAY_MONITORING_OPERATIONS.md`
+- `docs/INTRADAY_MONITORING_TEST_REPORT.md`

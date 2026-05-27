@@ -51,6 +51,7 @@ from .services import (
 )
 from .telegram_service import TelegramConfigError, TelegramSendError, send_telegram_message
 from .data.status_service import get_data_status, get_dataset_status, get_latest_quotes_status
+from .intraday.router import router as intraday_router
 from .strategy_config import (
     list_risk_profiles,
     list_universe_ids,
@@ -132,6 +133,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(intraday_router)
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

@@ -1,0 +1,32 @@
+intraday_monitoring:
+  enabled: true
+  collection_interval_seconds: 60
+  market_session_policy: full_regular_session
+  timezone: Asia/Seoul
+  regular_session_start: "09:00"
+  regular_session_end: "15:30"
+  universe_source: investable_universe
+  provider: mock
+
+  lookback_windows_minutes: [1, 3, 5, 10, 15, 30]
+
+  price_change_rules:
+    surge:
+      watch: 2.0
+      warning: 4.0
+      critical: 7.0
+    drop:
+      watch: -2.0
+      warning: -4.0
+      critical: -7.0
+
+  volume_rules:
+    volume_spike_ratio:
+      watch: 2.0
+      warning: 4.0
+      critical: 7.0
+
+  duplicate_suppression_minutes: 10
+  stale_data_tolerance_seconds: 120
+  max_symbols_per_batch: 100
+  dry_run: false

@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Score-flow adaptive testbed v2 completed
+Intraday surge/drop monitoring completed
 
 ## Current Task
 
-None — Score-flow adaptive testbed v2 completed. Next recommended phase is Phase 4 Feature Layer hardening.
+None — intraday surge/drop monitoring is completed as a display/alert-only layer. Next recommended task is Phase 4 Feature Layer hardening or an explicitly approved dashboard notification task.
 
 ## Completed Tasks
 
@@ -89,6 +89,15 @@ None — Score-flow adaptive testbed v2 completed. Next recommended phase is Pha
 - `TASK_022_OPTIMIZATION_REPORTING_API.md`
 - `TASK_023_BACKTEST_ENGINE_INTEGRATION.md`
 - `TASK_024_DOCUMENTATION_AND_STATUS.md`
+- `TASK_INTRADAY_001_REPOSITORY_AUDIT_AND_INTEGRATION_PLAN.md`
+- `TASK_INTRADAY_002_CONFIG_AND_UNIVERSE_RESOLUTION.md`
+- `TASK_INTRADAY_003_DB_SCHEMA_AND_REPOSITORY.md`
+- `TASK_INTRADAY_004_PROVIDER_AND_ONE_MINUTE_COLLECTOR.md`
+- `TASK_INTRADAY_005_SURGE_DROP_EVENT_DETECTOR.md`
+- `TASK_INTRADAY_006_ALERT_ENGINE_AND_DEDUPLICATION.md`
+- `TASK_INTRADAY_007_MONITORING_API_AND_EXISTING_APP_WIRING.md`
+- `TASK_INTRADAY_008_TESTS_VALIDATION_AND_REGRESSION.md`
+- `TASK_INTRADAY_009_DOCUMENTATION_AND_HANDOFF.md`
 
 ## Blocked Tasks
 
@@ -103,12 +112,58 @@ None
 ## Last Test Command
 
 ```bash
-.venv/bin/python -m pytest
+.venv/bin/python -m pytest -q
 ```
 
 ## Last Test Result
 
-Passed — 332 passed, 2 skipped in 4.53s.
+Passed — 390 passed, 2 skipped in 4.88s.
+
+## Intraday Surge/Drop Monitoring
+
+- Status: complete.
+- Scope: monitoring display and alert-ready persistence only; no strategy score, allocation, rebalancing, order candidate, broker submission, or live execution integration was added.
+- Completed:
+  - Repository audit and integration plan.
+  - Intraday monitoring config and asset-master-based universe resolution.
+  - SQLite schema and repository functions for snapshots, events, and alerts.
+  - Read-only provider adapter and one-pass collector.
+  - Surge/drop/volume spike detector with monitoring-only thresholds.
+  - Alert-ready payload generation and duplicate suppression.
+  - FastAPI endpoints under `/api/intraday/*`.
+  - Strategy isolation, integration scenario, data-quality, and regression tests.
+  - Spec, operations, and test report documentation.
+- Major files:
+  - `config/intraday_monitoring.yaml`
+  - `api/intraday/`
+  - `api/main.py`
+  - `tests/test_intraday_config_universe.py`
+  - `tests/test_intraday_repository.py`
+  - `tests/test_intraday_collector.py`
+  - `tests/test_intraday_event_detector.py`
+  - `tests/test_intraday_alert_engine.py`
+  - `tests/test_intraday_api.py`
+  - `tests/test_intraday_strategy_isolation.py`
+  - `docs/INTRADAY_MONITORING_INTEGRATION_PLAN.md`
+  - `docs/INTRADAY_MONITORING_SPEC.md`
+  - `docs/INTRADAY_MONITORING_OPERATIONS.md`
+  - `docs/INTRADAY_MONITORING_TEST_REPORT.md`
+- Test commands:
+  - `.venv/bin/python -m pytest -q tests/test_intraday_config_universe.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_repository.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_collector.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_event_detector.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_alert_engine.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_api.py`
+  - `.venv/bin/python -m pytest -q tests/test_intraday_config_universe.py tests/test_intraday_repository.py tests/test_intraday_collector.py tests/test_intraday_event_detector.py tests/test_intraday_alert_engine.py tests/test_intraday_api.py tests/test_intraday_strategy_isolation.py`
+  - `.venv/bin/python -m pytest -q`
+- Test result: targeted intraday tests passed with 58 passed; full non-live backend suite passed with 390 passed and 2 skipped.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Holiday calendar support is deferred.
+  - External dashboard notification delivery is deferred.
+  - Any future score/risk/rebalancing/order integration requires explicit approval and a separate task.
+  - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
+- Next recommended task: Phase 4 Feature Layer hardening, or an explicitly approved dashboard notification task that keeps live execution disabled.
 
 ## Score-Flow Adaptive Testbed v2
 
