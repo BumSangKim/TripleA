@@ -2,14 +2,39 @@
 
 ## Current Phase
 
-Intraday surge/drop monitoring completed
+Phases 5-13 pre-execution score-flow foundation completed
 
 ## Current Task
 
-None — intraday surge/drop monitoring is completed as a display/alert-only layer. Next recommended task is Phase 4 Feature Layer hardening or an explicitly approved dashboard notification task.
+None — Phases 5-13 were implemented as pre-execution, test-covered foundations. Live execution and broker order submission remain out of scope.
 
 ## Completed Tasks
 
+- Phase 5 Score Layer implemented:
+  - score contract;
+  - score definitions;
+  - normalization;
+  - EMA smoothing;
+  - event/manual span override;
+  - confidence/data quality adjustment;
+  - score persistence;
+  - score runner/interface;
+  - tests.
+- Phase 6 Backtest Engine foundation implemented:
+  - simulation contracts;
+  - deterministic clock;
+  - historical snapshot loader;
+  - portfolio state transition;
+  - cost/tax hooks;
+  - metrics;
+  - plug-in runner tests.
+- Phase 7 Macro Regime Engine implemented as distribution output, with dominant regime explanation-only.
+- Phase 8 Sector Scoring Engine implemented as config-driven decomposable scoring and deterministic ranking.
+- Phase 9 Risk Budget Engine implemented with portfolio/account budgets and hard-constraint blocking.
+- Phase 10 Allocation Engine implemented with gradual score-linked target ranges and cash residual handling.
+- Phase 11 Rebalancing Engine implemented with action semantics and overweight winner policy.
+- Phase 12 Reporting/Audit Layer implemented with decision logs, reason/warning catalog, reports, and explanations.
+- Phase 13 Order Candidate Generation implemented as non-executable, user-review-only candidates with validation.
 - `DevelopPlans/phase0/TASK_000_REPOSITORY_AUDIT.md`
 - `DevelopPlans/phase0/TASK_001_PROJECT_GUARDRAILS.md`
 - `DevelopPlans/phase0/TASK_002_GAP_ANALYSIS.md`

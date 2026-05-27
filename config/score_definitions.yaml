@@ -1,0 +1,150 @@
+scores:
+  volatility_stress_score:
+    enabled: true
+    score_type: atomic
+    subject_type: macro
+    subject_id: global_volatility
+    source_plugin_id: market_volatility_plugin
+    source_feature_key: vix_percentile
+    normalization:
+      method: percentile
+      direction: higher_is_worse
+      params:
+        reference_values: [10, 15, 20, 25, 30, 35, 40]
+    smoothing:
+      method: ema
+      base_span: 5
+      min_span: 1
+      max_span: 20
+    confidence:
+      default: 0.8
+    data_quality:
+      min_required: 0.7
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+
+  fx_pressure_score:
+    enabled: true
+    score_type: atomic
+    subject_type: macro
+    subject_id: usdkrw
+    source_plugin_id: fx_pressure_plugin
+    source_feature_key: usdkrw_pressure_percentile
+    normalization:
+      method: percentile
+      direction: higher_is_worse
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 7
+      min_span: 2
+      max_span: 30
+    confidence:
+      default: 0.75
+    data_quality:
+      min_required: 0.65
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+
+  sector_momentum_score:
+    enabled: true
+    score_type: atomic
+    subject_type: sector
+    subject_id: semiconductors
+    source_plugin_id: sector_momentum_plugin
+    source_feature_key: sector_relative_strength_3m
+    normalization:
+      method: bounded_linear
+      direction: higher_is_better
+      params:
+        lower_bound: -0.2
+        upper_bound: 0.2
+    smoothing:
+      method: ema
+      base_span: 10
+      min_span: 3
+      max_span: 40
+    confidence:
+      default: 0.8
+    data_quality:
+      min_required: 0.7
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+
+  earnings_surprise_score:
+    enabled: true
+    score_type: atomic
+    subject_type: sector
+    subject_id: semiconductors
+    source_plugin_id: earnings_plugin
+    source_feature_key: earnings_surprise_z
+    normalization:
+      method: z_score
+      direction: higher_is_better
+      params:
+        mean: 0
+        std: 1
+    smoothing:
+      method: ema
+      base_span: 8
+      min_span: 1
+      max_span: 30
+    confidence:
+      default: 0.7
+    data_quality:
+      min_required: 0.65
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+
+  data_quality_score:
+    enabled: true
+    score_type: quality
+    subject_type: portfolio
+    subject_id: global
+    source_plugin_id: data_quality_plugin
+    source_feature_key: feature_snapshot_quality
+    normalization:
+      method: min_max
+      direction: higher_is_better
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 3
+      min_span: 1
+      max_span: 10
+    confidence:
+      default: 1.0
+    data_quality:
+      min_required: 0.5
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+
+  buy_intensity_score:
+    enabled: true
+    score_type: composite
+    subject_type: portfolio
+    subject_id: global
+    source_plugin_id: allocation_intensity_plugin
+    source_feature_key: buy_intensity_feature
+    normalization:
+      method: min_max
+      direction: higher_is_better
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 10
+      min_span: 5
+      max_span: 30
+    confidence:
+      default: 0.7
+    data_quality:
+      min_required: 0.7
+    parameter_version: phase5_v1
+    model_version: score_layer_v1
+

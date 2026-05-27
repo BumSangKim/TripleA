@@ -1,0 +1,16 @@
+risk_limits:
+  portfolio:
+    max_risky_asset_exposure: 0.75
+    max_single_asset_weight: 0.25
+    volatility_penalty_scale: 0.4
+    concentration_penalty_scale: 0.5
+    liquidity_penalty_scale: 0.3
+    drawdown_penalty_scale: 0.5
+    parameter_version: phase9_v1
+    model_version: risk_budget_v1
+  accounts:
+    GENERAL:
+      max_risky_asset_exposure: 0.8
+    IRP:
+      max_risky_asset_exposure: 0.7
+

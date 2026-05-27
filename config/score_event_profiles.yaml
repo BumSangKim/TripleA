@@ -1,0 +1,30 @@
+event_profiles:
+  normal:
+    description: Default scoring behavior.
+    span_adjustments: {}
+
+  geopolitical_risk:
+    description: Geopolitical risk, sanctions, war, or supply-chain disruption.
+    span_adjustments:
+      volatility_stress_score: 2
+      fx_pressure_score: 3
+      commodity_pressure_score: 3
+      liquidity_stress_score: 2
+
+  earnings_event:
+    description: Earnings shock or surprise event.
+    span_adjustments:
+      earnings_surprise_score: 1
+      earnings_revision_score: 2
+      price_momentum_score: 5
+
+  black_swan_watch:
+    description: Extreme market stress watch.
+    span_adjustments:
+      volatility_stress_score: 1
+      liquidity_stress_score: 1
+      credit_stress_score: 1
+      risk_reduce_signal_score: 1
+      opportunity_score: 10
+      buy_intensity_score: 15
+

@@ -1,0 +1,6 @@
+frequency: monthly
+staleness_days: 7
+parameter_version: phase6_v1
+model_version: backtest_foundation_v1
+transaction_cost_bps: 5
+tax_bps: 0

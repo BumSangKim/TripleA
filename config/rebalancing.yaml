@@ -1,0 +1,23 @@
+intensity_bands:
+  - name: no_action
+    min: 0.0
+    max: 0.2
+    action: NO_ACTION
+  - name: adjust_with_new_cash
+    min: 0.2
+    max: 0.45
+    action: ADJUST_WITH_NEW_CASH
+  - name: buy_candidate
+    min: 0.45
+    max: 0.7
+    action: BUY_CANDIDATE
+  - name: partial_reduction
+    min: 0.7
+    max: 1.0
+    action: PARTIAL_REDUCTION_CANDIDATE
+max_rebalance_change: 0.05
+turnover_limit: 0.2
+cost_threshold_bps: 20
+parameter_version: phase11_v1
+model_version: rebalancing_v1
+

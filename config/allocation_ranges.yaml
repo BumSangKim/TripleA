@@ -1,0 +1,26 @@
+allocations:
+  SMH:
+    enabled: true
+    min_weight: 0.0
+    base_weight: 0.10
+    max_weight: 0.20
+    max_change: 0.03
+    account_roles: [GENERAL]
+  TLT:
+    enabled: true
+    min_weight: 0.05
+    base_weight: 0.15
+    max_weight: 0.35
+    max_change: 0.04
+    account_roles: [GENERAL, IRP]
+  CASH_KRW:
+    enabled: true
+    min_weight: 0.05
+    base_weight: 0.10
+    max_weight: 1.0
+    max_change: 1.0
+    account_roles: [GENERAL, IRP]
+cash_bucket: CASH_KRW
+parameter_version: phase10_v1
+model_version: allocation_v1
+

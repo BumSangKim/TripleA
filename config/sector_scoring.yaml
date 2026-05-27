@@ -1,0 +1,31 @@
+sectors:
+  semiconductors:
+    enabled: true
+    feature_tags: [semiconductor, ai, hardware]
+    asset_candidates: [SMH, SOXX]
+    component_weights:
+      macro_fit: 0.2
+      industry_momentum: 0.2
+      earnings_trend: 0.15
+      price_momentum: 0.15
+      valuation: 0.1
+      supply_demand: 0.1
+      risk_penalty: 0.1
+    parameter_version: phase8_v1
+    model_version: sector_scoring_v1
+
+  defensive_bonds:
+    enabled: true
+    feature_tags: [bond, defensive]
+    asset_candidates: [TLT]
+    component_weights:
+      macro_fit: 0.3
+      industry_momentum: 0.05
+      earnings_trend: 0.0
+      price_momentum: 0.15
+      valuation: 0.15
+      supply_demand: 0.1
+      risk_penalty: 0.25
+    parameter_version: phase8_v1
+    model_version: sector_scoring_v1
+
