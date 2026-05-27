@@ -60,9 +60,10 @@ def _asset(asset_id="SPY", *, enabled=True, role="core"):
 def test_valid_config_loads_default_universe():
     universe = load_asset_universe()
 
-    assert universe.universe_id == "phase1_initial_asset_universe"
+    assert universe.universe_id == "phase6_backtest_asset_universe_20210101"
     assert universe.base_currency == "KRW"
     assert get_asset_by_id(universe, "SPY") is not None
+    assert get_asset_by_id(universe, "BOTZ") is not None
 
 
 def test_missing_config_fails_conservatively(tmp_path):

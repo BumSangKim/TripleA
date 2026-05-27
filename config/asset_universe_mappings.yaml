@@ -71,6 +71,39 @@ sectors:
   technology:
     aliases:
       - tech
+  technology_growth:
+    aliases:
+      - growth_technology
+  small_cap:
+    aliases:
+      - us_small_cap
+  developed_ex_us:
+    aliases:
+      - developed_markets_ex_us
+  emerging_market:
+    aliases:
+      - emerging_markets
+  treasury_short:
+    aliases:
+      - short_treasury
+  treasury_intermediate:
+    aliases:
+      - intermediate_treasury
+  treasury_long:
+    aliases:
+      - long_treasury
+  investment_grade_credit:
+    aliases:
+      - ig_credit
+  gold:
+    aliases:
+      - precious_metals_gold
+  broad_commodity:
+    aliases:
+      - commodities
+  real_estate:
+    aliases:
+      - reit
   defensive:
     aliases:
       - defensive_core

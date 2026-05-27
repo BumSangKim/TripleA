@@ -23,14 +23,15 @@ def test_same_input_produces_stable_snapshot_id():
     assert first["snapshot_id"] == second["snapshot_id"]
 
 
-def test_disabled_watchlist_assets_are_included_but_non_actionable():
+def test_backtest_candidate_assets_are_included_but_non_actionable():
     snapshot = export_asset_universe_snapshot(created_at=FIXED_CREATED_AT)
-    watchlist = next(asset for asset in snapshot["assets"] if asset["asset_id"] == "ROBOT_WATCHLIST")
+    botz = next(asset for asset in snapshot["assets"] if asset["asset_id"] == "BOTZ")
 
-    assert watchlist["enabled"] is False
-    assert watchlist["role"] == "watchlist"
-    assert watchlist["eligible_for_order_candidate"] is False
-    assert snapshot["asset_count_watchlist"] >= 1
+    assert botz["enabled"] is True
+    assert botz["role"] == "satellite"
+    assert botz["review_required"] is True
+    assert botz["eligible_for_order_candidate"] is False
+    assert snapshot["asset_count_watchlist"] == 0
 
 
 def test_validation_result_is_included():

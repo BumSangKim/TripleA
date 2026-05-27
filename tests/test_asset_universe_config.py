@@ -20,8 +20,9 @@ def test_asset_universe_config_file_exists():
 def test_asset_universe_config_can_be_parsed():
     data, assets = _load_config_assets()
 
-    assert data["universe_id"] == "phase1_initial_asset_universe"
+    assert data["universe_id"] == "phase6_backtest_asset_universe_20210101"
     assert data["base_currency"] == "KRW"
+    assert data["backtest_start_date"] == "2021-01-01"
     assert assets
 
 
@@ -36,7 +37,7 @@ def test_config_contains_required_representative_assets():
     _, assets = _load_config_assets()
     roles = {asset.role for asset in assets}
 
-    assert {"cash", "core", "defensive", "satellite", "watchlist"}.issubset(roles)
+    assert {"cash", "core", "defensive", "satellite", "hedge"}.issubset(roles)
     assert any(asset.region == "KR" and asset.role == "core" for asset in assets)
     assert any(asset.region == "US" and asset.role == "core" for asset in assets)
 
@@ -60,18 +61,46 @@ def test_disabled_and_watchlist_assets_do_not_appear_in_active_universe():
     ]
 
     assert "ROBOT_WATCHLIST" not in {asset.asset_id for asset in active_assets}
+    assert not active_assets
     assert all(asset.role != "watchlist" for asset in active_assets)
 
 
-def test_unknown_account_eligibility_remains_conservative():
+def test_backtest_candidate_universe_remains_conservative():
     _, assets = _load_config_assets()
-    watchlist = next(asset for asset in assets if asset.asset_id == "ROBOT_WATCHLIST")
 
-    assert all(item.eligible is False for item in watchlist.account_eligibility.values())
-    assert all(item.review_required is True for item in watchlist.account_eligibility.values())
-    assert watchlist.enabled is False
-    assert watchlist.review_required is True
-    assert watchlist.eligible_for_order_candidate is False
+    assert {asset.asset_id for asset in assets} == {
+        "CASH_KRW",
+        "KOSPI_INDEX",
+        "SPY",
+        "QQQ",
+        "IWM",
+        "EFA",
+        "EEM",
+        "SHY",
+        "IEF",
+        "TLT",
+        "LQD",
+        "GLD",
+        "DBC",
+        "VNQ",
+        "SMH",
+        "BOTZ",
+    }
+    assert all(asset.review_required is True for asset in assets)
+    assert all(asset.eligible_for_order_candidate is False for asset in assets)
+    assert all("not a buy" in (asset.notes or "") for asset in assets)
+
+
+def test_foreign_etfs_are_taxable_only_until_review():
+    _, assets = _load_config_assets()
+
+    for asset in assets:
+        if asset.currency != "USD" or asset.instrument_type != "ETF":
+            continue
+        assert asset.account_eligibility["taxable"].eligible is True
+        for account_type in ("isa", "pension", "irp"):
+            assert asset.account_eligibility[account_type].eligible is False
+            assert asset.account_eligibility[account_type].review_required is True
 
 
 def test_config_uses_required_account_types():

@@ -16,6 +16,14 @@ requirements:
     description: Daily interest-rate series relevant to bond or duration-sensitive assets.
     required_for_score: false
     stale_after_days: 14
+  credit_spread_daily:
+    description: Daily credit-spread series or proxy for credit-sensitive assets.
+    required_for_score: false
+    stale_after_days: 14
+  commodity_price_daily:
+    description: Daily commodity price or commodity ETF proxy history.
+    required_for_score: false
+    stale_after_days: 14
   macro_monthly:
     description: Monthly macroeconomic indicator input.
     required_for_score: false
