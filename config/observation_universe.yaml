@@ -1,0 +1,30 @@
+version: "observation_universe_v0.1"
+universes:
+  default_observation:
+    assets:
+      - asset_code: SPY
+        symbol: SPY
+        name: S&P 500 ETF
+        asset_class: ETF
+        currency: USD
+        source_type: yahoo
+        observation_enabled: true
+        investable_enabled: true
+        sector_codes: [BROAD_MARKET]
+        theme_codes: [large_cap]
+        factor_codes: [market_beta]
+        min_history_days: 252
+        liquidity_requirement: REVIEW_REQUIRED
+      - asset_code: SMH
+        symbol: SMH
+        name: Semiconductor ETF
+        asset_class: ETF
+        currency: USD
+        source_type: yahoo
+        observation_enabled: true
+        investable_enabled: true
+        sector_codes: [SEMICONDUCTOR]
+        theme_codes: [ai_hardware]
+        factor_codes: [growth]
+        min_history_days: 252
+        liquidity_requirement: REVIEW_REQUIRED

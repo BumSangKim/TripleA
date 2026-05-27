@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Phase 3 — Data pipeline completed
+Score-flow adaptive testbed v2 completed
 
 ## Current Task
 
-None — Phase 3 completed. Next recommended phase is Phase 4 Feature Layer.
+None — Score-flow adaptive testbed v2 completed. Next recommended phase is Phase 4 Feature Layer hardening.
 
 ## Completed Tasks
 
@@ -64,6 +64,31 @@ None — Phase 3 completed. Next recommended phase is Phase 4 Feature Layer.
 - `TASK_310_BACKFILL_CLI_IDEMPOTENCY.md`
 - `TASK_311_DATA_STATUS_API.md`
 - `TASK_312_PHASE3_INTEGRATION_TEST_AND_CLOSEOUT.md`
+- `TASK_000_REPOSITORY_AND_STRATEGY_AUDIT.md`
+- `TASK_001_DATA_LAYER_CONTRACTS.md`
+- `TASK_002_TESTBED_DATABASE_SCHEMA.md`
+- `TASK_003_COMMON_SCORE_CONTRACT.md`
+- `TASK_004_OBSERVATION_UNIVERSE_AND_TAXONOMY.md`
+- `TASK_005_DATA_QUALITY_AND_SNAPSHOT_SERVICE.md`
+- `TASK_006_COMMON_SECTOR_SCORING_ENGINE.md`
+- `TASK_007_SPECIALIZED_INDICATOR_PLUGIN_REGISTRY.md`
+- `TASK_008_BOTTLENECK_PLUGIN_MIGRATION.md`
+- `TASK_009_SECTOR_SCORE_AGGREGATOR.md`
+- `TASK_010_SECTOR_ALLOCATION_PRESSURE.md`
+- `TASK_011_MACRO_DISTRIBUTION_AND_STATE_FEATURES.md`
+- `TASK_012_REGIME_RESPONSE_AND_OFFSETS.md`
+- `TASK_013_RISK_BUDGET_OFFSET_INTEGRATION.md`
+- `TASK_014_SECTOR_TILT_PRESSURE_INTEGRATION.md`
+- `TASK_015_ALLOCATION_REBALANCING_OFFSETS.md`
+- `TASK_016_DECISION_LOGGING_AND_SCORE_STORE_INTEGRATION.md`
+- `TASK_017_REALIZED_REGIME_LABELER.md`
+- `TASK_018_JUDGMENT_BACKTEST_EVALUATOR.md`
+- `TASK_019_PARAMETER_SET_AND_OPTIMIZATION_SCHEMA.md`
+- `TASK_020_RECURSIVE_OPTIMIZATION_ENGINE_V1.md`
+- `TASK_021_ROBUSTNESS_TESTER_AND_FAILURE_ANALYZER.md`
+- `TASK_022_OPTIMIZATION_REPORTING_API.md`
+- `TASK_023_BACKTEST_ENGINE_INTEGRATION.md`
+- `TASK_024_DOCUMENTATION_AND_STATUS.md`
 
 ## Blocked Tasks
 
@@ -83,7 +108,71 @@ None
 
 ## Last Test Result
 
-Passed — 304 passed, 2 skipped in 4.12s. Web lint passed.
+Passed — 332 passed, 2 skipped in 4.53s.
+
+## Score-Flow Adaptive Testbed v2
+
+- Status: complete.
+- Scope: opt-in testbed infrastructure only; existing default strategy/backtest behavior is preserved.
+- Completed:
+  - Repository and strategy audit.
+  - Data-layer contracts and testbed schema.
+  - Common score contract.
+  - Observation universe and sector taxonomy support.
+  - Data snapshot and quality service.
+  - Common sector scoring engine.
+  - Specialized indicator plugin registry.
+  - Bottleneck logic wrapped as a specialized plugin, not a universal model.
+  - Sector score aggregator.
+  - Continuous sector allocation pressure.
+  - Macro distribution and market/portfolio state features.
+  - Regime response engine and adaptive offsets.
+  - Optional risk budget, sector tilt, and allocation offset integrations.
+  - Decision logging and score store services.
+  - Evaluation-only realized regime labeler.
+  - Judgment backtest evaluator.
+  - Parameter, optimization run, and candidate stores.
+  - Recursive optimization v1, robustness tester, failure analyzer, and reporting.
+  - Optional backtest request fields for testbed mode.
+- Explicit non-goals preserved:
+  - No live order execution.
+  - No return-only optimization.
+  - No automatic parameter promotion.
+  - No sector core/satellite hierarchy migration.
+  - No bottleneck data universal model.
+- Major files:
+  - `api/data_contracts.py`
+  - `api/testbed/`
+  - `api/observation_universe.py`
+  - `api/strategy/score_contract.py`
+  - `api/strategy/common_sector_scoring_engine.py`
+  - `api/strategy/indicator_plugins/`
+  - `api/strategy/sector_score_aggregator.py`
+  - `api/strategy/sector_allocation_pressure.py`
+  - `api/strategy/macro_distribution.py`
+  - `api/strategy/state_features.py`
+  - `api/strategy/adaptive_offsets.py`
+  - `api/strategy/regime_response_engine.py`
+  - `api/strategy/allocation_offsets.py`
+  - `api/backtest_judgment/`
+  - `api/optimization/`
+  - `config/observation_universe.yaml`
+  - `config/asset_exposures.yaml`
+  - `docs/SCOREFLOW_TESTBED_CURRENT_AUDIT.md`
+  - `docs/SCOREFLOW_TESTBED_ARCHITECTURE.md`
+  - `docs/DATA_LAYER_AND_TESTBED_SCHEMA.md`
+  - `docs/SECTOR_INDICATOR_PLUGIN_SPEC.md`
+  - `docs/BACKTEST_OPTIMIZATION_TESTBED_SPEC.md`
+- Test commands:
+  - `.venv/bin/python -m pytest tests/test_score_contract.py tests/test_data_contracts_and_testbed_schema.py tests/test_observation_universe.py tests/test_data_snapshot_service.py tests/test_common_sector_scoring_engine.py tests/test_indicator_plugin_registry.py tests/test_bottleneck_plugin.py tests/test_sector_score_aggregator.py tests/test_sector_allocation_pressure.py tests/test_macro_distribution_and_state_features.py tests/test_regime_response_engine.py tests/test_risk_budget_offsets.py tests/test_sector_tilt_pressure_integration.py tests/test_allocation_speed_friction_offsets.py tests/test_decision_logging_integration.py tests/test_realized_regime_labeler.py tests/test_judgment_backtest_evaluator.py tests/test_optimization_stores.py tests/test_candidate_generator.py tests/test_optimization_objective.py tests/test_recursive_optimizer_v1.py tests/test_robustness_tester.py tests/test_failure_analyzer.py tests/test_optimization_reporting.py tests/test_backtest_testbed_integration.py -q`
+  - `.venv/bin/python -m pytest tests/test_risk_budget_engine.py tests/test_sector_tilt_engine.py tests/test_backtest_engine.py tests/test_api_backtests.py -q`
+  - `.venv/bin/python -m pytest -q`
+- Test result: targeted score-flow tests passed; affected existing strategy/backtest tests passed; full backend suite passed with 332 passed and 2 skipped.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Treat optimization v1 as a deterministic testbed scaffold, not production parameter promotion.
+  - Expand real data/provider integrations only through future read-only tasks.
+  - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
+- Next recommended task: Phase 4 Feature Layer hardening.
 
 ## Phase 3 Data Pipeline
 

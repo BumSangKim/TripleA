@@ -219,6 +219,11 @@ class BacktestRunRequest(BaseModel):
     slippageBps: float = 5.0
     taxBps: float = 0.0
     dataLookbackYears: int = 5
+    enableScoreflowTestbed: bool = False
+    enableDecisionLogging: bool = False
+    parameterSetId: Optional[str] = None
+    optimizationRunId: Optional[str] = None
+    initialSeedPolicy: str = "CURRENT"
 
 
 class BacktestPoint(BaseModel):

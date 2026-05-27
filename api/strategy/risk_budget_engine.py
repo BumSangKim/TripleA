@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import replace
+
+from api.strategy.adaptive_offsets import RiskOffsets
 
 
 @dataclass(frozen=True)
@@ -29,7 +32,10 @@ class RiskBudgetEngine:
         asset_weights: dict[str, float],
         asset_to_bucket: dict[str, str],
         policy: RiskBudgetPolicy,
+        *,
+        risk_offsets: RiskOffsets | None = None,
     ) -> RiskBudgetResult:
+        policy = _policy_with_offsets(policy, risk_offsets)
         weights = _normalize_with_zero_assets(asset_weights, asset_to_bucket)
         bucket_weights = _sum_bucket_weights(weights, asset_to_bucket)
         desired_buckets, violations, reasons = _clamp_bucket_weights(bucket_weights, policy)
@@ -52,6 +58,27 @@ def policy_from_profile(profile: dict) -> RiskBudgetPolicy:
         )
         for name, rule in (profile.get("buckets") or {}).items()
     }
+    return RiskBudgetPolicy(buckets=buckets)
+
+
+def _policy_with_offsets(policy: RiskBudgetPolicy, offsets: RiskOffsets | None) -> RiskBudgetPolicy:
+    if offsets is None:
+        return policy
+    buckets = dict(policy.buckets)
+    mapping = {
+        "AGGRESSIVE_ALPHA": {"max": offsets.aggressive_alpha_max_offset},
+        "DEFENSIVE_CORE": {"min": offsets.defensive_core_min_offset},
+        "LIQUIDITY": {"min": offsets.liquidity_min_offset},
+    }
+    for bucket, changes in mapping.items():
+        rule = buckets.get(bucket)
+        if not rule:
+            continue
+        new_min = max(0.0, min(1.0, rule.min + changes.get("min", 0.0)))
+        new_max = max(0.0, min(1.0, rule.max + changes.get("max", 0.0)))
+        if new_min > new_max:
+            new_min = new_max
+        buckets[bucket] = replace(rule, min=new_min, max=new_max)
     return RiskBudgetPolicy(buckets=buckets)
 
 

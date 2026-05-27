@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .types import SectorBottleneckScore
+from api.strategy.adaptive_offsets import AdaptiveOffsets, AdaptivePermissions, BLOCK
+from api.strategy.sector_allocation_pressure import SectorAllocationPressure
 
 
 @dataclass(frozen=True)
@@ -30,8 +32,13 @@ class SectorTiltEngine:
         *,
         macro_regime: str = "neutral",
         policy: SectorTiltPolicy | None = None,
+        sector_pressures: list[SectorAllocationPressure] | None = None,
+        adaptive_offsets: AdaptiveOffsets | None = None,
+        adaptive_permissions: AdaptivePermissions | None = None,
     ) -> SectorTiltResult:
         policy = policy or SectorTiltPolicy()
+        if sector_pressures is not None:
+            return _apply_pressure_tilts(asset_weights, sector_pressures, sector_assets, asset_to_bucket, policy, adaptive_offsets, adaptive_permissions)
         weights = dict(asset_weights)
         applied: dict[str, float] = {}
         reasons: list[str] = []
@@ -79,6 +86,43 @@ def _tilt_for_score(score: SectorBottleneckScore, policy: SectorTiltPolicy) -> f
     if score.regime == "emerging":
         return min(policy.emerging_sector_tilt, policy.max_sector_tilt)
     return 0.0
+
+
+def _apply_pressure_tilts(
+    asset_weights: dict[str, float],
+    sector_pressures: list[SectorAllocationPressure],
+    sector_assets: dict[str, list[str]],
+    asset_to_bucket: dict[str, str],
+    policy: SectorTiltPolicy,
+    adaptive_offsets: AdaptiveOffsets | None,
+    adaptive_permissions: AdaptivePermissions | None,
+) -> SectorTiltResult:
+    weights = dict(asset_weights)
+    applied: dict[str, float] = {}
+    reasons: list[str] = []
+    if adaptive_permissions and adaptive_permissions.sector_expansion == BLOCK:
+        return SectorTiltResult(_normalize(weights), {}, ["sector expansion blocked by adaptive permission"])
+    max_total = max(0.0, policy.max_total_tilt + (adaptive_offsets.risk.sector_pressure_cap_offset if adaptive_offsets else 0.0))
+    max_sector = max(0.0, policy.max_sector_tilt + (adaptive_offsets.risk.single_sector_max_offset if adaptive_offsets else 0.0))
+    total_tilt = 0.0
+    for pressure in sorted(sector_pressures, key=lambda item: item.allocation_pressure, reverse=True):
+        sector_tilt = min(max((pressure.allocation_pressure - 0.5) * 0.10, 0.0), max_sector, max_total - total_tilt)
+        if sector_tilt <= 0:
+            continue
+        targets = [asset for asset in sector_assets.get(pressure.sector_code, []) if asset in asset_to_bucket]
+        if not targets:
+            continue
+        bucket = asset_to_bucket[targets[0]]
+        donors = [asset for asset, asset_bucket in asset_to_bucket.items() if asset_bucket == bucket and asset not in targets and weights.get(asset, 0.0) > 0]
+        donated = _take_from_donors(weights, donors, sector_tilt)
+        if donated <= 0:
+            continue
+        for asset in targets:
+            weights[asset] = weights.get(asset, 0.0) + donated / len(targets)
+        applied[pressure.sector_code] = donated
+        total_tilt += donated
+        reasons.append(f"{pressure.sector_code} pressure tilt +{donated:.4f}")
+    return SectorTiltResult(_normalize(weights), applied, reasons)
 
 
 def _take_from_donors(

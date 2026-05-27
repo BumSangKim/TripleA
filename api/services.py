@@ -806,6 +806,8 @@ def run_backtest(
     tax_bps = _non_negative_bps(request.taxBps, "taxBps")
     if request.dataLookbackYears < 1:
         raise ValueError("dataLookbackYears must be at least 1")
+    if request.initialSeedPolicy not in {"CURRENT", "EQUAL_WEIGHT", "MINIMAL_PROBE", "VIRTUAL_OBSERVATION", "RANDOMIZED"}:
+        raise ValueError("unsupported initialSeedPolicy")
 
     allocator = TripleAAllocator.from_config(
         conn,
@@ -943,6 +945,25 @@ def run_backtest(
             json.dumps(decision.reasons, ensure_ascii=False),
         ))
         decision_id = int(decision_cur.lastrowid)
+        if request.enableDecisionLogging:
+            from api.strategy.decision_logger import log_strategy_decision
+
+            log_strategy_decision(
+                conn,
+                enabled=True,
+                decision_id=f"backtest:{run_id}:{decision_id}",
+                as_of_date=decision.as_of_date,
+                decision_type="backtest_allocation",
+                snapshot_id=None,
+                payload={
+                    "run_id": run_id,
+                    "parameter_set_id": request.parameterSetId,
+                    "optimization_run_id": request.optimizationRunId,
+                    "initial_seed_policy": request.initialSeedPolicy,
+                    "final_weights": decision.final_weights,
+                },
+                reason_codes=decision.reasons,
+            )
         conn.executemany("""
             INSERT INTO backtest_sector_decisions
             (run_id, decision_id, decision_date, sector_code, total_score,

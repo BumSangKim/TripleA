@@ -13,6 +13,7 @@ This file is an index only. It is not the global project status.
 | Phase Pre-3 asset universe spec | `docs/ASSET_UNIVERSE_SPEC.md` |
 | Phase Pre-3 market data DB spec | `docs/MARKET_DATA_DB_INTEGRATION_SPEC.md` |
 | Phase 3 data pipeline spec | `docs/DATA_PIPELINE_SPEC.md` |
+| Score-flow testbed architecture | `docs/SCOREFLOW_TESTBED_ARCHITECTURE.md` |
 
 ## Phase 0 — Baseline and Guardrails
 
@@ -43,3 +44,13 @@ Phase 3 is complete according to `DevelopPlans/STATUS.md`. Supporting docs are:
 - `docs/DATA_PIPELINE_SPEC.md`
 - `docs/PHASE_3_CURRENT_PRICE_CHECK.md`
 - `docs/PHASE_3_DATA_PIPELINE_CLOSEOUT.md`
+
+## Score-Flow Adaptive Testbed
+
+Supporting docs:
+
+- `docs/SCOREFLOW_TESTBED_CURRENT_AUDIT.md`
+- `docs/SCOREFLOW_TESTBED_ARCHITECTURE.md`
+- `docs/DATA_LAYER_AND_TESTBED_SCHEMA.md`
+- `docs/SECTOR_INDICATOR_PLUGIN_SPEC.md`
+- `docs/BACKTEST_OPTIMIZATION_TESTBED_SPEC.md`

@@ -1,0 +1,10 @@
+version: "asset_exposures_v0.1"
+assets:
+  SPY:
+    sectors: [BROAD_MARKET]
+    themes: [large_cap]
+    factors: [market_beta]
+  SMH:
+    sectors: [SEMICONDUCTOR]
+    themes: [ai_hardware]
+    factors: [growth]
