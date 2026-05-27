@@ -1,4 +1,4 @@
-# TripleA New Pipeline Architecture — Codex Task
+# TripleA Score Pipeline Architecture — Codex Task
 
 ## 공통 절대 원칙
 

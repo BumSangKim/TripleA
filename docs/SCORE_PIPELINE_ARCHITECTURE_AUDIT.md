@@ -1,11 +1,11 @@
-# New Pipeline Architecture Audit
+# Score Pipeline Architecture Audit
 
 ## 1. Current Repository Map
 
 - `api/db.py`, `api/market_data_*`, `api/data/*`, and `api/telegram_service.py` are reusable infrastructure.
 - `api/plugin_boundary/*`, `api/data_contracts.py`, and `api/testbed/*` provide useful contract and snapshot patterns.
 - `api/strategy/*` contains mixed material: reusable small helpers and existing investment judgment logic.
-- `api/backtest_engine.py` and `api/backtest_foundation.py` contain reusable historical simulation infrastructure, but current production allocator wiring must not be reused as the new strategy.
+- `api/backtest_engine.py` and `api/backtest_foundation.py` contain reusable historical simulation infrastructure, but current production allocator wiring must not be reused as the score pipeline strategy.
 - `config/*` contains asset universe, data requirement, account constraint, score, risk, allocation, and profile config.
 - `tests/*` contains guardrail, config, data, backtest, score, and account-constraint tests.
 
@@ -20,7 +20,7 @@
 
 ## 3. Legacy Strategy Logic Not To Migrate
 
-The new pipeline must not copy or wrap these judgment paths:
+The score pipeline must not copy or wrap these judgment paths:
 
 - `api/strategy/triplea_allocator.py` fixed profile/macro-adjusted allocation path.
 - `api/strategy/macro_engine.py` score-to-label logic.
@@ -28,26 +28,26 @@ The new pipeline must not copy or wrap these judgment paths:
 - Existing sector tilt/offset logic if it directly implies allocation behavior.
 - `api/services.py` order draft/approval paths as execution behavior.
 
-The new implementation must not introduce `LegacyReferenceEngine`, `LegacyBridge`, golden-master comparison, or shadow compare code.
+The score pipeline implementation must not introduce `LegacyReferenceEngine`, `LegacyBridge`, golden-master comparison, or shadow compare code.
 
-## 4. Candidate New Pipeline Module Locations
+## 4. Candidate Score Pipeline Module Locations
 
-- `api/new_pipeline/contracts.py`
-- `api/new_pipeline/parameters.py`
-- `api/new_pipeline/data_quality.py`
-- `api/new_pipeline/features.py`
-- `api/new_pipeline/scoring.py`
-- `api/new_pipeline/engines.py`
-- `api/new_pipeline/backtest.py`
-- `api/new_pipeline/audit.py`
+- `api/score_pipeline/contracts.py`
+- `api/score_pipeline/parameters.py`
+- `api/score_pipeline/data_quality.py`
+- `api/score_pipeline/features.py`
+- `api/score_pipeline/scoring.py`
+- `api/score_pipeline/engines.py`
+- `api/score_pipeline/backtest.py`
+- `api/score_pipeline/audit.py`
 - `config/parameters/default.yaml`
-- `tests/test_new_pipeline_*.py`
+- `tests/test_score_pipeline_*.py`
 
-This keeps new score-flow behavior separate from existing `api/strategy` judgment modules.
+This keeps score-flow behavior separate from existing `api/strategy` judgment modules.
 
 ## 5. Existing Tests And Gaps
 
-Existing tests cover asset universe, account constraints, data contracts, phase 5 score layer, phase 6-13 foundations, legacy/current backtest APIs, and live-execution guardrails. Gaps for the new pipeline are:
+Existing tests cover asset universe, account constraints, data contracts, phase 5 score layer, phase 6-13 foundations, legacy/current backtest APIs, and live-execution guardrails. Gaps for the score pipeline are:
 
 - End-to-end contract-only score-flow smoke test.
 - Parameter valid-from/valid-to fallback tests.
@@ -74,4 +74,3 @@ Existing tests cover asset universe, account constraints, data contracts, phase 
 7. Add backtest adapter and leakage tests.
 8. Add audit logs and review-only order candidates.
 9. Run full tests and safety-pattern scans before commit.
-

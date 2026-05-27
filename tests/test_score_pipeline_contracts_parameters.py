@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 import pytest
 import yaml
 
-from api.new_pipeline.contracts import (
+from api.score_pipeline.contracts import (
     ConservativeAction,
     ConstraintResult,
     DataQualityMetadata,
@@ -15,7 +15,7 @@ from api.new_pipeline.contracts import (
     ScoreOutput,
     to_json,
 )
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 def _quality():
@@ -42,7 +42,7 @@ def test_contract_objects_are_serializable():
         _quality(),
         date(2026, 5, 27),
         "fixture",
-        "new_pipeline_v1",
+        "score_pipeline_v1",
         "feature_v1",
         [reason],
         [warning],
@@ -84,7 +84,7 @@ def test_decision_log_downstream_compatibility_smoke():
     log = DecisionLogRecord(
         date=date(2026, 5, 27),
         data_snapshot_id="snap-1",
-        parameter_version="new_pipeline_v1",
+        parameter_version="score_pipeline_v1",
         model_version="pipeline_v1",
         macro_scores={"neutral": 0.5},
         sector_scores={"SPY": 0.6},
@@ -105,8 +105,8 @@ def test_valid_parameter_load_and_version_propagation():
     registry = ParameterRegistry.from_yaml()
     lookup = registry.get("ema_span", as_of_date=date(2026, 5, 27), expected_type=int)
     assert lookup.value == 5
-    assert lookup.version_ref.version == "new_pipeline_v1"
-    assert registry.parameter_version_for(["ema_span", "turnover_limit"], date(2026, 5, 27)) == "new_pipeline_v1"
+    assert lookup.version_ref.version == "score_pipeline_v1"
+    assert registry.parameter_version_for(["ema_span", "turnover_limit"], date(2026, 5, 27)) == "score_pipeline_v1"
 
 
 def test_missing_and_invalid_parameter_fallback(tmp_path):

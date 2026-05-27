@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 
-from api.new_pipeline.contracts import ConservativeAction, DecisionWarning, ParameterVersionRef
+from api.score_pipeline.contracts import ConservativeAction, DecisionWarning, ParameterVersionRef
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -121,4 +121,3 @@ def _entry(raw: dict[str, Any]) -> ParameterEntry:
         )
     except KeyError as exc:
         raise ParameterRegistryError(f"missing parameter metadata field: {exc}") from exc
-

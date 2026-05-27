@@ -159,7 +159,7 @@ def count_rows(table: str, db_session: sqlite3.Connection) -> int:
     return int(db_session.execute(f"SELECT COUNT(*) AS c FROM {table}").fetchone()["c"])
 
 
-def new_ingestion_run(source_id: str, *, status: str = "running") -> IngestionRun:
+def create_ingestion_run(source_id: str, *, status: str = "running") -> IngestionRun:
     now = datetime.now(UTC)
     return IngestionRun(
         run_id=f"{source_id}:{now.isoformat()}",

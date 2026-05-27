@@ -2,8 +2,8 @@ from datetime import date
 
 import pytest
 
-from api.new_pipeline.contracts import ScoreOutput
-from api.new_pipeline.engines import (
+from api.score_pipeline.contracts import ScoreOutput
+from api.score_pipeline.engines import (
     AllocationEngine,
     MacroRegimeEngine,
     RebalancingEngine,
@@ -11,7 +11,7 @@ from api.new_pipeline.engines import (
     SectorScoringEngine,
     load_sector_definitions,
 )
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 def _score(score_id="score:growth", score=0.7, quality=0.9):
@@ -27,7 +27,7 @@ def _score(score_id="score:growth", score=0.7, quality=0.9):
         0.8,
         0.2,
         date(2026, 5, 27),
-        "new_pipeline_v1",
+        "score_pipeline_v1",
         "score_v1",
     )
 
@@ -64,16 +64,16 @@ def test_config_driven_sector_scoring_and_missing_component_fallback():
 
 
 def test_sector_addition_without_core_rewrite_smoke():
-    engine = SectorScoringEngine({"new_sector": load_sector_definitions()["broad_market"]})
+    engine = SectorScoringEngine({"custom_sector": load_sector_definitions()["broad_market"]})
     macro = MacroRegimeEngine().evaluate([_score()], ParameterRegistry.from_yaml(), as_of_date=date(2026, 5, 27))
     result = engine.score(
-        sector_id="new_sector",
+        sector_id="custom_sector",
         macro=macro,
         components={"momentum": 0.6, "valuation": 0.5, "risk_penalty": 0.3},
         as_of_date=date(2026, 5, 27),
         registry=ParameterRegistry.from_yaml(),
     )
-    assert result.sector_id == "new_sector"
+    assert result.sector_id == "custom_sector"
 
 
 def test_risk_budget_and_hard_constraint_gate():

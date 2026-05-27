@@ -33,7 +33,7 @@ def test_strategy_code_does_not_hardcode_asset_symbols():
     assert not offenders, "\n".join(offenders)
 
 
-def test_new_universe_and_market_data_code_has_no_execution_surface():
+def test_universe_and_market_data_code_has_no_execution_surface():
     code_paths = _python_files([
         REPO_ROOT / "api" / "universe",
         REPO_ROOT / "api" / "market_data",

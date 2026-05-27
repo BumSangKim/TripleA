@@ -10,9 +10,9 @@ None — Phases 5-13 were implemented as pre-execution, test-covered foundations
 
 ## Completed Tasks
 
-- New Pipeline Architecture implemented:
+- Score Pipeline Architecture implemented:
   - repository and architecture audit;
-  - independent `api/new_pipeline` contracts;
+  - independent `api/score_pipeline` contracts;
   - versioned parameter registry under `config/parameters/`;
   - data snapshot and quality layer;
   - feature plugin registry;
@@ -22,7 +22,8 @@ None — Phases 5-13 were implemented as pre-execution, test-covered foundations
   - risk budget and hard constraint gate;
   - allocation and rebalancing engine;
   - backtest smoke adapter and leakage tests;
-  - reporting/audit and review-only order candidates.
+  - reporting/audit and review-only order candidates;
+  - stable score pipeline naming normalization.
 - Phase 5 Score Layer implemented:
   - score contract;
   - score definitions;
@@ -203,7 +204,7 @@ Passed — 515 passed, 2 skipped in 4.78s; web lint passed; web build passed. `n
   - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
 - Next recommended task: Phase 4 Feature Layer hardening, or an explicitly approved dashboard notification task that keeps live execution disabled.
 
-## Score-Flow Adaptive Testbed v2
+## Score-Flow Adaptive Testbed
 
 - Status: complete.
 - Scope: opt-in testbed infrastructure only; existing default strategy/backtest behavior is preserved.

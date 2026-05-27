@@ -156,7 +156,7 @@ class BacktestEngine:
                 decision = allocator.allocate(current_date, previous_weights=previous_weights)
                 targets = _targets_from_decision(decision, assets)
                 decisions.append(decision)
-                new_trades = _rebalance(
+                rebalance_trades = _rebalance(
                     self.conn,
                     assets,
                     quantities,
@@ -169,7 +169,7 @@ class BacktestEngine:
                     config.tax_bps,
                     initial=current_date == config.start_date,
                 )
-                trades.extend(new_trades)
+                trades.extend(rebalance_trades)
                 previous_weights = decision.final_weights
                 portfolio_value = _portfolio_value(
                     self.conn,
@@ -369,15 +369,15 @@ def _rebalance(
 
     if cash_asset_code:
         cash_asset = assets[cash_asset_code]
-        old_quantity = quantities.get(cash_asset_code, 0.0)
+        previous_cash_quantity = quantities.get(cash_asset_code, 0.0)
         non_cash_value = sum(
             _asset_value(conn, asset, quantities.get(asset_code, 0.0), current_date, base_currency)
             for asset_code, asset in assets.items()
             if asset_code != cash_asset_code
         )
-        new_cash_quantity = max(portfolio_value - non_cash_value - total_cost, 0.0)
-        delta = new_cash_quantity - old_quantity
-        quantities[cash_asset_code] = new_cash_quantity
+        target_cash_quantity = max(portfolio_value - non_cash_value - total_cost, 0.0)
+        delta = target_cash_quantity - previous_cash_quantity
+        quantities[cash_asset_code] = target_cash_quantity
         if abs(delta) > 1e-10:
             price, fx_rate = _pricing(conn, cash_asset, current_date, base_currency)
             gross_amount = abs(delta) * price * fx_rate

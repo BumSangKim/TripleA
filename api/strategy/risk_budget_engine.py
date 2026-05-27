@@ -74,11 +74,11 @@ def _policy_with_offsets(policy: RiskBudgetPolicy, offsets: RiskOffsets | None) 
         rule = buckets.get(bucket)
         if not rule:
             continue
-        new_min = max(0.0, min(1.0, rule.min + changes.get("min", 0.0)))
-        new_max = max(0.0, min(1.0, rule.max + changes.get("max", 0.0)))
-        if new_min > new_max:
-            new_min = new_max
-        buckets[bucket] = replace(rule, min=new_min, max=new_max)
+        adjusted_min = max(0.0, min(1.0, rule.min + changes.get("min", 0.0)))
+        adjusted_max = max(0.0, min(1.0, rule.max + changes.get("max", 0.0)))
+        if adjusted_min > adjusted_max:
+            adjusted_min = adjusted_max
+        buckets[bucket] = replace(rule, min=adjusted_min, max=adjusted_max)
     return RiskBudgetPolicy(buckets=buckets)
 
 

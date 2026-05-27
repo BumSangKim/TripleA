@@ -1,4 +1,4 @@
-# Codex Master Prompt — New Pipeline Architecture
+# Codex Master Prompt — Score Pipeline Architecture
 
 아래 지시를 저장소 루트에서 순서대로 수행해줘.
 
@@ -21,19 +21,19 @@ docs/CODEX_WORKFLOW.md
 그리고 이 태스크 팩의 파일을 아래 순서대로 하나씩 수행해라.
 
 ```text
-docs/codex_tasks/new_pipeline/TASK_000_REPOSITORY_AND_ARCHITECTURE_AUDIT.md
-docs/codex_tasks/new_pipeline/TASK_001_PIPELINE_CONTRACTS_AND_TYPES.md
-docs/codex_tasks/new_pipeline/TASK_002_CONFIGURATION_AND_PARAMETER_REGISTRY.md
-docs/codex_tasks/new_pipeline/TASK_003_DATA_SNAPSHOT_AND_QUALITY_LAYER.md
-docs/codex_tasks/new_pipeline/TASK_004_FEATURE_PLUGIN_LAYER.md
-docs/codex_tasks/new_pipeline/TASK_005_SCORE_LAYER_CORE.md
-docs/codex_tasks/new_pipeline/TASK_006_MACRO_REGIME_ENGINE.md
-docs/codex_tasks/new_pipeline/TASK_007_SECTOR_SCORING_ENGINE.md
-docs/codex_tasks/new_pipeline/TASK_008_RISK_BUDGET_AND_CONSTRAINT_GATE.md
-docs/codex_tasks/new_pipeline/TASK_009_ALLOCATION_AND_REBALANCING_ENGINE.md
-docs/codex_tasks/new_pipeline/TASK_010_BACKTEST_INTEGRATION_AND_LEAKAGE_TESTS.md
-docs/codex_tasks/new_pipeline/TASK_011_REPORTING_AUDIT_AND_ORDER_CANDIDATES.md
-docs/codex_tasks/new_pipeline/TASK_012_FINAL_VERIFICATION_COMMIT_PUSH.md
+docs/codex_tasks/score_pipeline/TASK_000_REPOSITORY_AND_ARCHITECTURE_AUDIT.md
+docs/codex_tasks/score_pipeline/TASK_001_PIPELINE_CONTRACTS_AND_TYPES.md
+docs/codex_tasks/score_pipeline/TASK_002_CONFIGURATION_AND_PARAMETER_REGISTRY.md
+docs/codex_tasks/score_pipeline/TASK_003_DATA_SNAPSHOT_AND_QUALITY_LAYER.md
+docs/codex_tasks/score_pipeline/TASK_004_FEATURE_PLUGIN_LAYER.md
+docs/codex_tasks/score_pipeline/TASK_005_SCORE_LAYER_CORE.md
+docs/codex_tasks/score_pipeline/TASK_006_MACRO_REGIME_ENGINE.md
+docs/codex_tasks/score_pipeline/TASK_007_SECTOR_SCORING_ENGINE.md
+docs/codex_tasks/score_pipeline/TASK_008_RISK_BUDGET_AND_CONSTRAINT_GATE.md
+docs/codex_tasks/score_pipeline/TASK_009_ALLOCATION_AND_REBALANCING_ENGINE.md
+docs/codex_tasks/score_pipeline/TASK_010_BACKTEST_INTEGRATION_AND_LEAKAGE_TESTS.md
+docs/codex_tasks/score_pipeline/TASK_011_REPORTING_AUDIT_AND_ORDER_CANDIDATES.md
+docs/codex_tasks/score_pipeline/TASK_012_FINAL_VERIFICATION_COMMIT_PUSH.md
 ```
 
 ## 실행 규칙

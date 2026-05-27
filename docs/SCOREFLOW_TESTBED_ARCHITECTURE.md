@@ -2,7 +2,7 @@
 
 ## Current Implemented Flow
 
-The implemented v2 testbed adds opt-in score-flow infrastructure around the existing TripleA strategy. Existing macro, allocation, risk budget, sector tilt, backtest, and order draft behavior remains backward-compatible by default.
+The implemented score-flow testbed adds opt-in infrastructure around the existing TripleA strategy. Existing macro, allocation, risk budget, sector tilt, backtest, and order draft behavior remains backward-compatible by default.
 
 Implemented flow:
 

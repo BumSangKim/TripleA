@@ -333,7 +333,7 @@ class OrderCandidate:
         if self.action_candidate not in CandidateAction.values():
             raise PipelineContractError("unsupported action_candidate")
         if self.execution_allowed is not False:
-            raise PipelineContractError("execution_allowed must default to false in new pipeline")
+            raise PipelineContractError("execution_allowed must default to false in score pipeline")
         for field_name in ("target_weight", "current_weight"):
             _require_ratio(getattr(self, field_name), field_name)
 
@@ -382,4 +382,3 @@ def _require_ratio(value: float, field_name: str) -> None:
 
 def clamp_ratio(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
-

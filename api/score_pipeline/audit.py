@@ -4,7 +4,7 @@ from dataclasses import asdict, dataclass
 from datetime import date
 from typing import Any
 
-from api.new_pipeline.contracts import (
+from api.score_pipeline.contracts import (
     CandidateAction,
     ConstraintResult,
     DecisionLogRecord,
@@ -85,7 +85,7 @@ class OrderCandidateGenerator:
             execution_allowed=False,
             as_of_date=as_of_date,
             parameter_version=decision.parameter_version,
-            model_version="new_pipeline_order_candidate_v1",
+            model_version="score_pipeline_order_candidate_v1",
         )
 
 

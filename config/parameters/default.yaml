@@ -6,7 +6,7 @@ parameters:
       sector: 0.30
       risk: 0.25
       quality: 0.20
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -15,7 +15,7 @@ parameters:
     affected_modules: [score, macro, sector, risk]
   - name: ema_span
     value: 5
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -24,7 +24,7 @@ parameters:
     affected_modules: [score]
   - name: lookback_window_days
     value: 63
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -33,7 +33,7 @@ parameters:
     affected_modules: [feature]
   - name: volatility_normalization_window
     value: 252
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -46,7 +46,7 @@ parameters:
         min: 0.0
         base: 0.05
         max: 0.20
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -59,7 +59,7 @@ parameters:
         min: 0.0
         base: 0.05
         max: 0.20
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -76,7 +76,7 @@ parameters:
         max_risky_asset_weight: 0.00
       irp:
         max_risky_asset_weight: 0.70
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -85,7 +85,7 @@ parameters:
     affected_modules: [risk, constraint]
   - name: turnover_limit
     value: 0.20
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -94,7 +94,7 @@ parameters:
     affected_modules: [rebalancing, backtest]
   - name: target_change_limit
     value: 0.05
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -103,7 +103,7 @@ parameters:
     affected_modules: [allocation, rebalancing]
   - name: transaction_cost_bps
     value: 5.0
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -112,7 +112,7 @@ parameters:
     affected_modules: [backtest, rebalancing]
   - name: tax_assumption_bps
     value: 0.0
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml
@@ -124,7 +124,7 @@ parameters:
       hold: [0.0, 0.25]
       review: [0.25, 0.45]
       candidate: [0.45, 1.0]
-    version: new_pipeline_v1
+    version: score_pipeline_v1
     valid_from: "2021-01-01"
     valid_to: null
     source: config/parameters/default.yaml

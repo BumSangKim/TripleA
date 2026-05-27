@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 from statistics import mean, pstdev
 from typing import Any
 
-from api.new_pipeline.contracts import (
+from api.score_pipeline.contracts import (
     ConservativeAction,
     DataQualityMetadata,
     DecisionWarning,
@@ -108,4 +108,3 @@ def _has_anomaly(values: list[float]) -> bool:
         return False
     center = mean(values)
     return any(abs(value - center) / sigma > 3.0 for value in values)
-

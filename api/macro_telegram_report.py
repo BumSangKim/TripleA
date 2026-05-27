@@ -183,12 +183,12 @@ def _format_indicator_line(item: MacroIndicator) -> str:
 
 def _format_value(value: float | None, unit: str | None) -> str:
     number = _format_number(value)
-    clean_unit = (unit or "").strip()
-    if not clean_unit:
+    normalized_unit = (unit or "").strip()
+    if not normalized_unit:
         return number
-    if clean_unit in {"%", "원"}:
-        return f"{number}{clean_unit}"
-    return f"{number} {clean_unit}"
+    if normalized_unit in {"%", "원"}:
+        return f"{number}{normalized_unit}"
+    return f"{number} {normalized_unit}"
 
 
 def _format_number(value: float | None) -> str:

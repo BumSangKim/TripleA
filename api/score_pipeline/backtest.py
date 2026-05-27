@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from typing import Callable
 
-from api.new_pipeline.contracts import DecisionLogRecord, DecisionWarning
-from api.new_pipeline.data_quality import HistoricalSnapshot
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.contracts import DecisionLogRecord, DecisionWarning
+from api.score_pipeline.data_quality import HistoricalSnapshot
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 @dataclass(frozen=True)
@@ -38,8 +38,8 @@ class PipelineBacktestResult:
     decision_logs: list[DecisionLogRecord]
     metrics: dict[str, float | None]
     warnings: list[DecisionWarning] = field(default_factory=list)
-    parameter_version: str = "new_pipeline_v1"
-    model_version: str = "new_pipeline_backtest_v1"
+    parameter_version: str = "score_pipeline_v1"
+    model_version: str = "score_pipeline_backtest_v1"
 
 
 class SimulationClock:
@@ -175,4 +175,3 @@ def _empty_metrics() -> dict[str, float | None]:
         "stress_period_performance": None,
         "parameter_sensitivity": None,
     }
-

@@ -1,4 +1,4 @@
-# TripleA New Pipeline Architecture — Codex Task
+# TripleA Score Pipeline Architecture — Codex Task
 
 ## 공통 절대 원칙
 
@@ -60,75 +60,73 @@ Inspect
 
 실패한 테스트를 무시하지 않는다. 관련 없는 기존 실패가 있으면 명령, 실패 요약, 관련 없음의 근거, 영향 범위를 기록한다.
 
-# TASK 006 — Macro Regime Engine
+# TASK 008 — Risk Budget and Constraint Gate
 
 ## 목적
 
-macro score들을 이용해 macro regime label 하나가 아니라 regime score distribution을 생성한다.
-
-## 필수 출력
-
-```json
-{
-  "regime_distribution": {
-    "risk_on_growth": 0.0,
-    "neutral": 0.0,
-    "inflation_pressure": 0.0,
-    "recession_risk": 0.0,
-    "volatility_stress": 0.0
-  },
-  "dominant_regime": "neutral",
-  "confidence": 0.0,
-  "data_quality": 0.0,
-  "reason_codes": [],
-  "as_of_date": "YYYY-MM-DD",
-  "parameter_version": "string",
-  "model_version": "string"
-}
-```
+attractiveness score만으로 비중을 정하지 않도록 portfolio/account risk budget과 hard constraint gate를 구현한다.
 
 ## 작업 범위
 
-1. macro regime engine interface를 구현한다.
-2. macro score inputs를 contract 기반으로 받는다.
-3. regime distribution normalization을 구현한다.
-4. dominant_regime은 설명용 필드로만 제공한다.
-5. allocation fixed weight로 직접 연결하지 않는다.
-6. missing/stale macro data fallback을 구현한다.
+1. risk budget engine interface를 구현한다.
+2. account constraint engine과 연결 가능한 constraint result contract를 구현한다.
+3. portfolio-level risk와 account-level risk를 구분한다.
+4. hard constraint는 score로 완화하지 않고 block 처리한다.
+5. risk는 대부분 penalty/intensity 조정으로 반영하되, constraint는 별도 gate로 처리한다.
 
-## 입력 카테고리
-
-가용 데이터에 따라 일부부터 시작하되 구조는 확장 가능해야 한다.
+## 고려 요소
 
 ```text
-interest rates
-inflation
-FX
-liquidity
-credit spreads
+expected return score
 volatility
-economic activity
-export/import data
-commodity prices
-market trend
-market breadth
+correlation
+drawdown contribution
+account constraints
+liquidity
+tax
+transaction cost
+existing position weight
+data quality
+confidence
+```
+
+## account type 예시
+
+```text
+taxable
+ISA
+pension
+IRP
+```
+
+## hard constraint 예시
+
+```text
+account not eligible
+IRP risky asset limit violation
+leveraged/inverse/futures restriction
+insufficient cash
+minimum order size not satisfied
+trading halt
+missing account balance data
+API state unknown
 ```
 
 ## 테스트 요구사항
 
 ```text
-- regime_distribution output
-- normalization behavior
-- dominant_regime explanation-only
-- multiple macro input handling
-- missing macro input fallback
-- stale macro input fallback
-- confidence/data_quality propagation
-- no direct fixed weight mapping
+- portfolio risk budget output
+- account-level risk budget output
+- hard constraint blocks action
+- risk penalty reduces intensity
+- missing balance fallback
+- invalid account type fallback
+- data_quality poor does not increase risk
+- constraint reason_codes
 ```
 
 ## 완료 기준
 
-- macro regime distribution을 생성할 수 있다.
-- 단일 threshold regime switch가 없다.
-- allocation/rebalancing이 사용할 수 있는 contract를 제공한다.
+- risk budget output이 allocation input으로 사용 가능하다.
+- hard constraint result가 명확하다.
+- constraint를 score로 softening하지 않는다.

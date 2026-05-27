@@ -1,8 +1,8 @@
 from datetime import UTC, date, datetime, timedelta
 
-from api.new_pipeline.audit import DecisionLogWriter, OrderCandidateGenerator, ReportingSummary, explain_decision
-from api.new_pipeline.backtest import PipelineBacktestConfig, PipelineBacktestRunner, SimulationClock
-from api.new_pipeline.contracts import (
+from api.score_pipeline.audit import DecisionLogWriter, OrderCandidateGenerator, ReportingSummary, explain_decision
+from api.score_pipeline.backtest import PipelineBacktestConfig, PipelineBacktestRunner, SimulationClock
+from api.score_pipeline.contracts import (
     CandidateAction,
     ConstraintResult,
     DecisionLogRecord,
@@ -10,8 +10,8 @@ from api.new_pipeline.contracts import (
     ReasonCode,
     RebalancingDecision,
 )
-from api.new_pipeline.data_quality import RawDataPoint, SnapshotBuilder
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.data_quality import RawDataPoint, SnapshotBuilder
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 NOW = datetime(2026, 5, 27, tzinfo=UTC)
@@ -46,7 +46,7 @@ def _snapshot(day: date, snapshot_id: str):
 
 
 def test_simulation_clock_and_pipeline_called_per_rebalance_date():
-    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 3, 1), "monthly", 1000, "new_pipeline_v1")
+    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 3, 1), "monthly", 1000, "score_pipeline_v1")
     assert SimulationClock().dates(config) == [date(2026, 1, 1), date(2026, 2, 1), date(2026, 3, 1)]
     result = PipelineBacktestRunner(ParameterRegistry.from_yaml()).run(
         config,
@@ -66,14 +66,14 @@ def test_no_future_data_leakage_fixture():
 
 
 def test_backtest_reproducibility_with_same_parameter_version():
-    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 2, 1), "monthly", 1000, "new_pipeline_v1")
+    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 2, 1), "monthly", 1000, "score_pipeline_v1")
     snapshots = [_snapshot(date(2026, 1, 1), "snap-1"), _snapshot(date(2026, 2, 1), "snap-2")]
     runner = PipelineBacktestRunner(ParameterRegistry.from_yaml())
     assert runner.run(config, snapshots, _log).equity_curve == runner.run(config, snapshots, _log).equity_curve
 
 
 def test_missing_snapshot_conservative_fallback_warning():
-    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 2, 1), "monthly", 1000, "new_pipeline_v1")
+    config = PipelineBacktestConfig(date(2026, 1, 1), date(2026, 2, 1), "monthly", 1000, "score_pipeline_v1")
     result = PipelineBacktestRunner(ParameterRegistry.from_yaml()).run(config, [_snapshot(date(2026, 1, 1), "snap-1")], _log)
     assert any(warning.code == "MISSING_BACKTEST_SNAPSHOT" for warning in result.warnings)
 
@@ -103,7 +103,7 @@ def test_order_candidate_generation_review_only_and_blocked_constraint():
         stability=0.9,
         adjustment_intensity=0.5,
         as_of_date=date(2026, 5, 27),
-        parameter_version="new_pipeline_v1",
+        parameter_version="score_pipeline_v1",
         model_version="rebalance_v1",
         reason_codes=[ReasonCode("BUY_CANDIDATE_FROM_SCORE_FLOW", "order_candidate")],
         warnings=[],

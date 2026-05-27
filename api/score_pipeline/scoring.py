@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from api.new_pipeline.contracts import DecisionWarning, FeatureOutput, ReasonCode, ScoreOutput, clamp_ratio
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.contracts import DecisionWarning, FeatureOutput, ReasonCode, ScoreOutput, clamp_ratio
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 def ema_smooth(current_score: float, previous_score: float | None, span: int) -> float:
@@ -66,7 +66,7 @@ class ScoreCalculator:
             adjustment_intensity=clamp_ratio(abs(data_quality_score - 0.5) * feature.confidence * feature.data_quality.quality_score),
             as_of_date=feature.as_of_date,
             parameter_version=feature.parameter_version,
-            model_version="new_pipeline_score_v1",
+            model_version="score_pipeline_score_v1",
             reason_codes=[*feature.reason_codes, ReasonCode("SCORE_FLOW_APPLIED", "score")],
             warnings=warnings,
             normalized_score=normalized,

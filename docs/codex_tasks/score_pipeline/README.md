@@ -1,4 +1,4 @@
-# TripleA New Pipeline Architecture Codex Task Pack
+# TripleA Score Pipeline Architecture Codex Task Pack
 
 이 폴더는 “마이그레이션 가이드 평가”에서 정리한 방향을 Codex가 순차적으로 실행할 수 있도록 분해한 태스크 팩이다.
 

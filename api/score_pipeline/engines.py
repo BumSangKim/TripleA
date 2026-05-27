@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 
-from api.new_pipeline.contracts import (
+from api.score_pipeline.contracts import (
     AllocationTargetRange,
     CandidateAction,
     ConservativeAction,
@@ -21,7 +21,7 @@ from api.new_pipeline.contracts import (
     SectorScoreOutput,
     clamp_ratio,
 )
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -52,7 +52,7 @@ class MacroRegimeEngine:
                 [ReasonCode("MACRO_REVIEW_REQUIRED", "macro")],
                 [DecisionWarning("MISSING_MACRO_SCORES", "WARNING", "macro", "neutral distribution used")],
                 parameter_version,
-                "new_pipeline_macro_v1",
+                "score_pipeline_macro_v1",
             )
         raw = {regime: 0.2 for regime in self.regimes}
         for score in scores:
@@ -84,7 +84,7 @@ class MacroRegimeEngine:
             [ReasonCode("MACRO_DISTRIBUTION_SCORE_FLOW", "macro")],
             warnings,
             parameter_version,
-            "new_pipeline_macro_v1",
+            "score_pipeline_macro_v1",
         )
 
 
@@ -149,7 +149,7 @@ class SectorScoringEngine:
             adjustment_intensity=clamp_ratio(abs(adjusted - 0.5) * confidence),
             as_of_date=as_of_date,
             parameter_version=registry.parameter_version_for(["score_weights"], as_of_date),
-            model_version="new_pipeline_sector_v1",
+            model_version="score_pipeline_sector_v1",
             reason_codes=[ReasonCode("SECTOR_SCORE_DECOMPOSED", "sector")],
             warnings=warnings,
         )
@@ -201,7 +201,7 @@ class RiskBudgetEngine:
             adjustment_intensity=clamp_ratio(1 - score),
             as_of_date=as_of_date,
             parameter_version=registry.parameter_version_for(["account_risk_limits"], as_of_date),
-            model_version="new_pipeline_risk_v1",
+            model_version="score_pipeline_risk_v1",
             reason_codes=[ReasonCode("RISK_BUDGET_SCORE_FLOW", "risk"), *constraint.reason_codes],
             warnings=warnings,
         )
@@ -248,7 +248,7 @@ class AllocationEngine:
             data_quality=min(sector_score.data_quality, risk.data_quality, macro.data_quality),
             as_of_date=sector_score.as_of_date,
             parameter_version=registry.parameter_version_for(["asset_weight_ranges", "target_change_limit"], sector_score.as_of_date),
-            model_version="new_pipeline_allocation_v1",
+            model_version="score_pipeline_allocation_v1",
             reason_codes=[ReasonCode("ALLOCATION_SCORE_FLOW", "allocation"), *risk.reason_codes],
             warnings=warnings,
         )
@@ -300,7 +300,7 @@ class RebalancingEngine:
             adjustment_intensity=intensity,
             as_of_date=target.as_of_date,
             parameter_version=target.parameter_version,
-            model_version="new_pipeline_rebalancing_v1",
+            model_version="score_pipeline_rebalancing_v1",
             reason_codes=reasons,
             warnings=warnings,
         )
@@ -320,7 +320,7 @@ def _sector_fallback(sector_id: str, as_of_date: date, registry: ParameterRegist
         adjustment_intensity=0.0,
         as_of_date=as_of_date,
         parameter_version=registry.parameter_version_for(["score_weights"], as_of_date),
-        model_version="new_pipeline_sector_v1",
+        model_version="score_pipeline_sector_v1",
         reason_codes=[ReasonCode("SECTOR_REVIEW_REQUIRED", "sector")],
         warnings=[DecisionWarning(code, "WARNING", "sector", sector_id)],
     )

@@ -1,4 +1,4 @@
-# TripleA New Pipeline Architecture — Codex Task
+# TripleA Score Pipeline Architecture — Codex Task
 
 ## 공통 절대 원칙
 
@@ -93,17 +93,17 @@ scripts/*
 다음 문서를 생성 또는 갱신한다.
 
 ```text
-docs/NEW_PIPELINE_ARCHITECTURE_AUDIT.md
+docs/SCORE_PIPELINE_ARCHITECTURE_AUDIT.md
 docs/STATUS.md
 ```
 
-`docs/NEW_PIPELINE_ARCHITECTURE_AUDIT.md`에는 최소한 다음 섹션을 포함한다.
+`docs/SCORE_PIPELINE_ARCHITECTURE_AUDIT.md`에는 최소한 다음 섹션을 포함한다.
 
 ```text
 1. Current repository map
 2. Reusable infrastructure
 3. Legacy strategy logic not to migrate
-4. Candidate new pipeline module locations
+4. Candidate score pipeline module locations
 5. Existing tests and gaps
 6. Safety risks
 7. Recommended implementation sequence

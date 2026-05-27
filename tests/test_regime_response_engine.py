@@ -11,5 +11,5 @@ def test_regime_response_produces_offsets_without_orders():
     portfolio = PortfolioStateFeatures(.8, .5, .7)
     decision = RegimeResponseEngine().decide(macro, market, portfolio)
     assert decision.response_mode == "DEFEND"
-    assert decision.permissions.new_risk_buy == "BLOCK"
+    assert decision.permissions.risk_increase_buy == "BLOCK"
     assert decision.offsets.risk.aggressive_alpha_max_offset < 0

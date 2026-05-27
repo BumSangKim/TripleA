@@ -37,11 +37,11 @@ class RegimeResponseEngine:
         urgency = clamp_score(stress * 0.7 + macro.macro_change_speed * 0.3)
         if stress > 0.7:
             mode = "DEFEND"
-            permissions = AdaptivePermissions(sector_expansion=BLOCK, forced_sell=ALLOW, new_risk_buy=BLOCK)
+            permissions = AdaptivePermissions(sector_expansion=BLOCK, forced_sell=ALLOW, risk_increase_buy=BLOCK)
             risk = RiskOffsets(aggressive_alpha_max_offset=-0.10, defensive_core_min_offset=0.05, liquidity_min_offset=0.05)
         elif adaptation > 0.65 and stress < 0.5:
             mode = "ADAPT"
-            permissions = AdaptivePermissions(sector_expansion=LIMIT, forced_sell=LIMIT, new_risk_buy=LIMIT)
+            permissions = AdaptivePermissions(sector_expansion=LIMIT, forced_sell=LIMIT, risk_increase_buy=LIMIT)
             risk = RiskOffsets(sector_pressure_cap_offset=0.03)
         else:
             mode = "OBSERVE"

@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Protocol
 
-from api.new_pipeline.contracts import DecisionWarning, FeatureOutput, ReasonCode, clamp_ratio
-from api.new_pipeline.data_quality import DataQualityAssessor, HistoricalSnapshot
-from api.new_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.contracts import DecisionWarning, FeatureOutput, ReasonCode, clamp_ratio
+from api.score_pipeline.data_quality import DataQualityAssessor, HistoricalSnapshot
+from api.score_pipeline.parameters import ParameterRegistry
 
 
 class FeaturePlugin(Protocol):
@@ -91,7 +91,7 @@ class PriceMomentumFeaturePlugin:
             as_of_date=snapshot.decision_date,
             source="price",
             parameter_version=parameter_version,
-            model_version="new_pipeline_feature_v1",
+            model_version="score_pipeline_feature_v1",
             reason_codes=[ReasonCode("FEATURE_PLUGIN_EXECUTED", "feature")],
             warnings=warnings,
         )

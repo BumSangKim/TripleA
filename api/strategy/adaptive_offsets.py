@@ -42,4 +42,4 @@ class AdaptiveOffsets:
 class AdaptivePermissions:
     sector_expansion: Permission = LIMIT
     forced_sell: Permission = LIMIT
-    new_risk_buy: Permission = LIMIT
+    risk_increase_buy: Permission = LIMIT

@@ -2,16 +2,16 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
-from api.new_pipeline.contracts import ConservativeAction
-from api.new_pipeline.data_quality import (
+from api.score_pipeline.contracts import ConservativeAction
+from api.score_pipeline.data_quality import (
     DataQualityAssessor,
     RawDataPoint,
     SnapshotBuilder,
     conservative_action_for_quality,
 )
-from api.new_pipeline.features import FeatureRegistry, PriceMomentumFeaturePlugin
-from api.new_pipeline.parameters import ParameterRegistry
-from api.new_pipeline.scoring import ScoreCalculator, confidence_adjust, data_quality_adjust, ema_smooth
+from api.score_pipeline.features import FeatureRegistry, PriceMomentumFeaturePlugin
+from api.score_pipeline.parameters import ParameterRegistry
+from api.score_pipeline.scoring import ScoreCalculator, confidence_adjust, data_quality_adjust, ema_smooth
 
 
 NOW = datetime(2026, 5, 27, tzinfo=UTC)
@@ -54,7 +54,7 @@ def test_feature_plugin_registration_execution_and_normalized_output():
     assert registry.plugin_ids() == {"price_momentum_feature"}
     assert outputs[0].raw_value == pytest.approx(0.1)
     assert 0 <= outputs[0].normalized_value <= 1
-    assert outputs[0].parameter_version == "new_pipeline_v1"
+    assert outputs[0].parameter_version == "score_pipeline_v1"
     assert outputs[0].data_quality.quality_score == 1.0
 
 
