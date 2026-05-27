@@ -129,6 +129,52 @@ class PluginRunMetadata:
             raise PluginBoundaryContractError("run metadata quality.plugin_id must match plugin_id")
 
 
+@dataclass(frozen=True)
+class PluginSignal:
+    signal_id: str
+    plugin_id: str
+    provider: str
+    source: str
+    entity_type: str
+    entity_id: str | None
+    signal_value: float | str | bool | None
+    signal_unit: str
+    signal_direction: str | None
+    source_native: bool
+    calculation_method: str
+    plugin_version: str | None
+    signal_version: str
+    as_of_date: date
+    available_at: datetime
+    retrieved_at: datetime
+    quality_score: float
+    source_dataset_ids: list[str] = field(default_factory=list)
+    reason_codes: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        _require_text(self.signal_id, "signal_id")
+        _require_text(self.plugin_id, "plugin_id")
+        _require_text(self.provider, "provider")
+        _require_text(self.source, "source")
+        _require_text(self.entity_type, "entity_type")
+        _require_text(self.signal_unit, "signal_unit")
+        _require_text(self.calculation_method, "calculation_method")
+        _require_text(self.signal_version, "signal_version")
+        if self.signal_id.startswith("feature:") or self.signal_id.startswith("feature_"):
+            raise PluginBoundaryContractError("signal_id must not use a feature namespace")
+        if self.available_at is None:
+            raise PluginBoundaryContractError("available_at is required")
+        if self.retrieved_at is None:
+            raise PluginBoundaryContractError("retrieved_at is required")
+        if self.source_native is not True:
+            raise PluginBoundaryContractError("PluginSignal requires source_native=True")
+        _require_ratio(self.quality_score, "quality_score")
+        if not self.metadata.get("usage_reason"):
+            raise PluginBoundaryContractError("PluginSignal metadata must include usage_reason")
+
+
 def _require_text(value: str, field_name: str) -> None:
     if not isinstance(value, str) or not value.strip():
         raise PluginBoundaryContractError(f"{field_name} must be a non-empty string")

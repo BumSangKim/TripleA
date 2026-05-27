@@ -4,6 +4,7 @@ from api.plugin_boundary.contracts import (
     PluginHealthStatus,
     PluginQualityScore,
     PluginRunMetadata,
+    PluginSignal,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "PluginHealthStatus",
     "PluginQualityScore",
     "PluginRunMetadata",
+    "PluginSignal",
 ]
