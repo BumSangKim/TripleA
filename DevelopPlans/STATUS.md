@@ -10,6 +10,19 @@ None — Phases 5-13 were implemented as pre-execution, test-covered foundations
 
 ## Completed Tasks
 
+- New Pipeline Architecture implemented:
+  - repository and architecture audit;
+  - independent `api/new_pipeline` contracts;
+  - versioned parameter registry under `config/parameters/`;
+  - data snapshot and quality layer;
+  - feature plugin registry;
+  - score layer core;
+  - macro regime distribution engine;
+  - sector scoring engine;
+  - risk budget and hard constraint gate;
+  - allocation and rebalancing engine;
+  - backtest smoke adapter and leakage tests;
+  - reporting/audit and review-only order candidates.
 - Phase 5 Score Layer implemented:
   - score contract;
   - score definitions;
@@ -137,12 +150,12 @@ None
 ## Last Test Command
 
 ```bash
-.venv/bin/python -m pytest -q
+.venv/bin/python -m pytest -q && npm run lint && npm run build
 ```
 
 ## Last Test Result
 
-Passed — 390 passed, 2 skipped in 4.88s.
+Passed — 515 passed, 2 skipped in 4.78s; web lint passed; web build passed. `npm test` is not configured in `web/package.json`.
 
 ## Intraday Surge/Drop Monitoring
 

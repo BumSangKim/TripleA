@@ -1,0 +1,25 @@
+sectors:
+  broad_market:
+    enabled: true
+    component_weights:
+      macro_fit: 0.25
+      momentum: 0.25
+      valuation: 0.15
+      risk_penalty: 0.20
+      data_quality: 0.15
+  semiconductor:
+    enabled: true
+    component_weights:
+      macro_fit: 0.20
+      momentum: 0.30
+      valuation: 0.10
+      risk_penalty: 0.25
+      data_quality: 0.15
+  robot:
+    enabled: true
+    component_weights:
+      macro_fit: 0.20
+      momentum: 0.25
+      valuation: 0.10
+      risk_penalty: 0.30
+      data_quality: 0.15

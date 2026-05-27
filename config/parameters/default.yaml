@@ -1,0 +1,133 @@
+fallback_policy: REVIEW_REQUIRED
+parameters:
+  - name: score_weights
+    value:
+      macro: 0.25
+      sector: 0.30
+      risk: 0.25
+      quality: 0.20
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Initial score-flow weights for backtest-only pipeline validation.
+    approved: true
+    affected_modules: [score, macro, sector, risk]
+  - name: ema_span
+    value: 5
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Default EMA span for score smoothing.
+    approved: true
+    affected_modules: [score]
+  - name: lookback_window_days
+    value: 63
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Quarter-length feature lookback for MVP feature plugins.
+    approved: true
+    affected_modules: [feature]
+  - name: volatility_normalization_window
+    value: 252
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Annualized volatility normalization window.
+    approved: true
+    affected_modules: [feature, risk]
+  - name: sector_weight_ranges
+    value:
+      default:
+        min: 0.0
+        base: 0.05
+        max: 0.20
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Config-driven range, not a fixed target template.
+    approved: true
+    affected_modules: [sector, allocation]
+  - name: asset_weight_ranges
+    value:
+      default:
+        min: 0.0
+        base: 0.05
+        max: 0.20
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Asset range constraints for allocation output.
+    approved: true
+    affected_modules: [allocation]
+  - name: account_risk_limits
+    value:
+      taxable:
+        max_risky_asset_weight: 0.80
+      isa:
+        max_risky_asset_weight: 0.00
+      pension:
+        max_risky_asset_weight: 0.00
+      irp:
+        max_risky_asset_weight: 0.70
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Hard-gate risk limits by account type.
+    approved: true
+    affected_modules: [risk, constraint]
+  - name: turnover_limit
+    value: 0.20
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Turnover control for rebalancing and backtest warnings.
+    approved: true
+    affected_modules: [rebalancing, backtest]
+  - name: target_change_limit
+    value: 0.05
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Maximum one-step target weight change for gradual allocation transitions.
+    approved: true
+    affected_modules: [allocation, rebalancing]
+  - name: transaction_cost_bps
+    value: 5.0
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Conservative backtest transaction cost assumption.
+    approved: true
+    affected_modules: [backtest, rebalancing]
+  - name: tax_assumption_bps
+    value: 0.0
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Tax hook placeholder; production tax impact remains deferred.
+    approved: true
+    affected_modules: [backtest, reporting]
+  - name: rebalancing_bands
+    value:
+      hold: [0.0, 0.25]
+      review: [0.25, 0.45]
+      candidate: [0.45, 1.0]
+    version: new_pipeline_v1
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/default.yaml
+    reason: Rebalancing intensity bands.
+    approved: true
+    affected_modules: [rebalancing]
