@@ -6,6 +6,7 @@ from typing import Any
 
 from api.plugin_boundary.contracts import PluginBoundaryContractError, PluginDataset
 from api.plugin_boundary.registry import PluginRegistry
+from api.plugin_boundary.time_guard import is_available_for_decision
 
 
 @dataclass(frozen=True)
@@ -98,7 +99,7 @@ class FeatureInputResolver:
             and dataset.entity_type == entity_type
             and dataset.entity_id == entity_id
             and dataset.plugin_id in provider_rank
-            and dataset.available_at <= decision_time
+            and is_available_for_decision(dataset, decision_time)
         ]
         return sorted(
             candidates,

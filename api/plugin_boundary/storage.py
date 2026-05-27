@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from api.plugin_boundary.contracts import FeatureValue, PluginSignal
+from api.plugin_boundary.time_guard import filter_available_values
 
 
 def ensure_traceability_tables(conn: sqlite3.Connection) -> None:
@@ -130,7 +131,8 @@ def read_feature_values(
         """,
         params,
     ).fetchall()
-    return [_feature_from_row(row) for row in rows]
+    values = [_feature_from_row(row) for row in rows]
+    return filter_available_values(values, decision_time) if decision_time is not None else values
 
 
 def save_plugin_signal(conn: sqlite3.Connection, signal: PluginSignal) -> int:
@@ -196,7 +198,8 @@ def read_plugin_signals(
         """,
         params,
     ).fetchall()
-    return [_signal_from_row(row) for row in rows]
+    values = [_signal_from_row(row) for row in rows]
+    return filter_available_values(values, decision_time) if decision_time is not None else values
 
 
 def _feature_from_row(row: sqlite3.Row | tuple[Any, ...]) -> FeatureValue:

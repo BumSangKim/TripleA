@@ -9,6 +9,7 @@ from api.plugin_boundary.contracts import (
 )
 from api.plugin_boundary.input_resolver import FeatureInputResolution, FeatureInputResolver, FeatureSpec, PluginSignalSpec
 from api.plugin_boundary.registry import PluginRegistration, PluginRegistry
+from api.plugin_boundary.time_guard import filter_available_values, is_available_for_decision
 
 __all__ = [
     "PluginBoundaryContractError",
@@ -24,4 +25,6 @@ __all__ = [
     "PluginRegistration",
     "PluginRegistry",
     "PluginSignalSpec",
+    "filter_available_values",
+    "is_available_for_decision",
 ]
