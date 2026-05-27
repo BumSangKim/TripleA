@@ -1,0 +1,6 @@
+{
+  "plugin_id": "mock_price_plugin",
+  "quality_score": 1.0,
+  "missing_ratio": 0.0,
+  "reason_codes": ["PLUGIN_DATA_VALID"]
+}

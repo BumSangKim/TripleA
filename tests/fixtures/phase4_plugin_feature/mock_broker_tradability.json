@@ -1,0 +1,5 @@
+{
+  "candidate_id": "broker.product_tradability",
+  "classification": "ConstraintInputCandidate",
+  "reason": "Broker/account/product tradability is a hard constraint input, not a FeatureValue."
+}

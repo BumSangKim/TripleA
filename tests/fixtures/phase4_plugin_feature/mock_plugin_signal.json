@@ -1,0 +1,6 @@
+{
+  "signal_id": "plugin_signal:news_sentiment:KRX_360750",
+  "plugin_id": "mock_sentiment_plugin",
+  "source_native": true,
+  "usage_reason": "sentiment model output is provider-native"
+}
