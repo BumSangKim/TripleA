@@ -1,0 +1,47 @@
+version: "data_sources_v0.1"
+as_of_date: "2026-05-27"
+
+sources:
+  - source_id: "mock_krx_daily_prices"
+    source_type: "market_price"
+    provider: "mock"
+    symbols_or_indicators: ["360750", "069500"]
+    frequency: "daily"
+    expected_lag_days: 1
+    stale_after_days: 7
+    enabled: true
+    requires_secret: false
+    fallback_policy: "use_conservative_fallback"
+
+  - source_id: "mock_current_quotes"
+    source_type: "current_quote"
+    provider: "mock"
+    symbols_or_indicators: ["360750", "069500"]
+    frequency: "intraday_or_latest"
+    expected_lag_days: 0
+    stale_after_days: 1
+    enabled: true
+    requires_secret: false
+    fallback_policy: "review_required"
+
+  - source_id: "mock_macro_monthly"
+    source_type: "macro"
+    provider: "mock"
+    symbols_or_indicators: ["CPIAUCSL", "FEDFUNDS"]
+    frequency: "monthly"
+    expected_lag_days: 30
+    stale_after_days: 45
+    enabled: true
+    requires_secret: false
+    fallback_policy: "reduce_signal_weight"
+
+  - source_id: "fred_disabled_without_secret"
+    source_type: "macro"
+    provider: "fred"
+    symbols_or_indicators: ["UNRATE"]
+    frequency: "monthly"
+    expected_lag_days: 30
+    stale_after_days: 45
+    enabled: false
+    requires_secret: true
+    fallback_policy: "review_required"

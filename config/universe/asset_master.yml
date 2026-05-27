@@ -1,0 +1,681 @@
+version: "asset_master_v0.1"
+as_of_date: "2026-05-27"
+
+assets:
+  - asset_id: "KRX_360750"
+    symbol: "360750"
+    name: "TIGER 미국S&P500"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["broad_market"]
+      theme: ["large_cap", "core"]
+      currency: ["USD_KRW_unhedged"]
+    features:
+      - etf
+      - kr_listed
+      - us_equity_exposure
+      - broad_market_exposure
+      - core_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - core_global_equity
+      - us_large_cap_core
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["equity", "fx_exposure"]
+
+  - asset_id: "KRX_133690"
+    symbol: "133690"
+    name: "TIGER 미국나스닥100"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["technology", "broad_market"]
+      theme: ["growth", "large_cap", "ai"]
+      currency: ["USD_KRW_unhedged"]
+    features:
+      - etf
+      - kr_listed
+      - us_equity_exposure
+      - us_growth_exposure
+      - technology_exposure
+      - core_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - core_global_equity
+      - us_growth_core
+      - ai_platform_proxy
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["equity", "growth", "fx_exposure"]
+
+  - asset_id: "KRX_069500"
+    symbol: "069500"
+    name: "KODEX 200"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["broad_market"]
+      theme: ["large_cap", "core"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - kr_equity_exposure
+      - broad_market_exposure
+      - core_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - core_domestic_equity
+      - kr_large_cap_core
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["equity"]
+
+  - asset_id: "KRX_357870"
+    symbol: "357870"
+    name: "TIGER CD금리투자KIS(합성)"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["cash_like"]
+      region: ["KR"]
+      sector: ["cash_like"]
+      theme: ["cash_parking", "short_rate"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - cash_like
+      - defensive_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - defensive_cash_like
+      - cash_parking_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["cash_like", "synthetic"]
+
+  - asset_id: "KRX_459580"
+    symbol: "459580"
+    name: "KODEX CD금리액티브(합성)"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["cash_like"]
+      region: ["KR"]
+      sector: ["cash_like"]
+      theme: ["cash_parking", "short_rate"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - cash_like
+      - defensive_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - defensive_cash_like
+      - cash_parking_alternative
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["cash_like", "synthetic"]
+
+  - asset_id: "KRX_152380"
+    symbol: "152380"
+    name: "KODEX 국채선물10년"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["bond"]
+      region: ["KR"]
+      sector: ["government_bond"]
+      theme: ["duration_defense"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - bond_exposure
+      - duration_defense
+      - defensive_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - defensive_bond
+      - duration_defense
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution"]
+    risk_tags: ["bond", "duration"]
+
+  - asset_id: "KRX_396500"
+    symbol: "396500"
+    name: "TIGER 반도체TOP10"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["semiconductor"]
+      theme: ["ai_hardware", "memory", "equipment"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - semiconductor_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_semiconductor
+      - kr_semiconductor_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "semiconductor"]
+
+  - asset_id: "KRX_381180"
+    symbol: "381180"
+    name: "TIGER 미국필라델피아반도체나스닥"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["semiconductor"]
+      theme: ["ai_hardware", "fabless", "equipment"]
+      currency: ["USD_KRW_unhedged"]
+    features:
+      - etf
+      - kr_listed
+      - us_equity_exposure
+      - semiconductor_exposure
+      - ai_semiconductor_reference
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_semiconductor
+      - us_semiconductor_primary
+      - ai_hardware_proxy
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "semiconductor", "fx_exposure"]
+
+  - asset_id: "KRX_445290"
+    symbol: "445290"
+    name: "KODEX 로봇액티브"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["robotics", "automation"]
+      theme: ["robot", "automation", "ai"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - ai_robot_exposure
+      - robot_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_ai_robot
+      - kr_robot_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "active_etf"]
+
+  - asset_id: "KRX_464310"
+    symbol: "464310"
+    name: "TIGER 글로벌AI&로보틱스 INDXX"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["GLOBAL"]
+      sector: ["robotics", "ai"]
+      theme: ["robot", "automation", "ai"]
+      currency: ["foreign_equity_unhedged"]
+    features:
+      - etf
+      - kr_listed
+      - global_equity_exposure
+      - ai_robot_exposure
+      - robot_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_ai_robot
+      - global_ai_robot_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "fx_exposure"]
+
+  - asset_id: "KRX_244580"
+    symbol: "244580"
+    name: "KODEX 바이오"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["bio", "healthcare"]
+      theme: ["bio", "drug_development"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - bio_healthcare_exposure
+      - bio_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_bio_healthcare
+      - kr_bio_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "bio"]
+
+  - asset_id: "KRX_143860"
+    symbol: "143860"
+    name: "TIGER 헬스케어"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["healthcare", "bio"]
+      theme: ["healthcare", "defensive_growth"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - bio_healthcare_exposure
+      - healthcare_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_bio_healthcare
+      - kr_healthcare_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "healthcare"]
+
+  - asset_id: "KRX_449450"
+    symbol: "449450"
+    name: "PLUS K방산"
+    market: "KRX"
+    asset_type: "ETF"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: true
+      enabled_state: "disabled_until_backtested"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["defense", "aerospace"]
+      theme: ["defense_exports", "security"]
+      currency: ["KRW"]
+    features:
+      - etf
+      - kr_listed
+      - defense_exposure
+      - satellite_candidate
+      - order_candidate_candidate
+      - price_query_required
+      - nav_query_required
+    strategy_roles:
+      - satellite_defense
+      - kr_defense_primary
+    account_eligibility:
+      taxable: true
+      isa: true
+      pension: review_required
+      irp: review_required
+    data_requirements: ["price", "volume", "nav", "distribution", "constituents"]
+    risk_tags: ["equity", "sector_concentration", "defense"]
+
+  - asset_id: "KRX_005930"
+    symbol: "005930"
+    name: "삼성전자"
+    market: "KRX"
+    asset_type: "STOCK"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["semiconductor", "technology"]
+      theme: ["memory", "ai_hardware", "large_cap"]
+      currency: ["KRW"]
+    features:
+      - stock
+      - kr_listed
+      - semiconductor_anchor
+      - semiconductor_exposure
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - semiconductor_scoring_reference
+      - kr_market_anchor
+    account_eligibility:
+      taxable: review_required
+      isa: review_required
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock"]
+
+  - asset_id: "KRX_000660"
+    symbol: "000660"
+    name: "SK하이닉스"
+    market: "KRX"
+    asset_type: "STOCK"
+    listing_country: "KR"
+    base_currency: "KRW"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["KR"]
+      sector: ["semiconductor"]
+      theme: ["memory", "ai_hardware"]
+      currency: ["KRW"]
+    features:
+      - stock
+      - kr_listed
+      - semiconductor_anchor
+      - semiconductor_exposure
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - semiconductor_scoring_reference
+    account_eligibility:
+      taxable: review_required
+      isa: review_required
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock"]
+
+  - asset_id: "US_NVDA"
+    symbol: "NVDA"
+    name: "NVIDIA"
+    market: "NASDAQ"
+    asset_type: "STOCK"
+    listing_country: "US"
+    base_currency: "USD"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["semiconductor", "technology"]
+      theme: ["ai_hardware", "gpu", "accelerator"]
+      currency: ["USD"]
+    features:
+      - stock
+      - us_listed
+      - semiconductor_anchor
+      - ai_semiconductor_reference
+      - ai_platform_reference
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - semiconductor_scoring_reference
+      - ai_robot_scoring_reference
+      - ai_hardware_anchor
+    account_eligibility:
+      taxable: review_required
+      isa: false
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock", "fx_exposure"]
+
+  - asset_id: "US_MSFT"
+    symbol: "MSFT"
+    name: "Microsoft"
+    market: "NASDAQ"
+    asset_type: "STOCK"
+    listing_country: "US"
+    base_currency: "USD"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["technology", "software", "cloud"]
+      theme: ["ai", "cloud", "platform"]
+      currency: ["USD"]
+    features:
+      - stock
+      - us_listed
+      - ai_platform_reference
+      - software_reference
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - ai_robot_scoring_reference
+      - us_growth_scoring_reference
+    account_eligibility:
+      taxable: review_required
+      isa: false
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock", "fx_exposure"]
+
+  - asset_id: "US_LLY"
+    symbol: "LLY"
+    name: "Eli Lilly"
+    market: "NYSE"
+    asset_type: "STOCK"
+    listing_country: "US"
+    base_currency: "USD"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["healthcare", "pharmaceutical"]
+      theme: ["obesity_drug", "global_healthcare"]
+      currency: ["USD"]
+    features:
+      - stock
+      - us_listed
+      - healthcare_exposure
+      - global_healthcare_reference
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - bio_healthcare_scoring_reference
+    account_eligibility:
+      taxable: review_required
+      isa: false
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock", "fx_exposure"]
+
+  - asset_id: "US_LMT"
+    symbol: "LMT"
+    name: "Lockheed Martin"
+    market: "NYSE"
+    asset_type: "STOCK"
+    listing_country: "US"
+    base_currency: "USD"
+    tradability:
+      order_candidate: false
+      enabled_state: "monitor_only"
+    exposures:
+      asset_class: ["equity"]
+      region: ["US"]
+      sector: ["defense", "aerospace"]
+      theme: ["defense", "security"]
+      currency: ["USD"]
+    features:
+      - stock
+      - us_listed
+      - defense_exposure
+      - defense_anchor
+      - scoring_reference
+      - price_query_required
+      - fundamentals_query_required
+    strategy_roles:
+      - defense_scoring_reference
+    account_eligibility:
+      taxable: review_required
+      isa: false
+      pension: false
+      irp: false
+    data_requirements: ["price", "volume", "fundamentals", "financial_statement", "earnings"]
+    risk_tags: ["equity", "single_stock", "fx_exposure"]

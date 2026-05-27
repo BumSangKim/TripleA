@@ -2,11 +2,11 @@
 
 ## Current Phase
 
-Phase 2 — Account constraint model completed
+Phase 3 — Data pipeline completed
 
 ## Current Task
 
-None — Phase 2 completed. Next recommended phase is Phase 3 Build data pipeline.
+None — Phase 3 completed. Next recommended phase is Phase 4 Feature Layer.
 
 ## Completed Tasks
 
@@ -37,6 +37,33 @@ None — Phase 2 completed. Next recommended phase is Phase 3 Build data pipelin
 - `TASK_008_BACKTEST_COMPATIBILITY.md`
 - `TASK_009_REPORTING_AUDIT_INTEGRATION.md`
 - `TASK_010_PHASE2_FINAL_VALIDATION.md`
+- `TASK_000_REPOSITORY_INSPECTION.md`
+- `TASK_001_CREATE_ASSET_MASTER_SCHEMA.md`
+- `TASK_002_CREATE_ASSET_MASTER.yml.md`
+- `TASK_003_CREATE_UNIVERSE_SELECTORS.md`
+- `TASK_004_IMPLEMENT_UNIVERSE_LOADER_AND_VALIDATOR.md`
+- `TASK_005_IMPLEMENT_SELECTOR_RESOLVER.md`
+- `TASK_006_CREATE_SNAPSHOT_GENERATOR.md`
+- `TASK_007_PRICE_PROVIDER_READ_ONLY_CONTRACT.md`
+- `TASK_008_LIVE_PRICE_QUERY_SMOKE_TEST.md`
+- `TASK_009_MARKET_DATA_DB_SCHEMA.md`
+- `TASK_010_DB_WRITE_READ_INTEGRATION_TEST.md`
+- `TASK_011_END_TO_END_UNIVERSE_DATA_DB_TEST.md`
+- `TASK_012_GUARDRAILS_AND_NO_LIVE_EXECUTION_TESTS.md`
+- `TASK_013_DOCUMENTATION_AND_STATUS_UPDATE.md`
+- `TASK_300_PHASE3_BASELINE.md`
+- `TASK_301_DATA_PIPELINE_SPEC.md`
+- `TASK_302_DATA_SOURCE_REGISTRY.md`
+- `TASK_303_RAW_DATA_SCHEMA.md`
+- `TASK_304_PROVIDER_INTERFACE_AND_MOCKS.md`
+- `TASK_305_PRICE_HISTORY_COLLECTION.md`
+- `TASK_306_MACRO_DATA_COLLECTION.md`
+- `TASK_307_CURRENT_PRICE_CONNECTIVITY.md`
+- `TASK_308_DATA_QUALITY_VALIDATION.md`
+- `TASK_309_DATA_SNAPSHOT_CONTRACT.md`
+- `TASK_310_BACKFILL_CLI_IDEMPOTENCY.md`
+- `TASK_311_DATA_STATUS_API.md`
+- `TASK_312_PHASE3_INTEGRATION_TEST_AND_CLOSEOUT.md`
 
 ## Blocked Tasks
 
@@ -44,7 +71,7 @@ None
 
 ## Partial / Unclear Tasks
 
-- Phase 3+ implementation tasks are not started as formal task files in the canonical status.
+- Phase 4 implementation tasks are not started as formal task files in the canonical status.
 - Existing legacy/current engine behavior for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates remains partial relative to `docs/MASTER_DEVELOPMENT_GUIDE.md`.
 - Documentation tree normalization still has a pending approval item: tracked files under `docs/DevelopLog/` and `docs/DevelopPlans/` are currently deleted in the working tree and require an explicit restore/archive/delete decision.
 
@@ -56,7 +83,121 @@ None
 
 ## Last Test Result
 
-Passed — 233 passed in 3.43s.
+Passed — 304 passed, 2 skipped in 4.12s. Web lint passed.
+
+## Phase 3 Data Pipeline
+
+- Status: complete.
+- Scope: raw data pipeline only; no Feature Layer, Score Layer, investment decision, rebalancing, order candidate, broker order, or live execution behavior was added.
+- Completed components:
+  - Data pipeline audit and spec.
+  - Data source registry in `config/data_sources.yml`.
+  - Raw data DB repository for historical prices, current quotes, macro observations, data quality checks, and ingestion runs.
+  - Deterministic mock market/macro providers.
+  - Price history, macro, and current quote ingestion services.
+  - Data quality validation for missing, stale, duplicate, non-positive, and jump warnings.
+  - As-of data snapshot contract to avoid future-data leakage.
+  - Idempotent backfill CLI.
+  - Read-only data status API.
+  - Phase 3 mock E2E closeout.
+- Major files:
+  - `docs/PHASE_3_DATA_PIPELINE_AUDIT.md`
+  - `docs/DATA_PIPELINE_SPEC.md`
+  - `docs/PHASE_3_CURRENT_PRICE_CHECK.md`
+  - `docs/PHASE_3_DATA_PIPELINE_CLOSEOUT.md`
+  - `config/data_sources.yml`
+  - `api/data/`
+  - `api/main.py`
+  - `tests/test_data_source_registry.py`
+  - `tests/test_raw_data_repository.py`
+  - `tests/test_data_providers.py`
+  - `tests/test_price_history_ingestion.py`
+  - `tests/test_macro_data_ingestion.py`
+  - `tests/test_current_quote_connectivity.py`
+  - `tests/test_data_quality_validation.py`
+  - `tests/test_data_snapshot_contract.py`
+  - `tests/test_backfill_cli_idempotency.py`
+  - `tests/test_data_status_api.py`
+  - `tests/test_phase3_data_pipeline_e2e.py`
+- Test commands:
+  - `test -f docs/PHASE_3_DATA_PIPELINE_AUDIT.md && grep -E "Existing data sources|Missing pieces|current price" docs/PHASE_3_DATA_PIPELINE_AUDIT.md`
+  - `test -f docs/DATA_PIPELINE_SPEC.md && grep -E "as_of_date|quality_score|future|mock provider|raw_data" docs/DATA_PIPELINE_SPEC.md`
+  - `.venv/bin/python -m pytest tests/test_data_source_registry.py -q`
+  - `.venv/bin/python -m pytest tests/test_raw_data_repository.py -q`
+  - `.venv/bin/python -m pytest tests/test_data_providers.py -q`
+  - `.venv/bin/python -m pytest tests/test_price_history_ingestion.py tests/test_macro_data_ingestion.py -q`
+  - `.venv/bin/python -m pytest tests/test_current_quote_connectivity.py -q`
+  - `.venv/bin/python -m api.data.check_current_quotes --provider mock`
+  - `.venv/bin/python -m pytest tests/test_data_quality_validation.py -q`
+  - `.venv/bin/python -m pytest tests/test_data_snapshot_contract.py -q`
+  - `.venv/bin/python -m pytest tests/test_backfill_cli_idempotency.py -q`
+  - `.venv/bin/python -m pytest tests/test_data_status_api.py -q`
+  - `.venv/bin/python -m pytest tests/test_phase3_data_pipeline_e2e.py -q`
+  - `.venv/bin/python -m pytest -q`
+  - `npm --prefix web run lint`
+- Test result: targeted tests passed; full backend suite passed with 304 passed and 2 skipped; web lint passed.
+- Live/current price result:
+  - Mock current quote check passed.
+  - Live current quote check remains skipped unless `RUN_LIVE_PRICE_SMOKE=1` and read-only provider credentials are explicitly configured.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Add real read-only historical providers only through explicit future tasks.
+  - Keep Phase 4 feature computation behind the as-of snapshot contract.
+  - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
+- Next recommended task: Phase 4 Feature Layer.
+
+## Phase Pre-3 Asset Master + Data + DB Integration
+
+- Status: complete.
+- Scope: normalized investable universe integration, read-only price provider contract, quote DB persistence, snapshots, docs, and guardrails only.
+- Phase Pre-3 asset master integration added.
+- Duplicate role bucket design was replaced by feature-based selectors.
+- `config/universe/asset_master.yml` is the single source of truth for assets.
+- `config/universe/universe_selectors.yml` resolves candidate universes by conditions.
+- Resolved universe snapshots can be generated for reproducibility.
+- Read-only price provider contract was added.
+- Live price query smoke test was added and is gated by `RUN_LIVE_PRICE_SMOKE=1`.
+- Market data DB quote storage/readback tests were added.
+- End-to-end universe to live data to DB test is gated by `RUN_LIVE_PRICE_SMOKE=1` and `RUN_DB_INTEGRATION=1`.
+- Live execution and broker order submission remain disabled.
+- Major files:
+  - `docs/ASSET_UNIVERSE_SPEC.md`
+  - `docs/MARKET_DATA_DB_INTEGRATION_SPEC.md`
+  - `docs/PHASE_PRE3_REPOSITORY_INSPECTION.md`
+  - `config/universe/schema.yml`
+  - `config/universe/asset_master.yml`
+  - `config/universe/universe_selectors.yml`
+  - `config/universe/snapshots/universe_snapshot_20260527.yml`
+  - `api/universe/`
+  - `api/market_data/`
+  - `scripts/generate_universe_snapshot.py`
+  - `tests/test_asset_master_loader_validator.py`
+  - `tests/test_universe_selector_resolver.py`
+  - `tests/test_universe_snapshot.py`
+  - `tests/test_price_provider_contract.py`
+  - `tests/test_market_data_db_schema.py`
+  - `tests/test_market_data_db_write_read.py`
+  - `tests/test_no_live_execution_guardrails.py`
+  - `tests/test_asset_universe_guardrails.py`
+  - `tests/integration/`
+- Test commands:
+  - `.venv/bin/python -m pytest tests/test_asset_master_loader_validator.py -q`
+  - `.venv/bin/python -m pytest tests/test_universe_selector_resolver.py -q`
+  - `.venv/bin/python -m pytest tests/test_universe_snapshot.py -q`
+  - `.venv/bin/python scripts/generate_universe_snapshot.py`
+  - `.venv/bin/python -m pytest tests/test_price_provider_contract.py -q`
+  - `.venv/bin/python -m pytest tests/integration/test_live_price_query_smoke.py -q`
+  - `.venv/bin/python -m pytest tests/test_market_data_db_schema.py -q`
+  - `.venv/bin/python -m pytest tests/test_market_data_db_write_read.py -q`
+  - `.venv/bin/python -m pytest tests/integration/test_universe_live_data_db_e2e.py -q`
+  - `.venv/bin/python -m pytest tests/test_no_live_execution_guardrails.py tests/test_asset_universe_guardrails.py -q`
+  - `.venv/bin/python - <<'PY' ... PY` documentation validation from `TASK_013_DOCUMENTATION_AND_STATUS_UPDATE.md`
+  - `.venv/bin/python -m pytest -q`
+- Test result: targeted tests passed; documentation validation passed; full non-live suite passed with 265 passed and 2 skipped. Live/API tests skipped by default without explicit env gates.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Run live price smoke only when read-only provider credentials are intentionally available.
+  - Run live data to DB e2e only with `RUN_LIVE_PRICE_SMOKE=1` and `RUN_DB_INTEGRATION=1`.
+  - Resolve pre-existing tracked deletions under `docs/DevelopLog/` and `docs/DevelopPlans/`.
+- Next recommended task: Phase 3 Build data pipeline.
 
 ## Phase 2 Account Constraint Model
 

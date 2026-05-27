@@ -1,0 +1,85 @@
+version: "asset_master_schema_v0.1"
+
+required_top_level_fields:
+  - version
+  - as_of_date
+  - assets
+
+required_asset_fields:
+  - asset_id
+  - symbol
+  - name
+  - market
+  - asset_type
+  - listing_country
+  - base_currency
+  - tradability
+  - exposures
+  - features
+  - strategy_roles
+  - account_eligibility
+  - data_requirements
+  - risk_tags
+
+required_tradability_fields:
+  - order_candidate
+  - enabled_state
+
+required_exposure_fields:
+  - asset_class
+  - region
+  - sector
+  - theme
+  - currency
+
+allowed_asset_types:
+  - ETF
+  - STOCK
+
+allowed_enabled_states:
+  - disabled_until_backtested
+  - monitor_only
+  - enabled_for_backtest
+  - enabled_for_order_candidate_after_approval
+
+allowed_data_requirements:
+  - price
+  - volume
+  - nav
+  - distribution
+  - fundamentals
+  - financial_statement
+  - earnings
+  - constituents
+
+blocked_risk_tags:
+  - leveraged
+  - inverse
+  - futures_direct
+  - options_direct
+  - crypto_direct
+
+account_types:
+  - taxable
+  - isa
+  - pension
+  - irp
+
+account_eligibility_values:
+  - true
+  - false
+  - review_required
+  - unknown
+
+feature_naming_policy:
+  description: "Features describe reusable selection characteristics, not product names."
+  examples_good:
+    - us_equity_exposure
+    - semiconductor_exposure
+    - cash_like
+    - order_candidate_candidate
+    - price_query_required
+  examples_bad:
+    - tiger_us_sp500_core_candidate
+    - buy_this_asset
+    - force_order

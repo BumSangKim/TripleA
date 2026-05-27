@@ -1,0 +1,212 @@
+version: "universe_selectors_v0.1"
+as_of_date: "2026-05-27"
+
+selectors:
+  initial_order_candidate_universe:
+    description: "초기 주문 후보 생성 테스트용 ETF 유니버스. 백테스트 전 실제 주문 불가."
+    include:
+      asset_type:
+        any: ["ETF"]
+      market:
+        any: ["KRX"]
+      features:
+        all:
+          - order_candidate_candidate
+          - price_query_required
+      tradability:
+        order_candidate: true
+        enabled_state:
+          any: ["disabled_until_backtested"]
+    exclude:
+      risk_tags:
+        any:
+          - leveraged
+          - inverse
+          - futures_direct
+          - options_direct
+          - crypto_direct
+
+  initial_backtest_universe:
+    description: "초기 백테스트 대상 ETF 유니버스"
+    include:
+      asset_type:
+        any: ["ETF"]
+      features:
+        any:
+          - core_candidate
+          - defensive_candidate
+          - satellite_candidate
+      data_requirements:
+        all:
+          - price
+          - volume
+      tradability:
+        enabled_state:
+          any: ["disabled_until_backtested", "enabled_for_backtest"]
+    exclude:
+      risk_tags:
+        any:
+          - leveraged
+          - inverse
+          - futures_direct
+          - options_direct
+          - crypto_direct
+
+  core_global_equity:
+    description: "글로벌 핵심 주식 ETF 후보"
+    include:
+      features:
+        all:
+          - core_candidate
+        any:
+          - us_equity_exposure
+          - global_equity_exposure
+      asset_type:
+        any: ["ETF"]
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  core_domestic_equity:
+    description: "국내 핵심 주식 ETF 후보"
+    include:
+      features:
+        all:
+          - core_candidate
+          - kr_equity_exposure
+      asset_type:
+        any: ["ETF"]
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  defensive_cash_like:
+    description: "현금성 대기자금 후보"
+    include:
+      features:
+        all:
+          - cash_like
+      asset_type:
+        any: ["ETF"]
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  defensive_bond:
+    description: "채권 방어 후보"
+    include:
+      features:
+        all:
+          - bond_exposure
+      asset_type:
+        any: ["ETF"]
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  semiconductor_order_candidates:
+    description: "반도체 ETF 주문 후보"
+    include:
+      asset_type:
+        any: ["ETF"]
+      features:
+        all:
+          - semiconductor_exposure
+          - order_candidate_candidate
+      tradability:
+        order_candidate: true
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  semiconductor_scoring_references:
+    description: "반도체 스코어링 참조 후보. ETF와 개별주 모두 허용."
+    include:
+      features:
+        any:
+          - semiconductor_exposure
+          - semiconductor_anchor
+          - ai_semiconductor_reference
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse", "blocked_product"]
+
+  ai_robot_order_candidates:
+    description: "AI/로봇 ETF 주문 후보"
+    include:
+      asset_type:
+        any: ["ETF"]
+      features:
+        all:
+          - ai_robot_exposure
+          - order_candidate_candidate
+      tradability:
+        order_candidate: true
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  ai_robot_scoring_references:
+    description: "AI/로봇 스코어링 참조 후보"
+    include:
+      features:
+        any:
+          - ai_robot_exposure
+          - robot_exposure
+          - ai_platform_reference
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse", "blocked_product"]
+
+  bio_healthcare_order_candidates:
+    description: "바이오/헬스케어 ETF 주문 후보"
+    include:
+      asset_type:
+        any: ["ETF"]
+      features:
+        all:
+          - bio_healthcare_exposure
+          - order_candidate_candidate
+      tradability:
+        order_candidate: true
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  bio_healthcare_scoring_references:
+    description: "바이오/헬스케어 스코어링 참조 후보"
+    include:
+      features:
+        any:
+          - bio_healthcare_exposure
+          - healthcare_exposure
+          - global_healthcare_reference
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse", "blocked_product"]
+
+  defense_order_candidates:
+    description: "방산 ETF 주문 후보"
+    include:
+      asset_type:
+        any: ["ETF"]
+      features:
+        all:
+          - defense_exposure
+          - order_candidate_candidate
+      tradability:
+        order_candidate: true
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse"]
+
+  defense_scoring_references:
+    description: "방산 스코어링 참조 후보"
+    include:
+      features:
+        any:
+          - defense_exposure
+          - defense_anchor
+    exclude:
+      risk_tags:
+        any: ["leveraged", "inverse", "blocked_product"]

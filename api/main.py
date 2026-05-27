@@ -50,6 +50,7 @@ from .services import (
     get_risk_budget_items, get_indicator_history,
 )
 from .telegram_service import TelegramConfigError, TelegramSendError, send_telegram_message
+from .data.status_service import get_data_status, get_dataset_status, get_latest_quotes_status
 from .strategy_config import (
     list_risk_profiles,
     list_universe_ids,
@@ -592,6 +593,25 @@ def market_data_coverage(start_date: str, end_date: str):
         ],
         missingMessages=coverage.missing_messages,
     )
+
+
+@app.get("/api/data/status", tags=["data"])
+def data_status():
+    with get_conn() as conn:
+        return get_data_status(conn)
+
+
+@app.get("/api/data/status/{dataset_key:path}", tags=["data"])
+def data_status_detail(dataset_key: str):
+    with get_conn() as conn:
+        return get_dataset_status(conn, dataset_key)
+
+
+@app.get("/api/data/quotes/latest", tags=["data"])
+def data_latest_quotes(symbols: str, market: str = "KRX"):
+    symbol_list = [symbol.strip() for symbol in symbols.split(",") if symbol.strip()]
+    with get_conn() as conn:
+        return get_latest_quotes_status(conn, symbol_list, market=market)
 
 
 # ── Orders ──────────────────────────────────────────────────────────

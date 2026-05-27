@@ -10,6 +10,9 @@ This file is an index only. It is not the global project status.
 | Coding-agent operating rules | `AGENTS.md` |
 | Global task/progress status | `DevelopPlans/STATUS.md` |
 | Phase 1 detailed completion log | `docs/PHASE_1_STATUS.md` |
+| Phase Pre-3 asset universe spec | `docs/ASSET_UNIVERSE_SPEC.md` |
+| Phase Pre-3 market data DB spec | `docs/MARKET_DATA_DB_INTEGRATION_SPEC.md` |
+| Phase 3 data pipeline spec | `docs/DATA_PIPELINE_SPEC.md` |
 
 ## Phase 0 — Baseline and Guardrails
 
@@ -23,3 +26,20 @@ Phase 0 is complete according to `DevelopPlans/STATUS.md`. The task files below 
 | 3 | `phase0/TASK_003_DEVELOPMENT_SEQUENCE.md` | Define backtest-first sequence |
 | 4 | `phase0/TASK_004_ARCHITECTURE_MAP.md` | Map current files to target architecture |
 | 5 | `phase0/TASK_005_TEST_BASELINE.md` | Run and document baseline tests |
+
+## Phase Pre-3 — Asset Master + Data + DB Integration
+
+Phase Pre-3 is complete according to `DevelopPlans/STATUS.md`. Supporting specs are:
+
+- `docs/ASSET_UNIVERSE_SPEC.md`
+- `docs/MARKET_DATA_DB_INTEGRATION_SPEC.md`
+- `docs/PHASE_PRE3_REPOSITORY_INSPECTION.md`
+
+## Phase 3 — Data Pipeline
+
+Phase 3 is complete according to `DevelopPlans/STATUS.md`. Supporting docs are:
+
+- `docs/PHASE_3_DATA_PIPELINE_AUDIT.md`
+- `docs/DATA_PIPELINE_SPEC.md`
+- `docs/PHASE_3_CURRENT_PRICE_CHECK.md`
+- `docs/PHASE_3_DATA_PIPELINE_CLOSEOUT.md`

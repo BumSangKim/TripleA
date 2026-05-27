@@ -1,0 +1,284 @@
+snapshot_id: universe_snapshot_20260527
+asset_master_version: asset_master_v0.1
+selector_version: universe_selectors_v0.1
+as_of_date: '2026-05-27'
+resolved:
+  initial_order_candidate_universe:
+  - asset_id: KRX_360750
+    symbol: '360750'
+    market: KRX
+    name: TIGER 미국S&P500
+    asset_type: ETF
+  - asset_id: KRX_133690
+    symbol: '133690'
+    market: KRX
+    name: TIGER 미국나스닥100
+    asset_type: ETF
+  - asset_id: KRX_069500
+    symbol: 069500
+    market: KRX
+    name: KODEX 200
+    asset_type: ETF
+  - asset_id: KRX_357870
+    symbol: '357870'
+    market: KRX
+    name: TIGER CD금리투자KIS(합성)
+    asset_type: ETF
+  - asset_id: KRX_459580
+    symbol: '459580'
+    market: KRX
+    name: KODEX CD금리액티브(합성)
+    asset_type: ETF
+  - asset_id: KRX_152380
+    symbol: '152380'
+    market: KRX
+    name: KODEX 국채선물10년
+    asset_type: ETF
+  - asset_id: KRX_396500
+    symbol: '396500'
+    market: KRX
+    name: TIGER 반도체TOP10
+    asset_type: ETF
+  - asset_id: KRX_381180
+    symbol: '381180'
+    market: KRX
+    name: TIGER 미국필라델피아반도체나스닥
+    asset_type: ETF
+  - asset_id: KRX_445290
+    symbol: '445290'
+    market: KRX
+    name: KODEX 로봇액티브
+    asset_type: ETF
+  - asset_id: KRX_464310
+    symbol: '464310'
+    market: KRX
+    name: TIGER 글로벌AI&로보틱스 INDXX
+    asset_type: ETF
+  - asset_id: KRX_244580
+    symbol: '244580'
+    market: KRX
+    name: KODEX 바이오
+    asset_type: ETF
+  - asset_id: KRX_143860
+    symbol: '143860'
+    market: KRX
+    name: TIGER 헬스케어
+    asset_type: ETF
+  - asset_id: KRX_449450
+    symbol: '449450'
+    market: KRX
+    name: PLUS K방산
+    asset_type: ETF
+  initial_backtest_universe:
+  - asset_id: KRX_360750
+    symbol: '360750'
+    market: KRX
+    name: TIGER 미국S&P500
+    asset_type: ETF
+  - asset_id: KRX_133690
+    symbol: '133690'
+    market: KRX
+    name: TIGER 미국나스닥100
+    asset_type: ETF
+  - asset_id: KRX_069500
+    symbol: 069500
+    market: KRX
+    name: KODEX 200
+    asset_type: ETF
+  - asset_id: KRX_357870
+    symbol: '357870'
+    market: KRX
+    name: TIGER CD금리투자KIS(합성)
+    asset_type: ETF
+  - asset_id: KRX_459580
+    symbol: '459580'
+    market: KRX
+    name: KODEX CD금리액티브(합성)
+    asset_type: ETF
+  - asset_id: KRX_152380
+    symbol: '152380'
+    market: KRX
+    name: KODEX 국채선물10년
+    asset_type: ETF
+  - asset_id: KRX_396500
+    symbol: '396500'
+    market: KRX
+    name: TIGER 반도체TOP10
+    asset_type: ETF
+  - asset_id: KRX_381180
+    symbol: '381180'
+    market: KRX
+    name: TIGER 미국필라델피아반도체나스닥
+    asset_type: ETF
+  - asset_id: KRX_445290
+    symbol: '445290'
+    market: KRX
+    name: KODEX 로봇액티브
+    asset_type: ETF
+  - asset_id: KRX_464310
+    symbol: '464310'
+    market: KRX
+    name: TIGER 글로벌AI&로보틱스 INDXX
+    asset_type: ETF
+  - asset_id: KRX_244580
+    symbol: '244580'
+    market: KRX
+    name: KODEX 바이오
+    asset_type: ETF
+  - asset_id: KRX_143860
+    symbol: '143860'
+    market: KRX
+    name: TIGER 헬스케어
+    asset_type: ETF
+  - asset_id: KRX_449450
+    symbol: '449450'
+    market: KRX
+    name: PLUS K방산
+    asset_type: ETF
+  core_global_equity:
+  - asset_id: KRX_360750
+    symbol: '360750'
+    market: KRX
+    name: TIGER 미국S&P500
+    asset_type: ETF
+  - asset_id: KRX_133690
+    symbol: '133690'
+    market: KRX
+    name: TIGER 미국나스닥100
+    asset_type: ETF
+  core_domestic_equity:
+  - asset_id: KRX_069500
+    symbol: 069500
+    market: KRX
+    name: KODEX 200
+    asset_type: ETF
+  defensive_cash_like:
+  - asset_id: KRX_357870
+    symbol: '357870'
+    market: KRX
+    name: TIGER CD금리투자KIS(합성)
+    asset_type: ETF
+  - asset_id: KRX_459580
+    symbol: '459580'
+    market: KRX
+    name: KODEX CD금리액티브(합성)
+    asset_type: ETF
+  defensive_bond:
+  - asset_id: KRX_152380
+    symbol: '152380'
+    market: KRX
+    name: KODEX 국채선물10년
+    asset_type: ETF
+  semiconductor_order_candidates:
+  - asset_id: KRX_396500
+    symbol: '396500'
+    market: KRX
+    name: TIGER 반도체TOP10
+    asset_type: ETF
+  - asset_id: KRX_381180
+    symbol: '381180'
+    market: KRX
+    name: TIGER 미국필라델피아반도체나스닥
+    asset_type: ETF
+  semiconductor_scoring_references:
+  - asset_id: KRX_396500
+    symbol: '396500'
+    market: KRX
+    name: TIGER 반도체TOP10
+    asset_type: ETF
+  - asset_id: KRX_381180
+    symbol: '381180'
+    market: KRX
+    name: TIGER 미국필라델피아반도체나스닥
+    asset_type: ETF
+  - asset_id: KRX_005930
+    symbol: 005930
+    market: KRX
+    name: 삼성전자
+    asset_type: STOCK
+  - asset_id: KRX_000660
+    symbol: '000660'
+    market: KRX
+    name: SK하이닉스
+    asset_type: STOCK
+  - asset_id: US_NVDA
+    symbol: NVDA
+    market: NASDAQ
+    name: NVIDIA
+    asset_type: STOCK
+  ai_robot_order_candidates:
+  - asset_id: KRX_445290
+    symbol: '445290'
+    market: KRX
+    name: KODEX 로봇액티브
+    asset_type: ETF
+  - asset_id: KRX_464310
+    symbol: '464310'
+    market: KRX
+    name: TIGER 글로벌AI&로보틱스 INDXX
+    asset_type: ETF
+  ai_robot_scoring_references:
+  - asset_id: KRX_445290
+    symbol: '445290'
+    market: KRX
+    name: KODEX 로봇액티브
+    asset_type: ETF
+  - asset_id: KRX_464310
+    symbol: '464310'
+    market: KRX
+    name: TIGER 글로벌AI&로보틱스 INDXX
+    asset_type: ETF
+  - asset_id: US_NVDA
+    symbol: NVDA
+    market: NASDAQ
+    name: NVIDIA
+    asset_type: STOCK
+  - asset_id: US_MSFT
+    symbol: MSFT
+    market: NASDAQ
+    name: Microsoft
+    asset_type: STOCK
+  bio_healthcare_order_candidates:
+  - asset_id: KRX_244580
+    symbol: '244580'
+    market: KRX
+    name: KODEX 바이오
+    asset_type: ETF
+  - asset_id: KRX_143860
+    symbol: '143860'
+    market: KRX
+    name: TIGER 헬스케어
+    asset_type: ETF
+  bio_healthcare_scoring_references:
+  - asset_id: KRX_244580
+    symbol: '244580'
+    market: KRX
+    name: KODEX 바이오
+    asset_type: ETF
+  - asset_id: KRX_143860
+    symbol: '143860'
+    market: KRX
+    name: TIGER 헬스케어
+    asset_type: ETF
+  - asset_id: US_LLY
+    symbol: LLY
+    market: NYSE
+    name: Eli Lilly
+    asset_type: STOCK
+  defense_order_candidates:
+  - asset_id: KRX_449450
+    symbol: '449450'
+    market: KRX
+    name: PLUS K방산
+    asset_type: ETF
+  defense_scoring_references:
+  - asset_id: KRX_449450
+    symbol: '449450'
+    market: KRX
+    name: PLUS K방산
+    asset_type: ETF
+  - asset_id: US_LMT
+    symbol: LMT
+    market: NYSE
+    name: Lockheed Martin
+    asset_type: STOCK
