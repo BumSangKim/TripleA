@@ -50,6 +50,8 @@ This means direct imports from reusable feature calculators to concrete plugin c
 
 Do not introduce a feature-score concept in Phase 4.
 
+The term `FeatureScore` is prohibited because it blurs four separate concepts: FeatureValue, PluginSignal, PluginQualityScore, and SignalScore. Phase 4 code and docs must use the precise term for the layer involved.
+
 Allowed terms:
 
 - `FeatureValue`
@@ -89,3 +91,16 @@ Phase 4 hands off these artifacts to Phase 5:
 - Mock plugin architecture tests proving the boundary.
 
 Phase 5 may consume these contracts to build score-layer contracts and calculations. Phase 5 must not assume PluginQualityScore is an investment score and must treat PluginSignal as an explicit, auditable exception path.
+
+## 9. Classification Rules
+
+Use these questions to classify a value:
+
+1. Is the value about plugin state, reliability, freshness, or quality?
+   Use PluginQualityScore or PluginHealthStatus.
+2. Is the value a native investment input emitted by a specific provider/plugin?
+   Use PluginSignal.
+3. Can the value be recomputed from a standard dataset without knowing the plugin class?
+   Use FeatureValue.
+4. Is the value normalized for investment judgment?
+   It belongs to SignalScore, FactorScore, or DecisionScore in Phase 5 or later.
