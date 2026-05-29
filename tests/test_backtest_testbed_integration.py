@@ -1,4 +1,4 @@
-from api.models import BacktestRunRequest
+from api.features.backtests.schemas import BacktestRunRequest
 
 
 def test_backtest_request_accepts_testbed_fields_with_safe_defaults():

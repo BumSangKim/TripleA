@@ -1,0 +1,9 @@
+from __future__ import annotations
+
+from typing import Any, Protocol
+
+
+class IDataStatusRepository(Protocol):
+    def get_status(self) -> Any: ...
+    def get_dataset_status(self, dataset_key: str) -> Any: ...
+    def get_latest_quotes(self, symbols: list[str], *, market: str = "KRX") -> Any: ...

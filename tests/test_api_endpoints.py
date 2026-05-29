@@ -19,9 +19,10 @@ def test_db():
     os.environ["DB_PATH"] = db_path
 
     # 테이블 초기화
-    from api import db as api_db
-    api_db.DB_PATH = db_path
-    api_db.ensure_dashboard_tables()
+    import api.db.connection as _db_conn
+    from api.db.initialize import initialize_database
+    _db_conn.DB_PATH = db_path
+    initialize_database()
 
     # 테스트용 지표 데이터 삽입
     conn = sqlite3.connect(db_path)
@@ -93,14 +94,14 @@ class TestModes:
         assert res.status_code == 501
 
     def test_provider_sync_config_error_is_structured(self, client, monkeypatch):
-        from api import main as api_main
-        from api.kis import KISConfigError
+        import api.providers.router as provider_router_module
+        from api.brokers.kis.errors import KISConfigError
 
         class FailingProvider:
             def sync_accounts(self, conn):
                 raise KISConfigError("raw app secret message")
 
-        monkeypatch.setattr(api_main.provider_router, "get", lambda mode: FailingProvider())
+        monkeypatch.setattr(provider_router_module.provider_router, "get", lambda mode: FailingProvider())
 
         res = client.post("/api/providers/paper/sync-accounts")
 

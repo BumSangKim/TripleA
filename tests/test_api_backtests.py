@@ -11,11 +11,12 @@ def backtest_client(tmp_path, monkeypatch):
     db_path = str(tmp_path / "backtests.db")
     os.environ["DB_PATH"] = db_path
 
-    from api import db as api_db
+    import api.db.connection as api_db
+    from api.db.initialize import initialize_database
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
-    api_db.ensure_dashboard_tables()
+    initialize_database()
 
     with TestClient(app) as client:
         yield client, db_path
@@ -188,8 +189,8 @@ def test_backtest_rejects_missing_market_data(backtest_client, monkeypatch):
     client, _ = backtest_client
 
     # 수집기가 빈 결과를 반환하도록 mock (네트워크 없는 환경 시뮬레이션)
-    import api.services as svc
-    monkeypatch.setattr(svc, "collect_for_asset_codes", lambda *a, **k: {})
+    import api.features.backtests.repository as backtests_repo
+    monkeypatch.setattr(backtests_repo, "collect_for_asset_codes", lambda *a, **k: {})
 
     res = client.post(
         "/api/backtests/run",
@@ -210,7 +211,7 @@ def test_backtest_auto_collects_and_runs(backtest_client, monkeypatch):
     """커버리지 부족 시 수집기가 호출되고, 수집 후 백테스트가 성공적으로 완료된다."""
     client, db_path = backtest_client
 
-    import api.services as svc
+    import api.features.backtests.repository as backtests_repo
 
     collected: list[str] = []
 
@@ -220,7 +221,7 @@ def test_backtest_auto_collects_and_runs(backtest_client, monkeypatch):
         seed_market_data(db_path, start.isoformat(), end.isoformat())
         return {code: 2 for code in asset_codes}
 
-    monkeypatch.setattr(svc, "collect_for_asset_codes", mock_collect)
+    monkeypatch.setattr(backtests_repo, "collect_for_asset_codes", mock_collect)
 
     res = client.post(
         "/api/backtests/run",

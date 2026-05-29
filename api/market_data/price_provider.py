@@ -7,7 +7,8 @@ from typing import Any
 
 import requests
 
-from api.kis import DEMO_BASE_URL, PROJECT_ROOT, REAL_BASE_URL, _bool_env, _clean, to_decimal
+from api.brokers.kis.config import DEMO_BASE_URL, PROJECT_ROOT, REAL_BASE_URL, _bool_env, _clean
+from api.brokers.kis.client import to_decimal
 from api.market_data.models import PriceQuote
 
 

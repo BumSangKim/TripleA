@@ -4,8 +4,8 @@ from decimal import Decimal
 
 import pytest
 
-from api.intraday.models import IntradayAlert, IntradayEvent, IntradayPriceSnapshot
-from api.intraday.repository import (
+from api.features.intraday.models import IntradayAlert, IntradayEvent, IntradayPriceSnapshot
+from api.features.intraday.repository import (
     IntradayRepositoryError,
     bulk_insert_snapshots,
     ensure_intraday_tables,

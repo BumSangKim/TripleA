@@ -14,11 +14,12 @@ def test_phase3_mock_data_pipeline_e2e(tmp_path, monkeypatch):
     db_path = str(tmp_path / "phase3_e2e.db")
     os.environ["DB_PATH"] = db_path
 
-    from api import db as api_db
+    import api.db.connection as api_db
+    from api.db.initialize import initialize_database
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
-    api_db.ensure_dashboard_tables()
+    initialize_database()
 
     sources = load_data_sources()
     price_source = [source for source in sources if source.source_id == "mock_krx_daily_prices"][0]

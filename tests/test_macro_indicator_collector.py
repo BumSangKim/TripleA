@@ -2,7 +2,7 @@ import sqlite3
 from datetime import date, timedelta
 
 from api.macro_indicator_collector import collect_indicator_history, resolve_indicator_meta
-from api.services import get_indicator_history
+from api.features.macro.repository import MacroRepository
 
 
 def _indicator_conn() -> sqlite3.Connection:
@@ -56,9 +56,9 @@ def test_get_indicator_history_collects_when_local_data_is_missing(monkeypatch):
         _insert_indicator(conn_arg, indicator, today, 18.5, unit="B USD")
         return 1
 
-    monkeypatch.setattr("api.services.collect_indicator_history", fake_collect)
+    monkeypatch.setattr("api.macro_indicator_collector.collect_indicator_history", fake_collect)
 
-    history = get_indicator_history(conn, "CAPEX_MSFT", days=30)
+    history = MacroRepository(conn).get_indicator_history("CAPEX_MSFT", days=30)
 
     assert calls
     assert history == [{"date": today.isoformat(), "value": 18.5}]
@@ -72,9 +72,9 @@ def test_get_indicator_history_uses_sparse_recent_data_without_refetch(monkeypat
     def fail_collect(*_args):
         raise AssertionError("fresh sparse quarterly data should not be refetched")
 
-    monkeypatch.setattr("api.services.collect_indicator_history", fail_collect)
+    monkeypatch.setattr("api.macro_indicator_collector.collect_indicator_history", fail_collect)
 
-    history = get_indicator_history(conn, "CAPEX_MSFT", days=7)
+    history = MacroRepository(conn).get_indicator_history("CAPEX_MSFT", days=7)
 
     assert history == [{"date": recent_quarter.isoformat(), "value": 18.5}]
 
@@ -92,9 +92,9 @@ def test_get_indicator_history_fetches_when_range_not_covered(monkeypatch):
         _insert_indicator(conn_arg, indicator, today - timedelta(days=365 * 3), 2000.0)
         return 1
 
-    monkeypatch.setattr("api.services.collect_indicator_history", fake_collect)
+    monkeypatch.setattr("api.macro_indicator_collector.collect_indicator_history", fake_collect)
 
-    history = get_indicator_history(conn, "KOSPI", days=365 * 3)
+    history = MacroRepository(conn).get_indicator_history("KOSPI", days=365 * 3)
 
     assert collect_calls
     assert any(item["date"] <= (today - timedelta(days=365 * 2)).isoformat() for item in history)
@@ -110,9 +110,9 @@ def test_get_indicator_history_no_collection_when_range_is_covered(monkeypatch):
     def fail_collect(*_args):
         raise AssertionError("should not re-collect when range is already covered and data is fresh")
 
-    monkeypatch.setattr("api.services.collect_indicator_history", fail_collect)
+    monkeypatch.setattr("api.macro_indicator_collector.collect_indicator_history", fail_collect)
 
-    assert get_indicator_history(conn, "KOSPI", days=365 * 3)
+    assert MacroRepository(conn).get_indicator_history("KOSPI", days=365 * 3)
 
 
 def test_resolve_indicator_meta_infers_fred_source():

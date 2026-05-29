@@ -4,7 +4,7 @@ import argparse
 import sqlite3
 from datetime import date
 
-from api import db as api_db
+from api.db import connection as api_db
 from api.data.ingestion import IngestionResult, collect_macro_data, collect_price_history
 from api.data.providers import FailingProvider, MockMacroDataProvider, MockMarketDataProvider
 from api.data.repository import count_rows, ensure_raw_data_tables

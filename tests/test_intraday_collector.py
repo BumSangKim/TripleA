@@ -2,11 +2,11 @@ import sqlite3
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
 
-from api.intraday.collector import collect_intraday_once, is_regular_session
-from api.intraday.config import IntradayMonitoringConfig
-from api.intraday.provider import MockIntradayProvider
-from api.intraday.repository import latest_snapshot
-from api.intraday.universe import IntradaySymbol, resolve_intraday_universe
+from api.features.intraday.collector import collect_intraday_once, is_regular_session
+from api.features.intraday.config import IntradayMonitoringConfig
+from api.features.intraday.provider import MockIntradayProvider
+from api.features.intraday.repository import latest_snapshot
+from api.features.intraday.universe import IntradaySymbol, resolve_intraday_universe
 
 
 def _conn(tmp_path):

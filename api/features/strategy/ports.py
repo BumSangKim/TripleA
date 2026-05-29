@@ -1,0 +1,9 @@
+from __future__ import annotations
+
+from typing import Any, Protocol
+
+
+class IStrategyRepository(Protocol):
+    def get_universes(self) -> dict[str, Any]: ...
+    def get_profiles(self) -> dict[str, Any]: ...
+    def get_sector_taxonomy(self) -> Any: ...

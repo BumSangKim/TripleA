@@ -6,8 +6,8 @@ from decimal import Decimal
 import pytest
 from fastapi.testclient import TestClient
 
-from api.intraday.models import IntradayEvent, IntradayPriceSnapshot
-from api.intraday.repository import insert_event, insert_snapshot
+from api.features.intraday.models import IntradayEvent, IntradayPriceSnapshot
+from api.features.intraday.repository import insert_event, insert_snapshot
 
 
 @pytest.fixture
@@ -15,7 +15,7 @@ def client(tmp_path, monkeypatch):
     db_path = str(tmp_path / "api_intraday.db")
     os.environ["DB_PATH"] = db_path
 
-    import api.db as api_db
+    import api.db.connection as api_db
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)

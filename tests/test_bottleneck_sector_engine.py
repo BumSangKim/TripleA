@@ -1,13 +1,13 @@
 import sqlite3
 from datetime import date
 
-from api.db import ensure_dashboard_tables
+from api.db.initialize import initialize_database as ensure_dashboard_tables
 from api.strategy.bottleneck_sector_engine import BottleneckSectorEngine
 
 
 def test_bottleneck_sector_engine_scores_semiconductor_from_trade_and_relative_strength(tmp_path, monkeypatch):
     db_path = str(tmp_path / "bottleneck_engine.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -38,7 +38,7 @@ def test_bottleneck_sector_engine_scores_semiconductor_from_trade_and_relative_s
 
 def test_bottleneck_sector_engine_ignores_future_release_rows(tmp_path, monkeypatch):
     db_path = str(tmp_path / "bottleneck_engine.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row

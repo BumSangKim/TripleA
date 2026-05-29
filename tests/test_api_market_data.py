@@ -10,11 +10,12 @@ def md_client(tmp_path, monkeypatch):
     db_path = str(tmp_path / "market_data.db")
     os.environ["DB_PATH"] = db_path
 
-    from api import db as api_db
+    import api.db.connection as api_db
+    from api.db.initialize import initialize_database
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
-    api_db.ensure_dashboard_tables()
+    initialize_database()
 
     with TestClient(app) as client:
         yield client, db_path

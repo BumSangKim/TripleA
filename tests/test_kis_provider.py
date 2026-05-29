@@ -3,18 +3,13 @@ import sqlite3
 import pytest
 import requests
 
-from api import db as api_db
-from api.kis import (
-    KISBalanceSnapshot,
-    KISClient,
-    KISConfig,
-    KISNetworkError,
-    KISPosition,
-    classify_kis_asset,
-    load_kis_config,
-    parse_domestic_balance,
-)
-from api.providers import ProviderRouter
+import api.db.connection as api_db
+from api.db.initialize import initialize_database as _initialize_database
+from api.brokers.kis.client import KISClient, classify_kis_asset, parse_domestic_balance
+from api.brokers.kis.config import KISConfig, load_kis_config
+from api.brokers.kis.errors import KISNetworkError
+from api.brokers.kis.models import KISBalanceSnapshot, KISPosition
+from api.providers.router import ProviderRouter
 
 
 def test_load_kis_config_prefers_demo_credentials():
@@ -147,7 +142,7 @@ def test_kis_client_masks_network_errors():
 def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
     db_path = str(tmp_path / "dashboard.db")
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
-    api_db.ensure_dashboard_tables()
+    _initialize_database()
 
     snapshot = KISBalanceSnapshot(
         account_masked="12****78-01",
@@ -210,8 +205,8 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
         def fetch_domestic_balance(self):
             return snapshot
 
-    monkeypatch.setattr("api.providers.load_kis_config", fake_load_kis_config)
-    monkeypatch.setattr("api.providers.KISClient", FakeKISClient)
+    monkeypatch.setattr("api.providers.paper.load_kis_config", fake_load_kis_config)
+    monkeypatch.setattr("api.providers.paper.KISClient", FakeKISClient)
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -250,7 +245,7 @@ def test_paper_provider_syncs_kis_snapshot(tmp_path, monkeypatch):
 def test_live_provider_syncs_kis_snapshot_read_only(tmp_path, monkeypatch):
     db_path = str(tmp_path / "dashboard.db")
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
-    api_db.ensure_dashboard_tables()
+    _initialize_database()
 
     snapshot = KISBalanceSnapshot(
         account_masked="87****21-01",
@@ -290,8 +285,8 @@ def test_live_provider_syncs_kis_snapshot_read_only(tmp_path, monkeypatch):
         def fetch_domestic_balance(self):
             return snapshot
 
-    monkeypatch.setattr("api.providers.load_kis_config", fake_load_kis_config)
-    monkeypatch.setattr("api.providers.KISClient", FakeKISClient)
+    monkeypatch.setattr("api.providers.live.load_kis_config", fake_load_kis_config)
+    monkeypatch.setattr("api.providers.live.KISClient", FakeKISClient)
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row

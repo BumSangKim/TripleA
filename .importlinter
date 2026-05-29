@@ -1,0 +1,45 @@
+[importlinter]
+root_package = api
+include_external_packages = True
+
+# Contract 1: domain purity — domain must not import FastAPI, DB, or features
+[importlinter:contract:domain_purity]
+name = domain must not import FastAPI, DB, or HTTP concerns
+type = forbidden
+source_modules =
+    api.domain
+forbidden_modules =
+    fastapi
+    starlette
+    sqlite3
+    api.db
+    api.features
+
+# Contract 2: strategy no features — strategy must not import features
+[importlinter:contract:strategy_no_features]
+name = strategy must not import features
+type = forbidden
+source_modules =
+    api.strategy
+forbidden_modules =
+    api.features
+    fastapi
+    starlette
+
+# Contract 3: db no features — db module must not import features
+[importlinter:contract:db_no_features]
+name = db module must not import features
+type = forbidden
+source_modules =
+    api.db
+forbidden_modules =
+    api.features
+
+# Contract 4: router no repository — feature routers must not import repositories or db directly
+[importlinter:contract:router_no_repository]
+name = routers must not import repository or db directly
+type = forbidden
+source_modules =
+    api.features
+forbidden_modules =
+    api.db

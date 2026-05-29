@@ -3,11 +3,11 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from api.intraday.config import IntradayMonitoringConfig
-from api.intraday.detector import detect_events_for_snapshot
-from api.intraday.models import IntradayPriceSnapshot
-from api.intraday.repository import ensure_intraday_tables, insert_snapshot
-import api.intraday.detector as detector_module
+from api.features.intraday.config import IntradayMonitoringConfig
+from api.features.intraday.detector import detect_events_for_snapshot
+from api.features.intraday.models import IntradayPriceSnapshot
+from api.features.intraday.repository import ensure_intraday_tables, insert_snapshot
+import api.features.intraday.detector as detector_module
 
 
 def _conn(tmp_path):

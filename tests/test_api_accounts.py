@@ -1,7 +1,7 @@
 import sqlite3
 
-from api.db import _migrate_dashboard_tables
-from api.services import get_kpi_summary
+from api.db.migrations.compat import migrate_existing_schema as _migrate_dashboard_tables
+from api.features.macro.repository import MacroRepository
 
 
 def make_conn() -> sqlite3.Connection:
@@ -26,7 +26,7 @@ def make_conn() -> sqlite3.Connection:
 def test_kpi_summary_empty_holdings_returns_zero_values():
     conn = make_conn()
 
-    summary = get_kpi_summary(conn)
+    summary = MacroRepository(conn).get_kpi_summary()
 
     assert summary.totalAssets == 0
     assert summary.cash == 0
@@ -48,7 +48,7 @@ def test_kpi_summary_uses_holdings_totals():
         ],
     )
 
-    summary = get_kpi_summary(conn)
+    summary = MacroRepository(conn).get_kpi_summary()
 
     assert summary.totalAssets == 1_300_000
     assert summary.todayProfit == 0

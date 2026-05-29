@@ -3,8 +3,8 @@ tests/test_api_rebalancing.py
 리밸런싱 알고리즘 유닛 테스트
 """
 import pytest
-from api.models import TargetItem
-from api.services import get_rebalancing_suggestions, generate_target_alerts
+from api.features.targets.schemas import TargetItem
+from api.features.rebalancing.repository import get_rebalancing_suggestions
 
 
 # ── 픽스처 ──────────────────────────────────────────────────────────

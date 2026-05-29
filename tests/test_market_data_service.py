@@ -3,7 +3,7 @@ from datetime import date
 
 import pytest
 
-from api.db import ensure_dashboard_tables
+from api.db.initialize import initialize_database as ensure_dashboard_tables
 from api.market_data_service import (
     get_asset_universe,
     get_fx_matrix,
@@ -17,7 +17,7 @@ from api.market_data_service import (
 @pytest.fixture()
 def market_conn(tmp_path, monkeypatch):
     db_path = str(tmp_path / "market_service.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from api.models import BacktestRunRequest
+from api.features.backtests.schemas import BacktestRunRequest
 
 
 def test_dynamic_backtest_request_parses_strategy_fields():

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from api import db as api_db
+from api.db import connection as api_db
 from api.market_data.models import PriceQuote
 
 

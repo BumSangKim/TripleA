@@ -5,7 +5,7 @@ import sqlite3
 from datetime import UTC, datetime
 from typing import Any
 
-from api import db as api_db
+from api.db import connection as api_db
 from api.data.models import CurrentQuote, DataQualityCheck, IngestionRun, MacroObservation, PriceBar, decimal_from
 
 

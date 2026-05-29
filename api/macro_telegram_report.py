@@ -9,8 +9,7 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from .models import MacroIndicator
-from .services import build_insights, get_kpi_summary, get_macro_indicators
+from .features.macro.schemas import MacroIndicator
 from .telegram_service import (
     TelegramConfigError,
     TelegramSendError,
@@ -61,9 +60,11 @@ def build_daily_macro_report_text(
     *,
     now: datetime | None = None,
 ) -> tuple[str, int]:
-    indicators = get_macro_indicators(conn)
-    kpi = get_kpi_summary(conn, indicators)
-    insights = build_insights(indicators, kpi)
+    from .features.macro.repository import MacroRepository
+    macro_repo = MacroRepository(conn)
+    indicators = macro_repo.get_indicators()
+    kpi = macro_repo.get_kpi_summary(indicators)
+    insights = macro_repo.build_insights(indicators, kpi)
     current = now or datetime.now(KST)
 
     by_key = {item.key: item for item in indicators}

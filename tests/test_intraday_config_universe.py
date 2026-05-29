@@ -1,9 +1,9 @@
-from api.intraday.config import (
+from api.features.intraday.config import (
     IntradayMonitoringConfig,
     load_intraday_config,
     monitoring_thresholds_are_strategy_parameters,
 )
-from api.intraday.universe import resolve_intraday_universe
+from api.features.intraday.universe import resolve_intraday_universe
 from api.universe.loader import load_assets
 
 

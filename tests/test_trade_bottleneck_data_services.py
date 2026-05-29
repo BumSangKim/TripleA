@@ -2,13 +2,13 @@ import sqlite3
 from datetime import date
 
 from api.bottleneck_data_service import get_bottleneck_snapshot, get_sector_asset_mappings
-from api.db import ensure_dashboard_tables
+from api.db.initialize import initialize_database as ensure_dashboard_tables
 from api.trade_data_service import get_trade_snapshot
 
 
 def test_trade_snapshot_filters_by_release_date(tmp_path, monkeypatch):
     db_path = str(tmp_path / "trade.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -32,7 +32,7 @@ def test_trade_snapshot_filters_by_release_date(tmp_path, monkeypatch):
 
 def test_bottleneck_snapshot_filters_by_release_date_and_loads_sector_assets(tmp_path, monkeypatch):
     db_path = str(tmp_path / "bottleneck.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row

@@ -5,17 +5,17 @@ from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
-from api.db import ensure_dashboard_tables
-from api.intraday.alert import process_intraday_events
-from api.intraday.collector import collect_intraday_once
-from api.intraday.config import IntradayMonitoringConfig
-from api.intraday.detector import detect_events_for_snapshot
-from api.intraday.models import IntradayEvent, IntradayPriceSnapshot
-from api.intraday.provider import MockIntradayProvider
-from api.intraday.repository import insert_snapshot, latest_snapshots, recent_events
-from api.intraday.universe import IntradaySymbol
-from api.models import TargetItem
-from api.services import get_rebalancing_suggestions
+from api.db.initialize import initialize_database as ensure_dashboard_tables
+from api.features.intraday.alert import process_intraday_events
+from api.features.intraday.collector import collect_intraday_once
+from api.features.intraday.config import IntradayMonitoringConfig
+from api.features.intraday.detector import detect_events_for_snapshot
+from api.features.intraday.models import IntradayEvent, IntradayPriceSnapshot
+from api.features.intraday.provider import MockIntradayProvider
+from api.features.intraday.repository import insert_snapshot, latest_snapshots, recent_events
+from api.features.intraday.universe import IntradaySymbol
+from api.features.targets.schemas import TargetItem
+from api.features.rebalancing.repository import get_rebalancing_suggestions
 from api.strategy.common_sector_scoring_engine import CommonSectorScore
 from api.strategy.indicator_plugins.base import PluginScore
 from api.strategy.macro_engine import MacroEngine
@@ -140,7 +140,7 @@ def test_intraday_events_do_not_modify_rebalancing_outputs():
 
 def test_intraday_events_do_not_generate_order_candidates_or_drafts(tmp_path, monkeypatch):
     db_path = str(tmp_path / "isolation.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = _conn(db_path)
 
@@ -153,7 +153,7 @@ def test_intraday_events_do_not_generate_order_candidates_or_drafts(tmp_path, mo
 def test_intraday_api_import_does_not_trigger_collection_or_strategy_side_effects(tmp_path, monkeypatch):
     db_path = str(tmp_path / "api_import.db")
     os.environ["DB_PATH"] = db_path
-    import api.db as api_db
+    import api.db.connection as api_db
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)
@@ -190,7 +190,7 @@ class ScenarioProvider(MockIntradayProvider):
 def test_intraday_monitoring_end_to_end_scenario_returns_events_via_api(tmp_path, monkeypatch):
     db_path = str(tmp_path / "scenario.db")
     os.environ["DB_PATH"] = db_path
-    import api.db as api_db
+    import api.db.connection as api_db
     from api.main import app
 
     monkeypatch.setattr(api_db, "DB_PATH", db_path)

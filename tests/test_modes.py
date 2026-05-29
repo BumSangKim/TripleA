@@ -2,10 +2,9 @@ import sqlite3
 
 import pytest
 
-from api.db import ensure_dashboard_tables
-from api.modes import TradingMode, get_mode_policy, normalize_mode
-from api.providers import ProviderRouter
-from api.services import get_target_deviations
+from api.db.initialize import initialize_database as ensure_dashboard_tables
+from api.providers.modes import TradingMode, get_mode_policy, normalize_mode
+from api.providers.router import ProviderRouter, provider_router
 
 
 def test_mode_policy_documents_order_boundaries():
@@ -48,7 +47,7 @@ def test_provider_router_enforces_read_only_modes():
 
 def test_dashboard_schema_tables_are_created(tmp_path, monkeypatch):
     db_path = str(tmp_path / "dashboard.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
 
     ensure_dashboard_tables()
 
@@ -97,7 +96,7 @@ def test_target_deviation_uses_holdings_in_non_mock_mode():
         VALUES (1, 'SPY', 'ETF', 750000);
     """)
 
-    result = get_target_deviations(conn, TradingMode.PAPER)
+    result = provider_router.get(TradingMode.PAPER).get_target_deviations(conn)
 
     assert result[0].currentRatio == 100.0
     assert result[0].deviation == 50.0

@@ -32,10 +32,10 @@ def test_triplea_allocator_changes_weights_by_risk_profile():
 
 
 def test_triplea_allocator_applies_active_bottleneck_sector_tilt(tmp_path, monkeypatch):
-    from api.db import ensure_dashboard_tables
+    from api.db.initialize import initialize_database as ensure_dashboard_tables
 
     db_path = str(tmp_path / "allocator.db")
-    monkeypatch.setattr("api.db.DB_PATH", db_path)
+    monkeypatch.setattr("api.db.connection.DB_PATH", db_path)
     ensure_dashboard_tables()
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
