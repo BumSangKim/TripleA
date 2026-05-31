@@ -1,0 +1,69 @@
+fallback_policy: REVIEW_REQUIRED
+parameters:
+  - name: ai_cycle_weights
+    value:
+      capex_growth: 0.30
+      demand_momentum: 0.25
+      supply_constraint: 0.20
+      profitability_quality: 0.15
+      data_quality: 0.10
+    version: ai_capex_cycle_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/ai_capex_cycle.yaml
+    reason: Staged AI CapEx cycle component weights for read-only score-flow validation.
+    approved: false
+    rollback_condition: Drawdown worsens, warning rate spikes, or data quality failures exceed review limits.
+    affected_modules: [score_pipeline, capex_cycle, backtest]
+  - name: macro_decay_lambda
+    value: 0.50
+    version: ai_capex_cycle_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/ai_capex_cycle.yaml
+    reason: Staged decay factor for macro-sensitive AI CapEx cycle inputs.
+    approved: false
+    rollback_condition: Drawdown worsens, warning rate spikes, or data quality failures exceed review limits.
+    affected_modules: [score_pipeline, capex_cycle]
+  - name: stale_after_days
+    value: 120
+    version: ai_capex_cycle_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/ai_capex_cycle.yaml
+    reason: Staged stale-data window for quarterly and monthly CapEx inputs.
+    approved: false
+    rollback_condition: Stale source warnings spike or source cadence proves mismatched in backtest review.
+    affected_modules: [data_quality, capex_cycle]
+  - name: quality_min_required
+    value: 0.70
+    version: ai_capex_cycle_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/ai_capex_cycle.yaml
+    reason: Minimum data-quality gate for read-only AI CapEx score publication.
+    approved: false
+    rollback_condition: Data quality failures exceed review limits or cause unexplained score instability.
+    affected_modules: [data_quality, score_pipeline, capex_cycle]
+  - name: normalization_bounds
+    value:
+      capex_growth_yoy:
+        lower: -0.20
+        upper: 0.60
+      demand_backlog_growth:
+        lower: -0.20
+        upper: 0.60
+      supply_constraint_index:
+        lower: 0.00
+        upper: 1.00
+      margin_quality:
+        lower: 0.00
+        upper: 1.00
+    version: ai_capex_cycle_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/ai_capex_cycle.yaml
+    reason: Staged normalization bounds for continuous feature scaling; not action thresholds.
+    approved: false
+    rollback_condition: Backtest review shows unstable normalization, warning rate spikes, or data quality failures.
+    affected_modules: [score_pipeline, capex_cycle, backtest]
