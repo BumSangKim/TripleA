@@ -1,0 +1,58 @@
+{
+  "status": "000",
+  "message": "정상",
+  "list": [
+    {
+      "rcept_no": "20240515000001",
+      "rcept_dt": "20240515",
+      "reprt_code": "11013",
+      "bsns_year": "2024",
+      "corp_code": "00126380",
+      "stock_code": "005930",
+      "fs_nm": "연결재무제표",
+      "sj_nm": "손익계산서",
+      "account_nm": "매출액",
+      "thstrm_amount": "7,191,556,000,000",
+      "currency": "KRW"
+    },
+    {
+      "rcept_no": "20240515000001",
+      "rcept_dt": "20240515",
+      "reprt_code": "11013",
+      "bsns_year": "2024",
+      "corp_code": "00126380",
+      "stock_code": "005930",
+      "fs_nm": "연결재무제표",
+      "sj_nm": "주석",
+      "account_nm": "수주잔고",
+      "thstrm_amount": "1,250,000,000,000",
+      "currency": "KRW"
+    },
+    {
+      "rcept_no": "20240515000001",
+      "rcept_dt": "20240515",
+      "reprt_code": "11013",
+      "bsns_year": "2024",
+      "corp_code": "00126380",
+      "stock_code": "005930",
+      "fs_nm": "연결재무제표",
+      "sj_nm": "손익계산서",
+      "account_nm": "영업이익",
+      "thstrm_amount": "820,000,000,000",
+      "currency": "KRW"
+    },
+    {
+      "rcept_no": "20240515000001",
+      "rcept_dt": "20240515",
+      "reprt_code": "11013",
+      "bsns_year": "2024",
+      "corp_code": "00126380",
+      "stock_code": "005930",
+      "fs_nm": "연결재무제표",
+      "sj_nm": "주석",
+      "account_nm": "미해석항목",
+      "thstrm_amount": "100",
+      "currency": "KRW"
+    }
+  ]
+}
