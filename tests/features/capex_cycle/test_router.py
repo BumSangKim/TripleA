@@ -64,6 +64,7 @@ def test_router_exposes_no_mutation_routes():
     paths = {route.path: route.methods for route in client.app.routes if route.path.startswith("/api/capex-cycle")}
 
     assert set(paths) == {
+        "/api/capex-cycle/report",
         "/api/capex-cycle/scores",
         "/api/capex-cycle/scenarios",
         "/api/capex-cycle/valuation/{asset_id}",
