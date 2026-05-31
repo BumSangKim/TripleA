@@ -1,0 +1,50 @@
+version: capex_bottleneck_universe_v0
+source: research_spec
+advisory_only: true
+description: >
+  Read-only research metadata for Bio/Pharma CapEx bottleneck layers.
+  Example tickers are non-binding observation references and are not
+  investability, allocation, rebalancing, order-candidate, or execution inputs.
+layers:
+  tools_consumables:
+    enabled: true
+    role: infrastructure_reference
+    risk_class: medium
+    example_tickers: [TMO, DHR, A, WAT, RVTY]
+    exclusion_tags: [clinical_event_risk, single_pipeline_risk]
+    notes: Life-science tools and consumables references for durable lab and manufacturing infrastructure demand.
+  bioprocessing:
+    enabled: true
+    role: infrastructure_reference
+    risk_class: medium
+    example_tickers: [SRT3.DE, RGEN, DHR, TMO]
+    exclusion_tags: [clinical_event_risk, single_pipeline_risk]
+    notes: Bioprocessing equipment and inputs that may reflect manufacturing capacity bottlenecks.
+  clinical_data_cro:
+    enabled: true
+    role: service_bottleneck_reference
+    risk_class: medium_high
+    example_tickers: [IQV, ICLR, CRL, MEDP]
+    exclusion_tags: [trial_outcome_betting, single_pipeline_risk]
+    notes: CRO and clinical data service capacity references; not direct trial result scoring.
+  cdmo_manufacturing:
+    enabled: true
+    role: manufacturing_bottleneck_reference
+    risk_class: medium_high
+    example_tickers: [LONN.SW, WST, CATALENT_REVIEW_REQUIRED]
+    exclusion_tags: [customer_concentration_risk, funding_risk, single_pipeline_risk]
+    notes: CDMO and manufacturing supply-chain references that require source and corporate-action review.
+  bio_data_platform:
+    enabled: true
+    role: data_infrastructure_reference
+    risk_class: high
+    example_tickers: [TXG, ILMN, TECH, QGEN]
+    exclusion_tags: [platform_adoption_risk, valuation_overheat, single_pipeline_risk]
+    notes: Bio data and platform infrastructure references with elevated adoption and valuation uncertainty.
+  high_risk_ai_biotech:
+    enabled: false
+    role: observation_only
+    risk_class: very_high
+    example_tickers: [REVIEW_REQUIRED]
+    exclusion_tags: [clinical_event_risk, single_pipeline_risk, binary_event_risk, speculative_financing_risk]
+    notes: Single-pipeline or clinical-event-sensitive names are excluded from default scoring and kept observation-only.
