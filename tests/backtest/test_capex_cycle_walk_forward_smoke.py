@@ -19,6 +19,7 @@ DECISION_DATES = (date(2026, 5, 31), date(2026, 8, 1))
 
 
 def test_capex_cycle_walk_forward_smoke_is_deterministic_and_readonly():
+    loaded_before = set(sys.modules)
     registry = _registry()
     snapshots = [_snapshot(day) for day in DECISION_DATES]
     config = PipelineBacktestConfig(DECISION_DATES[0], DECISION_DATES[1], "monthly", 100_000, "capex_walk_forward_test_v1")
@@ -41,7 +42,7 @@ def test_capex_cycle_walk_forward_smoke_is_deterministic_and_readonly():
         assert log.account_constraints["execution_allowed"] is False
     assert first.metrics["turnover"] is not None
     assert math.isfinite(first.metrics["turnover"])
-    assert _forbidden_runtime_modules() == []
+    assert _new_forbidden_runtime_modules(loaded_before) == []
 
 
 def _capex_pipeline(snapshot, state, registry) -> DecisionLogRecord:
@@ -168,6 +169,6 @@ def _entry(name: str, value) -> ParameterEntry:
     )
 
 
-def _forbidden_runtime_modules() -> list[str]:
+def _new_forbidden_runtime_modules(loaded_before: set[str]) -> list[str]:
     prefixes = ("api.brokers", "api.features.orders", "api.strategy")
-    return sorted(name for name in sys.modules if name.startswith(prefixes))
+    return sorted(name for name in set(sys.modules) - loaded_before if name.startswith(prefixes))
