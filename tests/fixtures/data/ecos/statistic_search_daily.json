@@ -1,0 +1,27 @@
+{
+  "StatisticSearch": {
+    "list_total_count": 2,
+    "row": [
+      {
+        "STAT_CODE": "731Y001",
+        "STAT_NAME": "주요환율",
+        "ITEM_CODE1": "0000001",
+        "ITEM_NAME1": "원/미국달러",
+        "UNIT_NAME": "원",
+        "TIME": "20240501",
+        "DATA_VALUE": "1375.50",
+        "AVAILABLE_AT": "2024-05-02"
+      },
+      {
+        "STAT_CODE": "731Y001",
+        "STAT_NAME": "주요환율",
+        "ITEM_CODE1": "0000001",
+        "ITEM_NAME1": "원/미국달러",
+        "UNIT_NAME": "원",
+        "TIME": "20240502",
+        "DATA_VALUE": "1379.20",
+        "AVAILABLE_AT": "2024-05-03"
+      }
+    ]
+  }
+}
