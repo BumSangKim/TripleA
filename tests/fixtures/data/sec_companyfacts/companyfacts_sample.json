@@ -1,0 +1,91 @@
+{
+  "cik": 1234567,
+  "entityName": "Sample AI Infrastructure Corp",
+  "facts": {
+    "us-gaap": {
+      "PaymentsToAcquirePropertyPlantAndEquipment": {
+        "label": "Payments to Acquire Property Plant and Equipment",
+        "units": {
+          "USD": [
+            {
+              "start": "2023-01-01",
+              "end": "2023-12-31",
+              "val": 900000000,
+              "accn": "0001234567-24-000010",
+              "fy": 2023,
+              "fp": "FY",
+              "form": "10-K",
+              "filed": "2024-02-15",
+              "frame": "CY2023"
+            },
+            {
+              "start": "2024-01-01",
+              "end": "2024-03-31",
+              "val": 260000000,
+              "accn": "0001234567-24-000020",
+              "fy": 2024,
+              "fp": "Q1",
+              "form": "10-Q",
+              "filed": "2024-05-08",
+              "frame": "CY2024Q1"
+            }
+          ]
+        }
+      },
+      "Revenues": {
+        "label": "Revenue",
+        "units": {
+          "USD": [
+            {
+              "start": "2024-01-01",
+              "end": "2024-03-31",
+              "val": 1400000000,
+              "accn": "0001234567-24-000020",
+              "fy": 2024,
+              "fp": "Q1",
+              "form": "10-Q",
+              "filed": "2024-05-08",
+              "frame": "CY2024Q1"
+            }
+          ]
+        }
+      },
+      "OperatingIncomeLoss": {
+        "label": "Operating Income",
+        "units": {
+          "USD": [
+            {
+              "start": "2024-01-01",
+              "end": "2024-03-31",
+              "val": 190000000,
+              "accn": "0001234567-24-000020",
+              "fy": 2024,
+              "fp": "Q1",
+              "form": "10-Q",
+              "filed": "2024-05-08",
+              "frame": "CY2024Q1"
+            }
+          ]
+        }
+      },
+      "EarningsPerShareDiluted": {
+        "label": "Earnings Per Share Diluted",
+        "units": {
+          "USD/shares": [
+            {
+              "start": "2024-01-01",
+              "end": "2024-03-31",
+              "val": 1.24,
+              "accn": "0001234567-24-000020",
+              "fy": 2024,
+              "fp": "Q1",
+              "form": "10-Q",
+              "filed": "2024-05-08",
+              "frame": "CY2024Q1"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
