@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import Any, Protocol, Sequence
 
 
 class IBacktestsRepository(Protocol):
@@ -10,3 +10,20 @@ class IBacktestsRepository(Protocol):
     def get_decisions(self, run_id: int) -> list[Any]: ...
     def get_positions(self, run_id: int) -> list[Any]: ...
     def get_trades(self, run_id: int) -> list[Any]: ...
+
+
+class ISectorComponentBacktestDataProvider(Protocol):
+    def list_sector_component_observations(self, config: Any) -> Sequence[Any]: ...
+    def list_sector_component_returns(self, config: Any) -> Sequence[Any]: ...
+    def list_sector_component_regimes(self, config: Any) -> Sequence[Any]: ...
+
+
+class ISectorComponentBacktestRunner(Protocol):
+    def __call__(
+        self,
+        config: Any,
+        observations: Sequence[Any],
+        historical_returns: Sequence[Any],
+        *,
+        macro_regime_records: Sequence[Any] = (),
+    ) -> Any: ...
