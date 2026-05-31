@@ -13,6 +13,16 @@ This runbook covers the read-only AI/Bio CapEx cycle scoring slice:
 
 This slice does not submit broker orders, create executable order payloads, change live account state, or promote parameters automatically.
 
+## Data Pipeline Runbook
+
+The data ingestion, source catalog, PIT snapshot, feature materialization, source health, and ETL-to-report verification path is documented in `docs/CAPEX_CYCLE_DATA_PIPELINE_RUNBOOK.md`.
+
+Use that document for source-group policy, credentials handling, stale data interpretation, dry-run ingestion behavior, and the end-to-end fixture smoke test:
+
+```bash
+.venv/bin/python -m pytest tests/integration/test_capex_etl_to_report_smoke.py -q
+```
+
 ## Test Commands
 
 Run the focused verification suite with:
