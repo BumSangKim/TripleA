@@ -24,13 +24,13 @@ const TYPE_ICON: Record<string, string> = {
   alert: "🔔",
 };
 
-// 매크로 key → 티커 레이블 매핑
+// 매크로 key → 티커 레이블 매핑 (DB indicators 테이블의 실제 key 사용)
 const TICKER_KEYS: { key: string; label: string; decimals: number }[] = [
-  { key: "sp500",    label: "S&P 500",  decimals: 2 },
-  { key: "nasdaq",   label: "NASDAQ",   decimals: 2 },
-  { key: "kospi",    label: "KOSPI",    decimals: 2 },
-  { key: "usdkrw",   label: "USD/KRW",  decimals: 2 },
-  { key: "vix",      label: "VIX",      decimals: 2 },
+  { key: "SPY",      label: "S&P 500",  decimals: 2 },
+  { key: "QQQ",      label: "NASDAQ",   decimals: 2 },
+  { key: "KOSPI",    label: "KOSPI",    decimals: 2 },
+  { key: "USD_KRW",  label: "USD/KRW",  decimals: 2 },
+  { key: "WTI",      label: "WTI",      decimals: 2 },
 ];
 
 const FALLBACK_TICKERS: TickerItem[] = [
@@ -38,7 +38,7 @@ const FALLBACK_TICKERS: TickerItem[] = [
   { label: "NASDAQ",  value: "16,735.02", change: "+0.64%", down: false },
   { label: "KOSPI",   value: "2,726.45",  change: "-0.21%", down: true  },
   { label: "USD/KRW", value: "1,364.20",  change: "-0.21%", down: true  },
-  { label: "VIX",     value: "14.32",     change: "-2.51%", down: true  },
+  { label: "WTI",     value: "97.63",     change: "+1.23",  down: false },
 ];
 
 export interface HeaderProps {
@@ -104,7 +104,7 @@ export default function Header({ alertCount: initialAlertCount = 0 }: HeaderProp
           const changeStr = (changeNum >= 0 ? "+" : "") + changeNum.toFixed(decimals);
           return {
             label,
-            value: key === "usdkrw"
+            value: key === "USD_KRW"
               ? found.value.toLocaleString("ko-KR", { maximumFractionDigits: 2 })
               : found.value.toLocaleString("en-US", { maximumFractionDigits: decimals }),
             change: changeStr,

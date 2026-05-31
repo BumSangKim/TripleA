@@ -507,9 +507,12 @@ export default function AccountsPageClient() {
               const policy = acct.accountType ? policyByType.get(acct.accountType) : null;
               return (
                 <div key={acct.id}>
-                  <button
-                    className="w-full rounded px-2 py-3 transition-colors hover:bg-slate-700/30"
+                  <div
+                    className="w-full cursor-pointer rounded px-2 py-3 transition-colors hover:bg-slate-700/30"
                     onClick={() => handleSelectAccount(acct.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === "Enter" && handleSelectAccount(acct.id)}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex min-w-0 items-center gap-3">
@@ -549,7 +552,7 @@ export default function AccountsPageClient() {
                         </div>
                       </div>
                     </div>
-                  </button>
+                  </div>
 
                   {selected === acct.id && (
                     <div className="mx-2 mb-3 rounded-md border border-slate-700 bg-slate-900/30 p-4">

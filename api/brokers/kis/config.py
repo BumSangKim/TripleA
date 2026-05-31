@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from .errors import KISConfigError
 
-PROJECT_ROOT = Path(__file__).resolve().parents[4]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 REAL_BASE_URL = "https://openapi.koreainvestment.com:9443"
 DEMO_BASE_URL = "https://openapivts.koreainvestment.com:29443"
 

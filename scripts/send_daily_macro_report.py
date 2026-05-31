@@ -12,7 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from api.db import ensure_dashboard_tables, get_conn
+from api.db.connection import get_conn
+from api.db.initialize import initialize_database
 from api.macro_telegram_report import send_daily_macro_report
 
 
@@ -22,7 +23,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true", help="Build the report without sending it.")
     args = parser.parse_args()
 
-    ensure_dashboard_tables()
+    initialize_database()
     with get_conn() as conn:
         result = send_daily_macro_report(conn, force=args.force, dry_run=args.dry_run)
 

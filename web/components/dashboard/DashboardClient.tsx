@@ -126,7 +126,7 @@ function ModeBadge({ data }: { data: DashboardSummary }) {
 export default function DashboardClient({ initialData }: DashboardClientProps) {
   const [data, setData] = useState<DashboardSummary>(initialData ?? MOCK_DATA);
   const [loading, setLoading] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(() => new Date().toLocaleTimeString("ko-KR"));
+  const [lastUpdate, setLastUpdate] = useState("");
   const [apiError, setApiError] = useState(!initialData);
 
   const refresh = useCallback(async () => {
@@ -141,6 +141,11 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // 클라이언트 마운트 후 초기 시간 설정 (SSR hydration mismatch 방지)
+  useEffect(() => {
+    setLastUpdate(new Date().toLocaleTimeString("ko-KR"));
   }, []);
 
   // 5분마다 자동 갱신

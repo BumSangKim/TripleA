@@ -38,11 +38,12 @@ def main() -> None:
         print("[ERROR] --start must be earlier than or equal to --end", file=sys.stderr)
         sys.exit(1)
 
-    from api.db import DB_PATH, ensure_dashboard_tables
+    from api.db.connection import DB_PATH
+    from api.db.initialize import initialize_database
     from api.market_data_collector import collect_for_asset_codes
     from api.market_data_service import get_asset_universe
 
-    ensure_dashboard_tables()
+    initialize_database()
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     try:
