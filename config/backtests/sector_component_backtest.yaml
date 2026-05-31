@@ -1,0 +1,38 @@
+parameter_version: sector_component_backtest_v0
+model_version: sector_component_backtest_model_v0
+enabled_components:
+  - trade
+  - demand
+  - supply
+  - relative_strength
+component_weight_grid:
+  - parameter_set_id: balanced_components
+    weights:
+      trade: 0.25
+      demand: 0.25
+      supply: 0.25
+      relative_strength: 0.25
+  - parameter_set_id: demand_emphasis_review
+    weights:
+      trade: 0.20
+      demand: 0.40
+      supply: 0.20
+      relative_strength: 0.20
+rebalance_frequency: monthly
+decision_lag_days: 1
+transaction_cost_bps: 10.0
+tax_assumption_enabled: false
+stress_periods:
+  - name: covid_shock
+    start_date: "2020-02-19"
+    end_date: "2020-03-23"
+  - name: rate_shock_2022
+    start_date: "2022-01-03"
+    end_date: "2022-10-14"
+required_metrics:
+  - total_return
+  - max_drawdown
+  - volatility
+  - hit_rate
+fallback_policy: REVIEW_REQUIRED
+
