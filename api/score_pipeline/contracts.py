@@ -189,6 +189,98 @@ class MacroRegimeDistribution:
 
 
 @dataclass(frozen=True)
+class ScenarioDistribution:
+    as_of_date: date
+    distribution: dict[str, float]
+    dominant_scenario: str
+    confidence: float
+    data_quality: float
+    reason_codes: list[ReasonCode]
+    warnings: list[DecisionWarning]
+    parameter_version: str
+    model_version: str
+
+    def __post_init__(self) -> None:
+        if self.as_of_date is None:
+            raise PipelineContractError("as_of_date is required")
+        if not self.distribution:
+            raise PipelineContractError("distribution is required")
+        for value in self.distribution.values():
+            _require_ratio(value, "distribution value")
+        _require_text(self.dominant_scenario, "dominant_scenario")
+        _require_ratio(self.confidence, "confidence")
+        _require_ratio(self.data_quality, "data_quality")
+        _require_text(self.parameter_version, "parameter_version")
+        _require_text(self.model_version, "model_version")
+
+
+@dataclass(frozen=True)
+class BottleneckScoreBreakdown:
+    asset_id: str
+    structural_moat: float
+    demand_momentum: float
+    financial_quality: float
+    risk_penalty: float
+    final_score: float
+    confidence: float
+    data_quality: float
+    as_of_date: date
+    parameter_version: str
+    model_version: str
+    reason_codes: list[ReasonCode] = field(default_factory=list)
+    warnings: list[DecisionWarning] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        _require_text(self.asset_id, "asset_id")
+        if self.as_of_date is None:
+            raise PipelineContractError("as_of_date is required")
+        for field_name in (
+            "structural_moat",
+            "demand_momentum",
+            "financial_quality",
+            "risk_penalty",
+            "final_score",
+            "confidence",
+            "data_quality",
+        ):
+            _require_ratio(getattr(self, field_name), field_name)
+        _require_text(self.parameter_version, "parameter_version")
+        _require_text(self.model_version, "model_version")
+
+
+@dataclass(frozen=True)
+class ValuationResult:
+    asset_id: str
+    forward_eps: float | None
+    midcycle_eps: float | None
+    eps_persistence: float | None
+    base_per: float | None
+    target_per: float | None
+    macro_multiplier: float | None
+    fair_value: float | None
+    last_price: float | None
+    fair_value_ratio: float | None
+    confidence: float
+    data_quality: float
+    as_of_date: date
+    parameter_version: str
+    model_version: str
+    reason_codes: list[ReasonCode] = field(default_factory=list)
+    warnings: list[DecisionWarning] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        _require_text(self.asset_id, "asset_id")
+        if self.as_of_date is None:
+            raise PipelineContractError("as_of_date is required")
+        if self.eps_persistence is not None:
+            _require_ratio(self.eps_persistence, "eps_persistence")
+        _require_ratio(self.confidence, "confidence")
+        _require_ratio(self.data_quality, "data_quality")
+        _require_text(self.parameter_version, "parameter_version")
+        _require_text(self.model_version, "model_version")
+
+
+@dataclass(frozen=True)
 class SectorScoreOutput:
     sector_id: str
     total_score: float
