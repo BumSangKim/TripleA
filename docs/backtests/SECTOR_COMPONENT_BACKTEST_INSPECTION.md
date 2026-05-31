@@ -94,3 +94,16 @@ No architecture change is required. The safest path is to add diagnostic sector 
 - Missing or low-quality component data should produce `REVIEW_REQUIRED`, `HOLD`, or validation warnings rather than risk-increasing output.
 - Account, order, broker, execution, and account-constraint paths remain out of scope.
 
+## Implementation Follow-Up
+
+Tasks 002 through 010 added the diagnostic contracts, config parser, leakage-safe snapshot builder, attribution calculator, sensitivity runner, regime/stress breakdown, independent runner, service-level injection point, and E2E fixture validation.
+
+The detailed contract is now maintained in `docs/backtests/SECTOR_COMPONENT_BACKTEST_SPEC.md`; the engine-level pointer is `docs/BACKTEST_ENGINE_SPEC.md`.
+
+Validation commands:
+
+```bash
+pytest tests/backtest/test_sector_component_backtest_e2e.py -q
+pytest tests/unit/features/backtests -q
+pytest tests/architecture -q
+```
