@@ -1,0 +1,205 @@
+version: "capex_cycle_sources_v0.1"
+as_of_date: "2026-05-31"
+scope: "read_only_metric_mapping"
+
+source_groups:
+  fred_alfred:
+    provider: "FRED_ALFRED"
+    enabled_by_default: false
+    optional: false
+    notes: "Macro, rates, FX, and revision-aware ALFRED series identifiers."
+  sec_edgar_companyfacts:
+    provider: "SEC_EDGAR_COMPANYFACTS"
+    enabled_by_default: false
+    optional: false
+    notes: "Company facts and segment disclosures for US-listed issuers."
+  opendart:
+    provider: "OPENDART"
+    enabled_by_default: false
+    optional: false
+    notes: "Korean company filing data for segment and financial metrics."
+  ecos:
+    provider: "ECOS"
+    enabled_by_default: false
+    optional: false
+    notes: "Bank of Korea macro, rates, FX, and trade series identifiers."
+  kis_readonly:
+    provider: "KIS_READONLY_MARKET_DATA"
+    enabled_by_default: false
+    optional: false
+    notes: "Read-only quotation and fundamental lookup boundary only; no order endpoints."
+  optional_licensed_vendor:
+    provider: "LICENSED_VENDOR_PLACEHOLDER"
+    enabled_by_default: false
+    optional: true
+    notes: "Disabled placeholder for licensed CapEx, backlog, and industry datasets."
+
+metrics:
+  ai_capex_yoy:
+    canonical_metric_id: "ai.capex.yoy"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "capital_expenditures_usd"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "ai_infrastructure_capex_estimate"
+    cadence: "quarterly"
+    stale_after_days: 120
+    expected_release_lag_days: 45
+    value_type: "ratio"
+    unit: "year_over_year_change"
+    pit_availability_rule: "Use filing acceptance timestamp or vendor published_at; exclude rows with available_at after decision_time."
+  ai_capex_acceleration:
+    canonical_metric_id: "ai.capex.acceleration"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "capital_expenditures_usd"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "ai_capex_acceleration"
+    cadence: "quarterly"
+    stale_after_days: 120
+    expected_release_lag_days: 45
+    value_type: "ratio"
+    unit: "quarter_over_quarter_delta"
+    pit_availability_rule: "Compute only from observations available at or before decision_time."
+  token_proxy_index:
+    canonical_metric_id: "ai.token_proxy.index"
+    source_priority:
+      - source_group: "optional_licensed_vendor"
+        source_metric: "ai_token_or_compute_usage_proxy"
+      - source_group: "kis_readonly"
+        source_metric: "listed_ai_infrastructure_proxy_quotes"
+    cadence: "daily"
+    stale_after_days: 7
+    expected_release_lag_days: 1
+    value_type: "index"
+    unit: "index_level"
+    pit_availability_rule: "Use market close timestamp or vendor available_at; never forward-fill beyond decision_time."
+  macro_rate_level:
+    canonical_metric_id: "macro.rate.level"
+    source_priority:
+      - source_group: "fred_alfred"
+        source_metric: "FEDFUNDS_OR_TREASURY_RATE"
+      - source_group: "ecos"
+        source_metric: "policy_or_market_rate"
+    cadence: "daily_or_monthly"
+    stale_after_days: 45
+    expected_release_lag_days: 3
+    value_type: "decimal"
+    unit: "percent"
+    pit_availability_rule: "Use official release available_at or first publication date; exclude rows after decision_time."
+  fx_usdkrw:
+    canonical_metric_id: "macro.fx.usdkrw"
+    source_priority:
+      - source_group: "ecos"
+        source_metric: "usdkrw_reference_rate"
+      - source_group: "fred_alfred"
+        source_metric: "dexkoUS"
+    cadence: "daily"
+    stale_after_days: 7
+    expected_release_lag_days: 2
+    value_type: "decimal"
+    unit: "KRW_per_USD"
+    pit_availability_rule: "Use observed publication date; exclude revisions not available at decision_time."
+  company_segment_growth:
+    canonical_metric_id: "company.segment.growth"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "segment_revenue"
+      - source_group: "opendart"
+        source_metric: "segment_revenue"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "segment_growth_estimate"
+    cadence: "quarterly"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "year_over_year_change"
+    pit_availability_rule: "Use filing acceptance timestamp; do not use restatements before their available_at."
+  order_backlog_growth:
+    canonical_metric_id: "company.order_backlog.growth"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "remaining_performance_obligation_or_backlog"
+      - source_group: "opendart"
+        source_metric: "order_backlog_disclosure"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "order_backlog_growth"
+    cadence: "quarterly"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "year_over_year_change"
+    pit_availability_rule: "Use first public disclosure available_at only; exclude rows after decision_time."
+  book_to_bill:
+    canonical_metric_id: "company.book_to_bill"
+    source_priority:
+      - source_group: "optional_licensed_vendor"
+        source_metric: "book_to_bill_ratio"
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "orders_to_revenue_proxy"
+    cadence: "quarterly"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "ratio"
+    pit_availability_rule: "Use only source rows with available_at at or before decision_time."
+  consumables_growth:
+    canonical_metric_id: "company.consumables.growth"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "consumables_or_recurring_revenue"
+      - source_group: "opendart"
+        source_metric: "consumables_or_recurring_revenue"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "consumables_growth"
+    cadence: "quarterly"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "year_over_year_change"
+    pit_availability_rule: "Use filing acceptance timestamp; exclude revisions unavailable at decision_time."
+  profitability_margins:
+    canonical_metric_id: "company.margins"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "gross_margin_ebitda_margin_fcf_margin"
+      - source_group: "opendart"
+        source_metric: "gross_margin_operating_margin"
+      - source_group: "kis_readonly"
+        source_metric: "readonly_fundamental_margin_snapshot"
+    cadence: "quarterly"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "percent"
+    pit_availability_rule: "Use first available_at financial statement date or read-only snapshot time at or before decision_time."
+  valuation_inputs:
+    canonical_metric_id: "company.valuation.inputs"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "eps_and_shares"
+      - source_group: "kis_readonly"
+        source_metric: "readonly_price_and_fundamental_snapshot"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "forward_eps_consensus"
+    cadence: "daily_or_quarterly"
+    stale_after_days: 90
+    expected_release_lag_days: 3
+    value_type: "mixed_numeric"
+    unit: "price_eps_per"
+    pit_availability_rule: "Use quote available_at for price and publication timestamp for estimates at or before decision_time; do not blend unavailable revisions."
+  risk_penalty_inputs:
+    canonical_metric_id: "company.risk_penalty.inputs"
+    source_priority:
+      - source_group: "sec_edgar_companyfacts"
+        source_metric: "funding_risk_inventory_guidance_proxy"
+      - source_group: "opendart"
+        source_metric: "funding_risk_inventory_guidance_proxy"
+      - source_group: "optional_licensed_vendor"
+        source_metric: "risk_penalty_factor_set"
+    cadence: "quarterly_or_event"
+    stale_after_days: 150
+    expected_release_lag_days: 60
+    value_type: "ratio"
+    unit: "normalized_component"
+    pit_availability_rule: "Use only public filing/event timestamps available at decision_time; unknown risk components remain REVIEW_REQUIRED."
