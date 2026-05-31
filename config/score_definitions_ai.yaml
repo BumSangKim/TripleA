@@ -1,0 +1,100 @@
+scores:
+  "feature:ai_capex_cycle":
+    enabled: true
+    score_type: atomic
+    subject_type: sector
+    subject_id: ai_infrastructure
+    source_plugin_id: ai_capex_cycle_plugin
+    source_feature_key: ai_capex_cycle_feature
+    normalization:
+      method: min_max
+      direction: higher_is_better
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 8
+      min_span: 2
+      max_span: 24
+    confidence:
+      default: 0.75
+    data_quality:
+      min_required: 0.70
+    parameter_version: ai_capex_cycle_v0
+    model_version: ai_capex_cycle_score_v0
+
+  "score:bio_capex_bottleneck":
+    enabled: true
+    score_type: composite
+    subject_type: asset
+    subject_id: bio_capex_bottleneck
+    source_plugin_id: bio_capex_bottleneck_plugin
+    source_feature_key: bio_capex_bottleneck_breakdown
+    normalization:
+      method: min_max
+      direction: higher_is_better
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 10
+      min_span: 3
+      max_span: 30
+    confidence:
+      default: 0.70
+    data_quality:
+      min_required: 0.70
+    parameter_version: bio_capex_bottleneck_v0
+    model_version: bio_capex_bottleneck_score_v0
+
+  "score:capex_scenario_distribution":
+    enabled: true
+    score_type: confidence
+    subject_type: portfolio
+    subject_id: capex_cycle
+    source_plugin_id: capex_scenario_engine
+    source_feature_key: scenario_base_probability
+    normalization:
+      method: min_max
+      direction: higher_is_better
+      params:
+        min_value: 0
+        max_value: 1
+    smoothing:
+      method: ema
+      base_span: 6
+      min_span: 2
+      max_span: 18
+    confidence:
+      default: 0.65
+    data_quality:
+      min_required: 0.65
+    parameter_version: capex_scenario_v0
+    model_version: capex_scenario_distribution_v0
+
+  "score:valuation_fair_value_ratio":
+    enabled: true
+    score_type: atomic
+    subject_type: asset
+    subject_id: capex_valuation
+    source_plugin_id: capex_valuation_engine
+    source_feature_key: fair_value_ratio
+    normalization:
+      method: bounded_linear
+      direction: higher_is_better
+      params:
+        lower_bound: 0.50
+        upper_bound: 1.50
+    smoothing:
+      method: ema
+      base_span: 12
+      min_span: 3
+      max_span: 36
+    confidence:
+      default: 0.60
+    data_quality:
+      min_required: 0.70
+    parameter_version: capex_valuation_v0
+    model_version: capex_valuation_score_v0
