@@ -1,0 +1,28 @@
+parameter_version: sector_component_e2e_p1
+model_version: sector_component_e2e_m1
+enabled_components:
+  - trade
+  - demand
+component_weight_grid:
+  - parameter_set_id: balanced
+    weights:
+      trade: 0.5
+      demand: 0.5
+  - parameter_set_id: trade_heavy_review
+    weights:
+      trade: 0.8
+      demand: 0.2
+rebalance_frequency: monthly
+decision_lag_days: 1
+transaction_cost_bps: 0.0
+tax_assumption_enabled: false
+stress_periods:
+  - name: q1_review_window
+    start_date: "2026-01-01"
+    end_date: "2026-03-31"
+required_metrics:
+  - total_return
+  - max_drawdown
+  - volatility
+  - hit_rate
+fallback_policy: REVIEW_REQUIRED

@@ -1,0 +1,122 @@
+[
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "trade",
+    "score": 0.60,
+    "as_of_date": "2026-01-31",
+    "available_at": "2026-01-30T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:trade:2026-01-31:v1",
+    "quality_score": 0.95,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "trade",
+    "score": 0.99,
+    "as_of_date": "2026-01-31",
+    "available_at": "2026-02-02T09:00:00+00:00",
+    "source": "fixture_component_feed_future_revision",
+    "data_snapshot_id": "raw:semiconductor:trade:2026-01-31:future-revision",
+    "quality_score": 0.95,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "demand",
+    "score": 0.40,
+    "as_of_date": "2026-01-31",
+    "available_at": "2026-01-30T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:demand:2026-01-31:v1",
+    "quality_score": 0.90,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "trade",
+    "score": 0.70,
+    "as_of_date": "2026-02-28",
+    "available_at": "2026-02-27T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:trade:2026-02-28:v1",
+    "quality_score": 0.92,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "demand",
+    "score": 0.55,
+    "as_of_date": "2026-02-28",
+    "available_at": "2026-02-27T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:demand:2026-02-28:v1",
+    "quality_score": 0.88,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "trade",
+    "score": 0.80,
+    "as_of_date": "2026-03-31",
+    "available_at": "2026-03-30T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:trade:2026-03-31:v1",
+    "quality_score": 0.90,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "component_name": "demand",
+    "score": 0.65,
+    "as_of_date": "2026-03-31",
+    "available_at": "2026-03-30T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:semiconductor:demand:2026-03-31:v1",
+    "quality_score": 0.89,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "HEALTHCARE",
+    "component_name": "trade",
+    "score": 0.50,
+    "as_of_date": "2026-01-31",
+    "available_at": "2026-01-30T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:healthcare:trade:2026-01-31:v1",
+    "quality_score": 0.82,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "HEALTHCARE",
+    "component_name": "trade",
+    "score": 0.45,
+    "as_of_date": "2026-02-28",
+    "available_at": "2026-02-27T09:00:00+00:00",
+    "source": "fixture_component_feed",
+    "data_snapshot_id": "raw:healthcare:trade:2026-02-28:v1",
+    "quality_score": 0.78,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  },
+  {
+    "sector_id": "HEALTHCARE",
+    "component_name": "trade",
+    "score": 0.35,
+    "as_of_date": "2026-03-31",
+    "available_at": "2026-03-30T09:00:00+00:00",
+    "source": "fixture_component_feed_low_quality",
+    "data_snapshot_id": "raw:healthcare:trade:2026-03-31:low-quality",
+    "quality_score": 0.20,
+    "parameter_version": "sector_component_e2e_p1",
+    "model_version": "sector_component_e2e_m1"
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "as_of_date": "2026-01-31",
+    "forward_return": 0.02,
+    "available_at": "2026-02-01T09:00:00+00:00",
+    "data_snapshot_id": "return:semiconductor:2026-01-31"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "as_of_date": "2026-02-28",
+    "forward_return": -0.01,
+    "available_at": "2026-03-01T09:00:00+00:00",
+    "data_snapshot_id": "return:semiconductor:2026-02-28"
+  },
+  {
+    "sector_id": "SEMICONDUCTOR",
+    "as_of_date": "2026-03-31",
+    "forward_return": 0.03,
+    "available_at": "2026-04-01T09:00:00+00:00",
+    "data_snapshot_id": "return:semiconductor:2026-03-31"
+  },
+  {
+    "sector_id": "HEALTHCARE",
+    "as_of_date": "2026-01-31",
+    "forward_return": 0.01,
+    "available_at": "2026-02-01T09:00:00+00:00",
+    "data_snapshot_id": "return:healthcare:2026-01-31"
+  },
+  {
+    "sector_id": "HEALTHCARE",
+    "as_of_date": "2026-02-28",
+    "forward_return": -0.02,
+    "available_at": "2026-03-01T09:00:00+00:00",
+    "data_snapshot_id": "return:healthcare:2026-02-28"
+  }
+]
