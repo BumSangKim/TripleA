@@ -6,6 +6,7 @@ from fastapi import FastAPI
 def include_feature_routers(app: FastAPI) -> None:
     from api.features.alerts.router import router as alerts_router
     from api.features.calendar.router import router as calendar_router
+    from api.features.capex_cycle.router import router as capex_cycle_router
     from api.features.documents.router import router as documents_router
     from api.features.search.router import router as search_router
     from api.features.data_status.router import router as data_status_router
@@ -25,6 +26,7 @@ def include_feature_routers(app: FastAPI) -> None:
 
     app.include_router(alerts_router)
     app.include_router(calendar_router)
+    app.include_router(capex_cycle_router)
     app.include_router(documents_router)
     app.include_router(search_router)
     app.include_router(data_status_router)
