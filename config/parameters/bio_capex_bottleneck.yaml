@@ -1,0 +1,95 @@
+fallback_policy: REVIEW_REQUIRED
+parameters:
+  - name: final_score_weights
+    value:
+      structural_moat: 0.40
+      demand_momentum: 0.35
+      financial_quality: 0.25
+      risk_penalty_multiplier: 0.35
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Staged Bio/Pharma CapEx bottleneck formula from the implementation spec.
+    approved: false
+    rollback_condition: Drawdown worsens, warning rate spikes, or data quality failures exceed review limits.
+    affected_modules: [score_pipeline, capex_cycle, backtest]
+  - name: structural_moat_weights
+    value:
+      switching_cost: 0.20
+      regulatory_lock_in: 0.15
+      recurring_revenue: 0.20
+      installed_base: 0.15
+      customer_diversification: 0.15
+      workflow_penetration: 0.15
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Staged structural moat inputs for infrastructure bottleneck scoring.
+    approved: false
+    rollback_condition: Structural moat warnings spike or backtest review shows unstable component behavior.
+    affected_modules: [score_pipeline, capex_cycle]
+  - name: demand_momentum_weights
+    value:
+      segment_growth: 0.20
+      order_growth: 0.20
+      backlog_growth: 0.20
+      book_to_bill: 0.15
+      consumables_growth: 0.15
+      inventory_normalization: 0.10
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Staged demand momentum inputs for infrastructure bottleneck scoring.
+    approved: false
+    rollback_condition: Demand momentum warnings spike or backtest review shows unstable component behavior.
+    affected_modules: [score_pipeline, capex_cycle]
+  - name: financial_quality_weights
+    value:
+      gross_margin: 0.18
+      ebitda_margin: 0.18
+      fcf_margin: 0.18
+      roic: 0.18
+      balance_sheet: 0.14
+      margin_stability: 0.14
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Staged financial quality inputs for infrastructure bottleneck scoring.
+    approved: false
+    rollback_condition: Financial quality warnings spike or backtest review shows unstable component behavior.
+    affected_modules: [score_pipeline, capex_cycle, valuation]
+  - name: risk_penalty_weights
+    value:
+      one_off_demand: 0.12
+      customer_inventory_risk: 0.12
+      order_deceleration: 0.14
+      valuation_overheat: 0.14
+      overcapacity: 0.12
+      funding_risk: 0.12
+      guidance_cut: 0.12
+      geopolitical_risk: 0.12
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Staged risk penalty inputs for infrastructure bottleneck scoring.
+    approved: false
+    rollback_condition: Risk penalty warnings spike or backtest review shows unstable component behavior.
+    affected_modules: [score_pipeline, capex_cycle, risk]
+  - name: missing_data_behavior
+    value:
+      fallback_action: REVIEW_REQUIRED
+      publish_score_when_required_group_missing: false
+      preserve_null_inputs: true
+    version: bio_capex_bottleneck_v0
+    valid_from: "2021-01-01"
+    valid_to: null
+    source: config/parameters/bio_capex_bottleneck.yaml
+    reason: Conservative behavior for missing Bio/Pharma CapEx bottleneck inputs.
+    approved: false
+    rollback_condition: Missing data rate spikes or audit reports show insufficient input lineage.
+    affected_modules: [data_quality, score_pipeline, capex_cycle]
