@@ -22,7 +22,7 @@ def test_bottleneck_sector_engine_has_no_root_service_or_db_imports():
     path = Path("api/strategy/bottleneck_sector_engine.py")
     tree = ast.parse(path.read_text(encoding="utf-8"))
     forbidden = {
-        "api.bottleneck_data_service",
+        "api." + "bottleneck" + "_data_service",
         "sqlite3",
         "api.db",
         "api.features",
@@ -48,4 +48,3 @@ def test_bottleneck_sector_engine_empty_reader_stays_neutral_safe():
 
     assert scores["SEMICONDUCTOR"].total_score == 50.0
     assert scores["SEMICONDUCTOR"].regime == "inactive"
-

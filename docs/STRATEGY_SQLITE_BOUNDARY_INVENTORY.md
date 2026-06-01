@@ -11,8 +11,8 @@ empty.
 | Former coupling | Current owner | Current contract |
 |---|---|---|
 | Macro snapshot DB read | `api/data/macro_snapshot_reader.py` via `api/data/strategy_data_readers.py` | `MacroSnapshotReader` |
-| Bottleneck snapshot DB/root service read | `api/data/strategy_data_readers.py` | `BottleneckSnapshotReader` |
-| Sector asset mapping root service read | `api/data/strategy_data_readers.py` | `SectorAssetMappingReader` |
+| Bottleneck snapshot DB read | `api/data/bottleneck_snapshot_reader.py` via `api/data/strategy_data_readers.py` | `BottleneckSnapshotReader` |
+| Sector asset mapping DB read | `api/data/bottleneck_snapshot_reader.py` via `api/data/strategy_data_readers.py` | `SectorAssetMappingReader` |
 | Common sector price history SQLite read | `api/data/strategy_data_readers.py` | `PriceHistoryReader` |
 | Strategy decision log SQLite write | `api/reporting/strategy_decision_log_repository.py` | `StrategyDecisionLogWriter` |
 | Score run/value SQLite persistence | `api/score_pipeline/score_store.py` | `StrategyScoreStore` |
@@ -23,8 +23,8 @@ empty.
   readers or repositories.
 - Application composition points, such as backtest execution, explicitly inject
   SQLite-backed readers/writers.
-- Remaining root data services are legacy/data-layer implementation details and
-  are not imported by `api/strategy/**`.
+- Remaining root data files are separate owner decisions and are not imported
+  by `api/strategy/**`.
 - This inventory is not authorization for new strategy-layer DB access.
 
 ## Validation

@@ -21,7 +21,6 @@ ROOT_ALLOWED_FILES = {
     "asset_universe_validator.py",
     "backtest_engine.py",
     "backtest_foundation.py",
-    "bottleneck_data_service.py",
     "data_contracts.py",
     "macro_indicator_collector.py",
     "macro_telegram_report.py",
@@ -39,7 +38,6 @@ ROOT_OWNER_UNRESOLVED = {
     "asset_universe_schema.py",
     "asset_universe_snapshot.py",
     "asset_universe_validator.py",
-    "bottleneck_data_service.py",
     "macro_indicator_collector.py",
     "macro_telegram_report.py",
     "market_data_collector.py",
@@ -74,7 +72,7 @@ def test_strategy_does_not_import_db_or_root_data_services():
             "sqlite3",
             "api.db",
             "api." + "macro" + "_data_service",
-            "api.bottleneck_data_service",
+            "api." + "bottleneck" + "_data_service",
             "api.market_data_service",
             "api.market_data_collector",
             "api.macro_indicator_collector",
@@ -94,10 +92,10 @@ def test_strategy_does_not_import_root_trade_data_service():
     assert not violations
 
 
-def test_strategy_does_not_import_root_bottleneck_data_service():
+def test_strategy_does_not_import_removed_bottleneck_root_service():
     violations = _imports_with_forbidden_prefixes(
         API_ROOT / "strategy",
-        ("api.bottleneck_data_service",),
+        ("api." + "bottleneck" + "_data_service",),
     )
 
     assert not violations

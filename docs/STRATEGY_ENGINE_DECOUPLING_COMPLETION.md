@@ -20,8 +20,8 @@ Status: complete as of 2026-06-01.
 | Concern | Strategy port | Concrete owner |
 |---|---|---|
 | Macro snapshot input | `MacroSnapshotReader` | `api/data/macro_snapshot_reader.py` via `api/data/strategy_data_readers.py` |
-| Bottleneck snapshot input | `BottleneckSnapshotReader` | `api/data/strategy_data_readers.py` |
-| Sector asset mappings | `SectorAssetMappingReader` | `api/data/strategy_data_readers.py` |
+| Bottleneck snapshot input | `BottleneckSnapshotReader` | `api/data/bottleneck_snapshot_reader.py` via `api/data/strategy_data_readers.py` |
+| Sector asset mappings | `SectorAssetMappingReader` | `api/data/bottleneck_snapshot_reader.py` via `api/data/strategy_data_readers.py` |
 | Price history | `PriceHistoryReader` | `api/data/strategy_data_readers.py` |
 | Decision log writes | `StrategyDecisionLogWriter` | `api/reporting/strategy_decision_log_repository.py` |
 | Score persistence | `StrategyScoreStore` | `api/score_pipeline/score_store.py` |
@@ -45,8 +45,8 @@ review-only/no-execution output shape.
 
 ## Remaining Risks
 
-- Remaining root data service files are legacy/data-layer implementation
-  details and should not be imported by strategy.
+- Macro and bottleneck root data services have been replaced by data-layer
+  owners; remaining root data files are separate owner decisions.
 - Feature repositories still have known architecture xfails for broader
   repository/strategy ownership cleanup.
 - This work did not add live execution, broker order submission, real-account

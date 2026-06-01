@@ -18,7 +18,7 @@ itself.
 | candidate_path | candidate_type | current_references | required_tests_before_removal | removal_task_id | stop_condition |
 |---|---|---|---|---|---|
 | root macro snapshot service | `removed` | Replaced by `api/data/macro_snapshot_reader.py`; behavior covered by `tests/data/test_macro_snapshot_reader.py` | Keep behavior-preserving tests and import guardrails passing | `003`, `004` | Public API route or strategy engine requires the removed root path directly |
-| `api/bottleneck_data_service.py` | `needs_owner_move` | `api/data/strategy_data_readers.py`; `tests/test_trade_bottleneck_data_services.py`; architecture allowlist; historical docs | Move bottleneck snapshot and sector mapping behavior to data owner, preserve release-date filtering and mapping order, update imports, run architecture/pipeline/unit tests | `005`, `006` | Public API route or strategy engine requires this root path directly |
+| root bottleneck snapshot and mapping service | `removed` | Replaced by `api/data/bottleneck_snapshot_reader.py`; behavior covered by `tests/data/test_bottleneck_snapshot_reader.py` | Keep behavior-preserving tests and import guardrails passing | `005`, `006` | Public API route or strategy engine requires the removed root path directly |
 | `docs/refactor/current_structure_inventory.md` | `docs_only` | Historical refactor note and duplicated inventory context | Confirm it is not referenced as canonical current status; remove or trim only in docs cleanup task | `007` | It is referenced as the only source for current architecture state |
 | `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md` | `active_keep` | Referenced by `DevelopPlans/STATUS.md`; records root owner inventory and unresolved owners | Keep as active refactor inventory unless a later task updates the canonical inventory | `008`, `010` | Removing it would erase the current owner-unresolved baseline |
 | `docs/STRATEGY_SQLITE_BOUNDARY_INVENTORY.md` | `active_keep` | Referenced by `DevelopPlans/STATUS.md`; documents completed strategy SQLite/root data-service extraction boundary | Keep as boundary history/current guardrail reference; update only if task requires stale path cleanup | `010` | It starts competing with `DevelopPlans/STATUS.md` as task status |
@@ -48,7 +48,7 @@ Macro root references currently appear in:
 Bottleneck root references currently appear in:
 
 - `api/data/strategy_data_readers.py`
-- `tests/test_trade_bottleneck_data_services.py`
+- `tests/test_trade_bottleneck_data_services.py` now imports the data-layer owner
 - `tests/strategy/test_bottleneck_sector_engine_no_root_service.py`
 - `tests/architecture/test_modular_monolith_import_boundaries.py`
 - `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
@@ -60,7 +60,7 @@ Bottleneck root references currently appear in:
 2. Move macro snapshot read behavior into the data owner.
 3. Root macro snapshot service removal is complete after behavior-preserving tests pass.
 4. Move bottleneck snapshot and sector mapping read behavior into the data owner.
-5. Delete `api/bottleneck_data_service.py` only after behavior-preserving tests pass.
+5. Root bottleneck snapshot and mapping service removal is complete after behavior-preserving tests pass.
 6. Remove or scope stale historical docs and shrink root allowlists.
 7. Add full input-to-output regression coverage and update status.
 
