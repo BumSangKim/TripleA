@@ -52,6 +52,26 @@
 - `api/db.py` → 연결 팩토리 역할만 허용
 - feature service는 `api/db.py`를 직접 import하지 않는다
 
+### pipeline manifest 규칙
+- `config/pipelines/investment_decision.yaml` declares the review-only
+  investment decision pipeline.
+- `api/score_pipeline/pipeline_manifest.py` loads and validates the manifest.
+- `auto_execution_allowed` must remain `false`.
+- Conservative fallback actions are limited to `NO_ACTION`, `HOLD`,
+  `REVIEW_REQUIRED`, and `RISK_REDUCE_ONLY`.
+- `hard_constraint_filter` must precede `order_candidate_generation`.
+- `order_candidate_generation` is manual-review candidate generation only; it
+  is not broker execution.
+
+### root orphan 처리 원칙
+- Root-level `api/*.py` files are inventory-controlled by
+  `tests/architecture/test_modular_monolith_import_boundaries.py`.
+- Owner-unresolved root files must stay allowlisted until an explicit relocation
+  task assigns an owner.
+- Relocations must avoid shims unless a task explicitly allows compatibility
+  adapters.
+- Strategy files must not import feature modules or root trade-data services.
+
 ---
 
 ## 3. DomainError 계약
@@ -111,6 +131,13 @@ orders feature는 투자 판단(strategy) 로직을 직접 호출하지 않는�
 
 - `tests/architecture/test_import_contracts.py` — import 계약 위반 검출
 - `tests/architecture/test_feature_contracts.py` — feature 구조 계약 위반 검출
+- `tests/architecture/test_modular_monolith_import_boundaries.py` — modular
+  monolith boundary, root orphan, and selected relocation guardrails
+- `tests/architecture/test_pipeline_manifest_file.py` — manifest file contract
+- `tests/architecture/test_pipeline_manifest_contract.py` — manifest loader and
+  validation contract
+- `tests/architecture/test_strategy_sqlite_baseline.py` — current strategy
+  sqlite baseline guard
 - `.importlinter` 또는 `pyproject.toml [tool.importlinter]` — 자동 lint 검증
 
 계약 위반이 발견되면 해당 파일의 리팩토링을 우선 진행한다.

@@ -2,11 +2,50 @@
 
 ## Current Phase
 
-Phases 5-13 pre-execution score-flow foundation completed
+Phases 5-13 pre-execution score-flow foundation completed; modular monolith refactor checkpoint completed
 
 ## Current Task
 
 None — Phases 5-13 were implemented as pre-execution, test-covered foundations. Live execution and broker order submission remain out of scope.
+
+## Modular Monolith Refactor Checkpoint
+
+- Status: complete.
+- Scope: architecture inventory, file-based pipeline manifest, manifest loader/validator, architecture guardrails, deterministic input-to-output validation fixtures, trade-data owner relocation, score-store persistence relocation, and documentation/status normalization.
+- Completed tasks:
+  - `001_inspect_current_structure_and_boundaries.md` (`1bb0e75`)
+  - `002_add_file_based_pipeline_manifest.md` (`4c54083`)
+  - `003_add_pipeline_manifest_loader_and_validator.md` (`4263fdd`)
+  - `004_add_pipeline_manifest_architecture_tests.md` (`e0170aa`)
+  - `005_tighten_modular_monolith_import_contract_tests.md` (`9a7a219`)
+  - `006_add_input_to_output_e2e_fixture.md` (`6f69380`)
+  - `007_add_data_collection_to_score_e2e_tests.md` (`add4fec`)
+  - `008_add_score_to_decision_output_e2e_tests.md` (`ce22a15`)
+  - `009A_lite_invert_bottleneck_trade_snapshot_dependency.md` (`2f914da`)
+  - `009B_strategy_sqlite_boundary_inventory_and_plan.md` (`6d1836d`)
+  - `009_relocate_orphan_trade_data_service.md` (`cded174`)
+  - `010_isolate_strategy_score_persistence.md` (`aa8a261`)
+  - `011_update_docs_status_and_commit_index.md` (current task)
+- Major files:
+  - `config/pipelines/investment_decision.yaml`
+  - `api/score_pipeline/pipeline_manifest.py`
+  - `api/score_pipeline/score_store.py`
+  - `api/features/market_data/trade_data_service.py`
+  - `api/domain/trade_data.py`
+  - `api/strategy/trade_data_ports.py`
+  - `docs/PIPELINE_MANIFEST_CONTRACT.md`
+  - `docs/ARCHITECTURE_CONTRACT.md`
+  - `docs/STRATEGY_SQLITE_BOUNDARY_INVENTORY.md`
+  - `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
+- Validation:
+  - `.venv/bin/python -m pytest tests/architecture -q` — passed, 41 passed and 2 xfailed.
+  - `.venv/bin/python -m pytest tests/integration/pipeline -q` — passed, 15 passed.
+  - `.venv/bin/python -m pytest tests/unit/score_pipeline -q` — passed, 10 passed.
+- Remaining TODO / REVIEW_REQUIRED:
+  - Existing strategy sqlite usage remains only in baseline-listed files and requires explicit future port/repository tasks.
+  - Root owner-unresolved files remain inventory-controlled; do not relocate without task-specific approval.
+  - The architecture suite still has two expected xfails for known follow-up boundary work.
+- Next recommended task: decide whether to continue strategy sqlite boundary extraction or return to the next approved product/feature task.
 
 ## Completed Tasks
 
@@ -151,12 +190,14 @@ None
 ## Last Test Command
 
 ```bash
-.venv/bin/python -m pytest -q && npm run lint && npm run build
+.venv/bin/python -m pytest tests/architecture -q
+.venv/bin/python -m pytest tests/integration/pipeline -q
+.venv/bin/python -m pytest tests/unit/score_pipeline -q
 ```
 
 ## Last Test Result
 
-Passed — 515 passed, 2 skipped in 4.78s; web lint passed; web build passed. `npm test` is not configured in `web/package.json`.
+Passed — architecture 41 passed and 2 xfailed; pipeline integration 15 passed; score-pipeline unit 10 passed.
 
 ## Intraday Surge/Drop Monitoring
 

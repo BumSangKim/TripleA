@@ -4,6 +4,11 @@ Task: `001_inspect_current_structure_and_boundaries.md`
 Phase: modular-monolith-refactor  
 Scope: inspection-only, no code/config/test changes
 
+Updated through Task 011 after the manifest, trade-data relocation, and
+score-store relocation tasks. The original discovery counts below are retained
+as historical inspection evidence; source file inventories are normalized where
+later tasks changed ownership.
+
 ## Preconditions Read
 
 - `AGENTS.md`
@@ -56,7 +61,6 @@ api/market_data_service.py
 api/observation_universe.py
 api/strategy_config.py
 api/telegram_service.py
-api/trade_data_service.py
 ```
 
 `api/main.py` and `api/__init__.py` are entry/package files, not orphan candidates.
@@ -100,12 +104,14 @@ api/score_pipeline/data_quality.py
 api/score_pipeline/engines.py
 api/score_pipeline/features.py
 api/score_pipeline/parameters.py
+api/score_pipeline/pipeline_manifest.py
 api/score_pipeline/plugins/ai_capex_cycle.py
 api/score_pipeline/plugins/bio_capex_bottleneck.py
 api/score_pipeline/plugins/capex_common.py
 api/score_pipeline/plugins/capex_scenario.py
 api/score_pipeline/plugins/valuation_engine.py
 api/score_pipeline/scoring.py
+api/score_pipeline/score_store.py
 ```
 
 Generated `api/score_pipeline/__pycache__/` files are present locally.
@@ -145,6 +151,7 @@ api/strategy/sector_allocation_pressure.py
 api/strategy/sector_score_aggregator.py
 api/strategy/sector_tilt_engine.py
 api/strategy/state_features.py
+api/strategy/trade_data_ports.py
 api/strategy/triplea_allocator.py
 api/strategy/types.py
 ```
@@ -175,22 +182,25 @@ These are root-level source files outside the declared feature, strategy, score_
 | `api/observation_universe.py` | shared contract/config | Used for score-flow observation taxonomy; owner should remain explicit. |
 | `api/strategy_config.py` | shared config loader | Shared config loading for strategy; moving requires broad import audit. |
 | `api/telegram_service.py` | `owner_unresolved` | Notification service; possible alerts owner. |
-| `api/trade_data_service.py` | `owner_unresolved` | Root trade snapshot service; task pack identifies this as a later relocation candidate. |
 
 No owner is finalized here. Files marked `owner_unresolved` require a later task or explicit architecture decision.
 
-## Strategy Internal Persistence Candidates
+## Strategy SQLite / DB Coupling Candidates
 
 | File | Evidence | Classification |
 |---|---|---|
 | `api/strategy/score_layer.py` | imports `sqlite3`; contains storage class creating `score_runs` and `score_values` tables | persistence candidate |
 | `api/strategy/decision_logger.py` | imports `sqlite3`; writes `strategy_decision_logs` | persistence candidate |
 | `api/strategy/macro_engine.py` | imports `sqlite3`; reads macro data through a connection | DB-coupled strategy read path, not classified as persistence |
-| `api/strategy/bottleneck_sector_engine.py` | imports `sqlite3`; imports root data services | DB/root-service-coupled strategy read path |
 | `api/strategy/common_sector_scoring_engine.py` | imports `sqlite3`; reads price rows | DB-coupled strategy read path |
 | `api/strategy/triplea_allocator.py` | imports `sqlite3`; imports root bottleneck mappings | DB/root-service-coupled orchestration path |
 
-This task does not move or rewrite these files.
+Resolved during this batch:
+
+- Root trade snapshot service moved to `api/features/market_data/trade_data_service.py`.
+- Bottleneck sector engine no longer imports `sqlite3` or the root trade-data
+  service; it consumes `TradeSnapshot` / `TradeSnapshotReader`.
+- Legacy score-store helper moved to `api/score_pipeline/score_store.py`.
 
 ## Existing Import Contract Enforcement
 
@@ -220,16 +230,19 @@ This task does not move or rewrite these files.
 - capex source files do not reference live execution symbols;
 - registered capex routes remain read-only GET/HEAD routes.
 
-## Gaps Not Yet Enforced
+## Remaining Gaps
 
-- No file-based investment pipeline manifest exists yet.
-- No manifest loader/validator or manifest architecture tests exist yet.
-- Root-level `api/*.py` ownership is not enforced by tests.
-- Strategy persistence isolation is not fully enforced; sqlite usage inside `api/strategy` is visible in multiple files.
-- Service-layer tests do not appear to detect every raw SQL string pattern; they focus on `sqlite3`, `get_conn`, FastAPI, and HTTPException.
-- Router/repository import checks are useful but narrower than a full module-boundary graph.
-- Input-to-output evidence from data collection through score and decision output is not yet fixed as a dedicated modular-monolith fixture.
-- `api/features/intraday` does not match the complete router/service/repository/ports/schemas/models shape, but this inventory does not decide whether that is intentional.
+- Strategy sqlite usage is still visible in the baseline-listed files and should
+  be separated only by explicit future tasks.
+- Root-level `api/*.py` ownership is now allowlist-enforced but several files
+  remain `owner_unresolved`.
+- Service-layer tests do not detect every raw SQL string pattern; they focus on
+  `sqlite3`, `get_conn`, FastAPI, and HTTPException.
+- Router/repository import checks are useful but narrower than a full
+  module-boundary graph.
+- `api/features/intraday` does not match the complete
+  router/service/repository/ports/schemas/models shape, but this inventory does
+  not decide whether that is intentional.
 
 ## Do Not Touch Without Explicit Approval
 
@@ -254,4 +267,5 @@ Results:
 - `tests/architecture`: 17 passed.
 - `tests/unit tests/integration`: 111 passed, 2 skipped.
 
-No code, config, or test files were changed for this task.
+Later tasks added manifest, architecture, and input-to-output validation tests.
+See `docs/PIPELINE_MANIFEST_CONTRACT.md` for the current command set.
