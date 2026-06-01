@@ -15,9 +15,15 @@ if `docs/` is removed or rebuilt.
 - `MASTER_DEVELOPMENT_GUIDE.md`: canonical development principles.
 - `AGENTS.md`: concise operational instructions for coding agents.
 - `DevelopPlans/STATUS.md`: canonical progress and task status when present.
+- `DevelopPlans/layered_score_flow_feedback/target_architecture_contract.md`:
+  current layered score-flow feedback boundary when working in that area.
 - Task prompt files: executable work units only; they must not override this guide.
 
 Do not depend on `docs/` as the source of truth for development rules.
+
+Do not recreate `docs/` as a parallel guide tree unless the user explicitly
+approves that repository policy change. New planning, status, inventory, and
+handoff material belongs under `DevelopPlans/` unless a task says otherwise.
 
 ## Non-Negotiable Investment System Rules
 
@@ -122,6 +128,50 @@ Architecture changes must:
 
 If the required architecture direction is unclear, stop and report the blocker
 instead of inventing a structure.
+
+### 5. Layered Score-Flow Feedback Boundary
+
+The current score-flow feedback architecture is contract-first and
+non-activating by default.
+
+Allowed structure:
+
+```text
+Data
+-> Feature
+-> Score
+-> Macro
+-> Sector/Asset
+-> Risk
+-> Allocation
+-> Rebalancing
+-> Constraint
+-> Order Candidate
+-> Audit
+```
+
+Lower layers may emit explicit feedback artifacts, but they must not directly
+call upper-layer implementations. Use domain or score-pipeline contracts such as
+`FeedbackSignal`, `DecisionStateSnapshot`, `FeedbackCollector`,
+`MacroDistributionAdapter`, and `DecisionOrchestrator` for review-only
+traceability.
+
+The layered feedback contracts and orchestrator skeleton are not production
+activation approval. Any task that wires them into allocation, rebalancing,
+order candidate generation, API defaults, backtest defaults, or UI behavior
+must have explicit owner confirmation and backtest or walk-forward validation
+before implementation.
+
+Keep the following boundaries:
+
+- Domain contracts must not import FastAPI, SQLite, `api.db`, or `api.features`.
+- Score-pipeline orchestrators must not import concrete strategy allocators,
+  feature repositories, broker/KIS modules, or execution paths.
+- Macro distribution adapter work may characterize existing macro behavior, but
+  must not change macro thresholds, bucket shifts, allocation defaults, or
+  rebalancing behavior.
+- Feedback may recommend only conservative/review states:
+  `NO_ACTION`, `HOLD`, `REVIEW_REQUIRED`, or `RISK_REDUCE_ONLY`.
 
 ## Forbidden Shortcuts
 

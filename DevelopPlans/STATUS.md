@@ -23,6 +23,12 @@ Area-specific references:
 - Post-legacy gap inventory: `DevelopPlans/post_legacy_gap_resolution/current_gap_inventory.md`
 - Root owner decision inventory: `DevelopPlans/post_legacy_gap_resolution/root_owner_decision_inventory.md`
 - Score-flow gap plan: `DevelopPlans/post_legacy_gap_resolution/score_flow_gap_plan.md`
+- Layered score-flow feedback inventory:
+  `DevelopPlans/layered_score_flow_feedback/current_layered_feedback_inventory.md`
+- Layered score-flow feedback target contract:
+  `DevelopPlans/layered_score_flow_feedback/target_architecture_contract.md`
+- Layered score-flow feedback completion handoff:
+  `DevelopPlans/layered_score_flow_feedback/completion.md`
 
 ## Active Architecture Baseline
 
