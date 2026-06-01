@@ -75,8 +75,8 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function canSyncKisProvider(mode: TradingMode): boolean {
-  return mode === "paper" || mode === "live";
+function canSyncProvider(modeInfo: ModeInfo | null): boolean {
+  return modeInfo !== null;
 }
 
 function parseMoney(value: string): number {
@@ -140,6 +140,7 @@ export default function AccountsPageClient() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const canWrite = modeCanWrite(mode, modeInfo);
+  const canSync = canSyncProvider(modeInfo);
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selected) ?? null,
     [accounts, selected],
@@ -332,8 +333,8 @@ export default function AccountsPageClient() {
   };
 
   const handleProviderSync = async () => {
-    if (!canSyncKisProvider(mode)) {
-      setProviderMsg({ type: "err", text: "현재는 Paper/Live 모드의 KIS 계좌 동기화만 지원합니다." });
+    if (!canSync) {
+      setProviderMsg({ type: "err", text: "현재 모드 정보를 불러온 뒤 다시 시도하세요." });
       return;
     }
 
@@ -344,7 +345,7 @@ export default function AccountsPageClient() {
       const accountLabel = result.accountMasked ? ` (${result.accountMasked})` : "";
       setProviderMsg({
         type: "ok",
-        text: `KIS 동기화 완료${accountLabel}: ${result.syncedPositions}개 종목, 총 ${formatKRW(result.totalValue)}`,
+        text: `${result.provider} 동기화 완료${accountLabel}: ${result.syncedPositions}개 종목, 총 ${formatKRW(result.totalValue)}`,
       });
       await Promise.all([fetchAccounts(), fetchRebalanceResults()]);
       if (result.accountId) {
@@ -354,7 +355,7 @@ export default function AccountsPageClient() {
     } catch (error) {
       setProviderMsg({
         type: "err",
-        text: `KIS 동기화 실패: ${getErrorMessage(error)}`,
+        text: `계좌 동기화 실패: ${getErrorMessage(error)}`,
       });
     } finally {
       setProviderSyncing(false);
@@ -397,10 +398,10 @@ export default function AccountsPageClient() {
           <button
             type="button"
             onClick={handleProviderSync}
-            disabled={providerSyncing || !canSyncKisProvider(mode)}
+            disabled={providerSyncing || !canSync}
             className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
           >
-            {providerSyncing ? "동기화 중..." : "KIS 동기화"}
+            {providerSyncing ? "동기화 중..." : "계좌 동기화"}
           </button>
           <label className={cn(
             "cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors",

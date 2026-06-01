@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 
+from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.strategy.triplea_allocator import TripleAAllocator
 
 
@@ -54,7 +55,11 @@ def test_triplea_allocator_applies_active_bottleneck_sector_tilt(tmp_path, monke
         """
     )
 
-    decision = TripleAAllocator(conn, risk_profile="balanced").allocate(date(2024, 3, 10))
+    decision = TripleAAllocator(
+        conn,
+        risk_profile="balanced",
+        trade_snapshot_reader=SqliteTradeSnapshotReader(conn),
+    ).allocate(date(2024, 3, 10))
 
     assert decision.final_weights["SMH"] > 0
     assert decision.bottleneck_scores["SEMICONDUCTOR"] >= 70

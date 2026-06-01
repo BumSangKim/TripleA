@@ -13,6 +13,7 @@ from .market_data_service import (
     get_price_on_or_before,
     validate_market_data_coverage,
 )
+from .features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from .strategy.triplea_allocator import TripleAAllocator
 from .strategy.types import AllocationDecision, AllocationTarget
 
@@ -109,6 +110,7 @@ class BacktestEngine:
             risk_profile=config.risk_profile,
             universe_id=config.universe_id,
             strategy_mode=config.strategy_mode,
+            trade_snapshot_reader=SqliteTradeSnapshotReader(self.conn),
         )
         asset_codes = allocator.asset_codes()
         coverage = validate_market_data_coverage(

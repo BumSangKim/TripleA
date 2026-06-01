@@ -89,9 +89,14 @@ class TestModes:
         )
         assert res.status_code == 403
 
-    def test_unimplemented_provider_sync_returns_501(self, client):
+    def test_read_only_provider_sync_returns_noop_success(self, client):
         res = client.post("/api/providers/mock/sync-accounts")
-        assert res.status_code == 501
+        assert res.status_code == 200
+        data = res.json()
+        assert data["ok"] is True
+        assert data["mode"] == "mock"
+        assert data["provider"] == "MockProvider"
+        assert "No external account sync" in data["message"]
 
     def test_provider_sync_config_error_is_structured(self, client, monkeypatch):
         import api.providers.router as provider_router_module

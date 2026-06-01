@@ -47,6 +47,32 @@ None — Phases 5-13 were implemented as pre-execution, test-covered foundations
   - The architecture suite still has two expected xfails for known follow-up boundary work.
 - Next recommended task: decide whether to continue strategy sqlite boundary extraction or return to the next approved product/feature task.
 
+## UI Sync Verification Checkpoint
+
+- Status: complete.
+- Scope: current web UI/API sync, safe UI action verification, and stale legacy document cleanup.
+- Completed:
+  - Verified all main UI routes render without browser console warnings/errors:
+    `/`, `/macro`, `/portfolio`, `/accounts`, `/backtests`, `/orders`,
+    `/targets`, `/reports`, `/documents`, `/calendar`, `/alerts`, `/settings`.
+  - Verified read-only/mock-safe API synchronization path for provider account sync.
+  - Verified UI buttons for backtest execution, sector component validation,
+    order draft generation, and mock account sync.
+  - Normalized historical refactor docs so they point to canonical status and
+    current inventory instead of competing with them.
+- Safety:
+  - No live order submission was added.
+  - No broker/KIS order execution behavior was changed.
+  - Mock/Test/Backtest provider sync is a local read-only no-op result.
+- Validation:
+  - `npm run lint` — passed.
+  - `npm run build` — passed.
+  - `.venv/bin/python -m pytest -q` — passed, 1192 passed, 2 skipped, and 2 xfailed.
+  - `.venv/bin/python -m pytest tests/providers/test_mock.py tests/test_api_endpoints.py::TestModes -q` — passed, 9 passed.
+  - `.venv/bin/python -m pytest tests/architecture tests/features tests/test_api_endpoints.py tests/test_api_accounts.py tests/test_api_backtests.py tests/test_api_orders.py tests/test_api_rebalancing.py tests/test_api_market_data.py tests/test_api_strategy_metadata.py -q` — passed, 344 passed and 2 xfailed.
+- Next recommended task: continue explicit strategy sqlite boundary extraction
+  only if approved, otherwise proceed with the next product task.
+
 ## Completed Tasks
 
 - Score Pipeline Architecture implemented:
