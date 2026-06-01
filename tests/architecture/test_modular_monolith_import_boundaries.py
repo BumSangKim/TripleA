@@ -10,6 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 API_ROOT = ROOT / "api"
 FEATURES_ROOT = API_ROOT / "features"
+ROOT_OWNER_DECISION_INVENTORY = ROOT / "DevelopPlans" / "post_legacy_gap_resolution" / "root_owner_decision_inventory.md"
 
 ROOT_ALLOWED_FILES = {
     "__init__.py",
@@ -210,6 +211,18 @@ def test_api_root_owner_unresolved_files_are_explicit_todo():
 
     if existing_unresolved:
         pytest.xfail("root owner unresolved files remain documented TODOs: " + ", ".join(existing_unresolved))
+
+
+def test_api_root_owner_unresolved_files_are_documented_in_decision_inventory():
+    inventory = ROOT_OWNER_DECISION_INVENTORY.read_text(encoding="utf-8")
+    existing_unresolved = sorted(path for path in ROOT_OWNER_UNRESOLVED if (API_ROOT / path).exists())
+    missing = [
+        path
+        for path in existing_unresolved
+        if f"`api/{path}`" not in inventory
+    ]
+
+    assert not missing
 
 
 class ImportItem:
