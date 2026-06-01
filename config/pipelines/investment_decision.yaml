@@ -95,33 +95,36 @@ stages:
       - current_positions
     required_outputs:
       - rebalance_intensity
-      - rebalance_candidates
+      - rebalance_plan
     required_validations:
       - intensity_present
       - turnover_checked
   - id: hard_constraint_filter
     layer: account_constraint_engine
     required_inputs:
-      - rebalance_candidates
+      - rebalance_plan
       - account_constraints
     required_outputs:
-      - validated_candidates
+      - validated_rebalance_plan
     required_validations:
       - hard_constraints_blocking
       - no_softening_of_constraints
-  - id: order_candidate_generation
-    layer: execution_engine
+  - id: simulation_output_generation
+    layer: output_contract
     required_inputs:
-      - validated_candidates
+      - validated_rebalance_plan
     required_outputs:
-      - order_candidates
+      - decision_snapshot
+      - rebalance_plan
     required_validations:
-      - manual_review_required
+      - simulation_only_output
+      - no_order_candidate_output
       - no_live_execution_by_default
   - id: audit_report
     layer: reporting_audit
     required_inputs:
-      - order_candidates
+      - decision_snapshot
+      - rebalance_plan
       - all_intermediate_outputs
     required_outputs:
       - decision_log

@@ -42,7 +42,7 @@ def test_pipeline_manifest_stage_ids_are_unique_and_ordered():
     assert len(stage_ids) == len(set(stage_ids))
     assert stage_ids[0] == "collect_raw_data"
     assert stage_ids[-1] == "audit_report"
-    assert stage_ids.index("hard_constraint_filter") < stage_ids.index("order_candidate_generation")
+    assert stage_ids.index("hard_constraint_filter") < stage_ids.index("simulation_output_generation")
 
 
 def test_pipeline_manifest_disallows_default_live_execution_and_aggressive_fallbacks():
@@ -51,3 +51,18 @@ def test_pipeline_manifest_disallows_default_live_execution_and_aggressive_fallb
 
     assert manifest["auto_execution_allowed"] is False
     assert not {"BUY", "INCREASE_RISK", "AUTO_EXECUTE"} & allowed_actions
+
+
+def test_pipeline_manifest_outputs_are_simulation_only():
+    manifest = load_manifest()
+    stage_ids = [stage["id"] for stage in manifest["stages"]]
+    all_outputs = {output for stage in manifest["stages"] for output in stage["required_outputs"]}
+
+    assert "order_candidate_generation" not in stage_ids
+    assert "order_candidates" not in all_outputs
+    assert "simulation_output_generation" in stage_ids
+    simulation_stage = next(stage for stage in manifest["stages"] if stage["id"] == "simulation_output_generation")
+    assert {"decision_snapshot", "rebalance_plan"} <= set(simulation_stage["required_outputs"])
+    assert {"simulation_only_output", "no_order_candidate_output", "no_live_execution_by_default"} <= set(
+        simulation_stage["required_validations"]
+    )

@@ -51,11 +51,12 @@ def test_sector_scoring_stage_keeps_component_and_confidence_validations():
     assert {"component_scores_present", "confidence_present"} <= validations
 
 
-def test_order_candidate_generation_runs_after_hard_constraint_filter():
+def test_simulation_output_generation_runs_after_hard_constraint_filter():
     manifest = load_pipeline_manifest(MANIFEST_PATH)
     stage_ids = [stage.id for stage in manifest.stages]
 
-    assert stage_ids.index("hard_constraint_filter") < stage_ids.index("order_candidate_generation")
+    assert "order_candidate_generation" not in stage_ids
+    assert stage_ids.index("hard_constraint_filter") < stage_ids.index("simulation_output_generation")
 
 
 def test_audit_report_requires_all_intermediate_outputs():
@@ -64,3 +65,5 @@ def test_audit_report_requires_all_intermediate_outputs():
 
     assert audit_report.id == "audit_report"
     assert "all_intermediate_outputs" in audit_report.required_inputs
+    assert "decision_snapshot" in audit_report.required_inputs
+    assert "rebalance_plan" in audit_report.required_inputs

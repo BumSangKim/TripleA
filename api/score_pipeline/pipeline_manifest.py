@@ -17,7 +17,7 @@ REQUIRED_STAGE_IDS = (
     "allocation",
     "rebalancing",
     "hard_constraint_filter",
-    "order_candidate_generation",
+    "simulation_output_generation",
     "audit_report",
 )
 AGGRESSIVE_FALLBACK_ACTIONS = {"BUY", "INCREASE_RISK", "AUTO_EXECUTE"}
@@ -106,8 +106,8 @@ def validate_pipeline_manifest(manifest: PipelineManifest) -> None:
         raise PipelineManifestError("collect_raw_data must be the first stage")
     if stage_ids[-1] != "audit_report":
         raise PipelineManifestError("audit_report must be the last stage")
-    if stage_ids.index("hard_constraint_filter") > stage_ids.index("order_candidate_generation"):
-        raise PipelineManifestError("hard_constraint_filter must run before order_candidate_generation")
+    if stage_ids.index("hard_constraint_filter") > stage_ids.index("simulation_output_generation"):
+        raise PipelineManifestError("hard_constraint_filter must run before simulation_output_generation")
     if manifest.auto_execution_allowed:
         raise PipelineManifestError("auto_execution_allowed must be false")
 

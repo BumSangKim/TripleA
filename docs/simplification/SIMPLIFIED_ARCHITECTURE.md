@@ -29,6 +29,7 @@ orders.
 - KIS or other live brokerage API integration.
 - Live account balance synchronization.
 - Live or paper execution engines that imply broker-side order handling.
+- Order candidate API/features and executable order drafts.
 - Automatic order execution.
 - Tests that require network access, credentials, real account state, external
   services, local secret files, or mutable live provider state.
@@ -51,9 +52,9 @@ The simplified system may produce only local or simulation-safe outputs:
 - `BacktestReport`
 - `AuditLog`
 
-These outputs may describe candidate actions, reasons, constraints, warnings,
-and simulated results. They must not submit orders, mutate a real account, or
-trigger broker execution.
+These outputs may describe local decisions, reasons, constraints, warnings,
+rebalance plans, and simulated results. They must not expose order candidates,
+submit orders, mutate a real account, or trigger broker execution.
 
 ## Fallback Rules
 

@@ -42,17 +42,17 @@ def test_audit_report_must_be_last(tmp_path: Path):
         load_pipeline_manifest(_write_manifest(tmp_path, raw))
 
 
-def test_hard_constraint_filter_must_precede_order_candidates(tmp_path: Path):
+def test_hard_constraint_filter_must_precede_simulation_output(tmp_path: Path):
     raw = _manifest_raw()
     stage_ids = [stage["id"] for stage in raw["stages"]]
     hard_constraint_index = stage_ids.index("hard_constraint_filter")
-    order_candidate_index = stage_ids.index("order_candidate_generation")
-    raw["stages"][hard_constraint_index], raw["stages"][order_candidate_index] = (
-        raw["stages"][order_candidate_index],
+    simulation_output_index = stage_ids.index("simulation_output_generation")
+    raw["stages"][hard_constraint_index], raw["stages"][simulation_output_index] = (
+        raw["stages"][simulation_output_index],
         raw["stages"][hard_constraint_index],
     )
 
-    with pytest.raises(PipelineManifestError, match="hard_constraint_filter must run before order_candidate_generation"):
+    with pytest.raises(PipelineManifestError, match="hard_constraint_filter must run before simulation_output_generation"):
         load_pipeline_manifest(_write_manifest(tmp_path, raw))
 
 
