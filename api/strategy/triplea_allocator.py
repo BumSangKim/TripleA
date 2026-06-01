@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 from datetime import date
 from typing import Any
 
@@ -20,7 +19,7 @@ class TripleAAllocator:
 
     def __init__(
         self,
-        conn: sqlite3.Connection,
+        conn: object | None = None,
         *,
         risk_profile: str = "balanced",
         universe_id: str = "default_global",
@@ -42,7 +41,7 @@ class TripleAAllocator:
     @classmethod
     def from_config(
         cls,
-        conn: sqlite3.Connection,
+        conn: object | None = None,
         *,
         risk_profile: str,
         universe_id: str,
