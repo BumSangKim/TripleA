@@ -1,4 +1,3 @@
-from api.db.connection import get_conn
 from api.features.intraday.alert import acknowledge_intraday_event
 from api.features.intraday.collector import collect_intraday_once
 from api.features.intraday.config import IntradayMonitoringConfig, load_intraday_config
@@ -7,7 +6,6 @@ from api.features.intraday.repository import latest_snapshots, recent_events, sn
 from api.features.intraday.universe import IntradaySymbol, resolve_intraday_universe
 
 __all__ = [
-    "get_conn",
     "acknowledge_intraday_event",
     "collect_intraday_once",
     "IntradayMonitoringConfig",
