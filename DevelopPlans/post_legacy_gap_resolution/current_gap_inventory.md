@@ -174,3 +174,17 @@ approval.
 - Strategy engine decoupling and scoped legacy cleanup are complete.
 - Live execution, broker order submission, real-account mutation, and automatic
   trading remain out of scope.
+
+## Resolution Status
+
+Updated after post-legacy gap resolution Tasks `001` through `015`.
+
+| gap_id | status | resolution |
+|---|---|---|
+| `GAP-001` | `completed` | Market data price/FX lookup defaults now enforce no-lookahead behavior, with explicit opt-in required for forward lookup. |
+| `GAP-002` | `completed` | Backtest input-to-output tests prove valuation output does not use future price/FX rows. |
+| `GAP-003` | `completed` | Backtests repository orchestration imports were removed; repository strategy import xfail was converted to a strict guardrail. |
+| `GAP-004` | `completed` | Intraday service/ports/schemas were added, router was wired through service/dependencies, and input-to-output API regression coverage was added. |
+| `GAP-005` | `open_owner_decision_required` | Root owner unresolved files remain intentionally unmoved and are documented in `DevelopPlans/post_legacy_gap_resolution/root_owner_decision_inventory.md`. |
+| `GAP-006` | `partially_completed` | Current status remains rooted in `DevelopPlans/STATUS.md`; deleted documentation was not recreated. Historical inventories may still contain old path mentions as historical evidence. |
+| `GAP-007` | `planned_requires_owner_confirmation` | Score-flow migration plan exists at `DevelopPlans/post_legacy_gap_resolution/score_flow_gap_plan.md`; no strategy behavior changed. |
