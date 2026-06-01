@@ -182,7 +182,7 @@ def test_feature_repositories_do_not_import_transport_router_or_service_layers()
     assert not violations
 
 
-def test_feature_repository_strategy_imports_are_known_follow_up_work():
+def test_feature_repositories_do_not_import_strategy_layer():
     violations: list[str] = []
     for repository_file in _feature_files("repository.py"):
         imports = _collect_imports(repository_file)
@@ -190,8 +190,7 @@ def test_feature_repository_strategy_imports_are_known_follow_up_work():
         if forbidden:
             violations.append(f"{repository_file.relative_to(ROOT)}: {forbidden}")
 
-    if violations:
-        pytest.xfail("repository strategy imports require a later owner-specific refactor: " + "; ".join(violations))
+    assert not violations
 
 
 def test_db_package_does_not_import_features():
