@@ -1,7 +1,11 @@
 import sqlite3
 from datetime import date
 
-from api.data.strategy_data_readers import SqliteMacroSnapshotReader
+from api.data.strategy_data_readers import (
+    SqliteBottleneckSnapshotReader,
+    SqliteMacroSnapshotReader,
+    SqliteSectorAssetMappingReader,
+)
 from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.strategy.triplea_allocator import TripleAAllocator
 
@@ -87,9 +91,24 @@ def test_triplea_allocator_applies_active_bottleneck_sector_tilt(tmp_path, monke
     decision = TripleAAllocator(
         conn,
         risk_profile="balanced",
+        bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(conn),
+        sector_asset_mapping_reader=SqliteSectorAssetMappingReader(conn),
         trade_snapshot_reader=SqliteTradeSnapshotReader(conn),
     ).allocate(date(2024, 3, 10))
 
     assert decision.final_weights["SMH"] > 0
     assert decision.bottleneck_scores["SEMICONDUCTOR"] >= 70
     assert any("SEMICONDUCTOR active tilt" in reason for reason in decision.reasons)
+
+
+def test_triplea_allocator_uses_config_sector_fallback_when_mapping_reader_empty():
+    conn = sqlite3.connect(":memory:")
+    decision = TripleAAllocator(
+        conn,
+        risk_profile="balanced",
+        sector_asset_mapping_reader=SqliteSectorAssetMappingReader(conn),
+    ).allocate(date(2024, 3, 10))
+
+    assert round(sum(decision.final_weights.values()), 6) == 1.0
+    assert "SMH" not in decision.final_weights
+    assert decision.macro_regime == "neutral"

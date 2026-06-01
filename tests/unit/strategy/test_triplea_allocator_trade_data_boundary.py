@@ -12,8 +12,9 @@ def test_triplea_allocator_passes_trade_snapshot_reader_to_bottleneck_engine(mon
     captured = {}
 
     class FakeBottleneckEngine:
-        def __init__(self, conn, *, trade_snapshot_reader=None):
+        def __init__(self, conn, *, bottleneck_snapshot_reader=None, trade_snapshot_reader=None):
             captured["conn"] = conn
+            captured["bottleneck_snapshot_reader"] = bottleneck_snapshot_reader
             captured["trade_snapshot_reader"] = trade_snapshot_reader
 
         def score(self, as_of_date):
@@ -52,12 +53,13 @@ def test_triplea_allocator_passes_trade_snapshot_reader_to_bottleneck_engine(mon
         "load_strategy_profile",
         lambda risk_profile: {"buckets": {"AGGRESSIVE_ALPHA": {"target": 1.0, "min": 0.0, "max": 1.0}}},
     )
-    monkeypatch.setattr(allocator_module, "get_sector_asset_mappings", lambda conn: {})
     reader = object()
+    bottleneck_reader = object()
     conn = object()
 
     _, _, _, _, sector_scores = TripleAAllocator(
         conn,
+        bottleneck_snapshot_reader=bottleneck_reader,
         trade_snapshot_reader=reader,
     )._profile_weights(
         date(2024, 3, 10),
@@ -65,6 +67,7 @@ def test_triplea_allocator_passes_trade_snapshot_reader_to_bottleneck_engine(mon
     )
 
     assert captured["conn"] is conn
+    assert captured["bottleneck_snapshot_reader"] is bottleneck_reader
     assert captured["trade_snapshot_reader"] is reader
     assert captured["as_of_date"] == date(2024, 3, 10)
     assert sector_scores[0].sector_code == "SEMICONDUCTOR"

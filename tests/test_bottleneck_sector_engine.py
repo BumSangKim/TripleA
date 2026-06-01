@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 
+from api.data.strategy_data_readers import SqliteBottleneckSnapshotReader
 from api.db.initialize import initialize_database as ensure_dashboard_tables
 from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.strategy.bottleneck_sector_engine import BottleneckSectorEngine
@@ -31,6 +32,7 @@ def test_bottleneck_sector_engine_scores_semiconductor_from_trade_and_relative_s
         score.sector_code: score
         for score in BottleneckSectorEngine(
             conn,
+            bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(conn),
             trade_snapshot_reader=SqliteTradeSnapshotReader(conn),
         ).score(date(2024, 3, 10), lookback_months=12)
     }
@@ -62,6 +64,7 @@ def test_bottleneck_sector_engine_ignores_future_release_rows(tmp_path, monkeypa
         score.sector_code: score
         for score in BottleneckSectorEngine(
             conn,
+            bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(conn),
             trade_snapshot_reader=SqliteTradeSnapshotReader(conn),
         ).score(date(2024, 3, 10), lookback_months=12)
     }

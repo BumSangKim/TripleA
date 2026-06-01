@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date
 from statistics import mean
 
-from api.bottleneck_data_service import BottleneckIndicatorItem, get_bottleneck_snapshot
 from api.domain.strategy_inputs import BottleneckIndicatorInput, BottleneckSnapshotInput
 from api.domain.trade_data import TradeSeriesItem, TradeSnapshot
 from api.strategy.data_ports import BottleneckSnapshotReader
@@ -50,19 +49,13 @@ class BottleneckSectorEngine:
                 as_of_date,
                 lookback_months=lookback_months,
             )
-        elif self.conn is not None:
-            bottleneck_snapshot = get_bottleneck_snapshot(
-                self.conn,
-                as_of_date,
-                lookback_months=lookback_months,
-            )
         else:
             bottleneck_snapshot = BottleneckSnapshotInput(
                 as_of_date=as_of_date,
                 lookback_months=lookback_months,
                 indicators=[],
             )
-        indicators_by_sector: dict[str, list[BottleneckIndicatorItem | BottleneckIndicatorInput]] = {}
+        indicators_by_sector: dict[str, list[BottleneckIndicatorInput]] = {}
         for item in bottleneck_snapshot.indicators:
             indicators_by_sector.setdefault(item.sector_code, []).append(item)
 
@@ -122,7 +115,7 @@ def _score_trade_items(
     return score, reasons
 
 
-def _score_layer(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput], layer: str) -> float:
+def _score_layer(items: list[BottleneckIndicatorInput], layer: str) -> float:
     values = [
         item.value
         for item in _latest_indicators(items, layer=layer).values()
@@ -133,7 +126,7 @@ def _score_layer(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput]
     return _clamp(mean(values), 0.0, 100.0)
 
 
-def _score_relative_strength(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput]) -> float:
+def _score_relative_strength(items: list[BottleneckIndicatorInput]) -> float:
     latest = _latest_indicators(items, layer="relative_strength")
     if not latest:
         latest = {
@@ -148,11 +141,11 @@ def _score_relative_strength(items: list[BottleneckIndicatorItem | BottleneckInd
 
 
 def _latest_indicators(
-    items: list[BottleneckIndicatorItem | BottleneckIndicatorInput],
+    items: list[BottleneckIndicatorInput],
     *,
     layer: str | None = None,
-) -> dict[str, BottleneckIndicatorItem | BottleneckIndicatorInput]:
-    result: dict[str, BottleneckIndicatorItem | BottleneckIndicatorInput] = {}
+) -> dict[str, BottleneckIndicatorInput]:
+    result: dict[str, BottleneckIndicatorInput] = {}
     for item in items:
         if layer and (item.layer or "").lower() != layer:
             continue
@@ -162,7 +155,7 @@ def _latest_indicators(
     return result
 
 
-def _indicator_reasons(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput]) -> list[str]:
+def _indicator_reasons(items: list[BottleneckIndicatorInput]) -> list[str]:
     reasons = []
     for item in _latest_indicators(items).values():
         if item.value is None:

@@ -13,7 +13,11 @@ from api.features.backtests.schemas import (
     BacktestRunResponse,
     BacktestTrade,
 )
-from api.data.strategy_data_readers import SqliteMacroSnapshotReader
+from api.data.strategy_data_readers import (
+    SqliteBottleneckSnapshotReader,
+    SqliteMacroSnapshotReader,
+    SqliteSectorAssetMappingReader,
+)
 from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.backtest_engine import BacktestConfig, BacktestEngine
 from api.market_data_service import validate_market_data_coverage
@@ -69,6 +73,8 @@ class BacktestsRepository:
             universe_id=universe_id,
             strategy_mode=strategy_mode,
             macro_snapshot_reader=SqliteMacroSnapshotReader(self._conn),
+            bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(self._conn),
+            sector_asset_mapping_reader=SqliteSectorAssetMappingReader(self._conn),
             trade_snapshot_reader=SqliteTradeSnapshotReader(self._conn),
         )
 

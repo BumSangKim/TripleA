@@ -78,6 +78,15 @@ def test_strategy_does_not_import_root_trade_data_service():
     assert not violations
 
 
+def test_strategy_does_not_import_root_bottleneck_data_service():
+    violations = _imports_with_forbidden_prefixes(
+        API_ROOT / "strategy",
+        ("api.bottleneck_data_service",),
+    )
+
+    assert not violations
+
+
 def test_strategy_score_store_service_has_been_relocated():
     assert not (API_ROOT / "strategy" / "score_store_service.py").exists()
 

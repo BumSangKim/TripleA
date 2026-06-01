@@ -4,11 +4,10 @@ import sqlite3
 from datetime import date
 from typing import Any
 
-from api.bottleneck_data_service import get_sector_asset_mappings
 from api.strategy_config import load_investment_universe, load_strategy_profile
 
 from .bottleneck_sector_engine import BottleneckSectorEngine
-from .data_ports import MacroSnapshotReader
+from .data_ports import BottleneckSnapshotReader, MacroSnapshotReader, SectorAssetMappingReader
 from .macro_engine import MacroEngine, MacroRegimeDecision
 from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
 from .sector_tilt_engine import SectorTiltEngine
@@ -27,6 +26,8 @@ class TripleAAllocator:
         universe_id: str = "default_global",
         strategy_mode: str = "triplea_dynamic",
         macro_snapshot_reader: MacroSnapshotReader | None = None,
+        bottleneck_snapshot_reader: BottleneckSnapshotReader | None = None,
+        sector_asset_mapping_reader: SectorAssetMappingReader | None = None,
         trade_snapshot_reader: TradeSnapshotReader | None = None,
     ):
         self.conn = conn
@@ -34,6 +35,8 @@ class TripleAAllocator:
         self.universe_id = universe_id
         self.strategy_mode = strategy_mode
         self.macro_snapshot_reader = macro_snapshot_reader
+        self.bottleneck_snapshot_reader = bottleneck_snapshot_reader
+        self.sector_asset_mapping_reader = sector_asset_mapping_reader
         self.trade_snapshot_reader = trade_snapshot_reader
 
     @classmethod
@@ -45,6 +48,8 @@ class TripleAAllocator:
         universe_id: str,
         strategy_mode: str = "triplea_dynamic",
         macro_snapshot_reader: MacroSnapshotReader | None = None,
+        bottleneck_snapshot_reader: BottleneckSnapshotReader | None = None,
+        sector_asset_mapping_reader: SectorAssetMappingReader | None = None,
         trade_snapshot_reader: TradeSnapshotReader | None = None,
     ) -> "TripleAAllocator":
         return cls(
@@ -53,6 +58,8 @@ class TripleAAllocator:
             universe_id=universe_id,
             strategy_mode=strategy_mode,
             macro_snapshot_reader=macro_snapshot_reader,
+            bottleneck_snapshot_reader=bottleneck_snapshot_reader,
+            sector_asset_mapping_reader=sector_asset_mapping_reader,
             trade_snapshot_reader=trade_snapshot_reader,
         )
 
@@ -135,9 +142,10 @@ class TripleAAllocator:
         asset_to_bucket = _asset_to_bucket(assets)
         sector_scores = BottleneckSectorEngine(
             self.conn,
+            bottleneck_snapshot_reader=self.bottleneck_snapshot_reader,
             trade_snapshot_reader=self.trade_snapshot_reader,
         ).score(as_of_date)
-        sector_assets = _sector_asset_codes(self.conn, assets)
+        sector_assets = _sector_asset_codes(assets, self.sector_asset_mapping_reader)
         tilt_result = SectorTiltEngine().apply(
             _normalize(weights),
             sector_scores,
@@ -190,10 +198,14 @@ def _asset_to_bucket(assets: list[dict[str, Any]]) -> dict[str, str]:
 
 
 def _sector_asset_codes(
-    conn: sqlite3.Connection,
     assets: list[dict[str, Any]],
+    sector_asset_mapping_reader: SectorAssetMappingReader | None,
 ) -> dict[str, list[str]]:
-    mappings = get_sector_asset_mappings(conn)
+    mappings = (
+        sector_asset_mapping_reader.read_sector_asset_mappings()
+        if sector_asset_mapping_reader is not None
+        else {}
+    )
     configured = {
         sector: [item.asset_code for item in items]
         for sector, items in mappings.items()

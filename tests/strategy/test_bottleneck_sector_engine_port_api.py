@@ -85,12 +85,8 @@ def test_bottleneck_reader_path_scores_deterministic_sector_signal():
     assert scores["SEMICONDUCTOR"].regime == "active"
 
 
-def test_bottleneck_reader_path_does_not_call_legacy_root_service(monkeypatch):
-    def fail_legacy_call(*args, **kwargs):
-        raise AssertionError("reader path must not call get_bottleneck_snapshot")
-
-    monkeypatch.setattr(bottleneck_module, "get_bottleneck_snapshot", fail_legacy_call)
-
+def test_bottleneck_reader_path_no_longer_exposes_legacy_root_service():
+    assert not hasattr(bottleneck_module, "get_bottleneck_snapshot")
     scores = BottleneckSectorEngine(
         bottleneck_snapshot_reader=FakeBottleneckReader(_bottleneck_snapshot())
     ).score(date(2024, 3, 10), lookback_months=12, trade_snapshot=_trade_snapshot())
@@ -134,4 +130,3 @@ def test_bottleneck_sector_engine_does_not_import_order_generation():
             imports.add(node.module)
 
     assert imports.isdisjoint(forbidden)
-
