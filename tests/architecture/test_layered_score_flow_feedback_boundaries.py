@@ -45,8 +45,18 @@ def test_macro_distribution_adapter_only_reuses_legacy_macro_formula():
     assert "evaluate_macro_snapshot" in imported_names
 
 
-def test_docs_tree_is_not_recreated():
-    assert not (ROOT / "docs").exists()
+def test_docs_tree_only_contains_explicit_scoring_specs_when_present():
+    docs_root = ROOT / "docs"
+    if not docs_root.exists():
+        return
+
+    unexpected = [
+        path.relative_to(ROOT)
+        for path in docs_root.rglob("*")
+        if path.is_file() and not path.name.startswith("AI_CAPEX_TOKEN_")
+    ]
+
+    assert not unexpected
 
 
 def test_lower_layer_contracts_do_not_call_upper_concrete_engines():

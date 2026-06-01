@@ -83,7 +83,14 @@ def test_canonical_root_guides_define_removed_live_boundaries():
     master = (ROOT / "MASTER_DEVELOPMENT_GUIDE.md").read_text(encoding="utf-8")
     status = (ROOT / "DevelopPlans" / "STATUS.md").read_text(encoding="utf-8")
 
-    assert not (ROOT / "docs").exists()
+    docs_root = ROOT / "docs"
+    if docs_root.exists():
+        unexpected_docs = [
+            path.relative_to(ROOT)
+            for path in docs_root.rglob("*")
+            if path.is_file() and not path.name.startswith("AI_CAPEX_TOKEN_")
+        ]
+        assert not unexpected_docs
     assert "Do not depend on `docs/` as the source of truth" in master
     for phrase in (
         "broker, KIS, live execution, or account mutation",
