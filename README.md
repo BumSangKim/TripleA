@@ -220,13 +220,12 @@ TripleA/
 │   ├── domain/                    # 도메인 규칙 테스트
 │   ├── brokers/                   # KIS 클라이언트 테스트
 │   └── integration/               # 통합 테스트
-├── docs/
-│   ├── ARCHITECTURE_CONTRACT.md   # 레이어별 import 계약
-│   └── REFACTOR_ARCHITECTURE_DECISIONS.md  # 설계 결정 기록
 ├── scripts/
 │   ├── setup.sh                   # 로컬 환경 초기 설정
 │   └── start_dashboard.sh         # 개발 서버 실행
 ├── data/                          # SQLite DB (Git 제외)
+├── MASTER_DEVELOPMENT_GUIDE.md    # 개발 원칙 / Codex 기준 문서
+├── AGENTS.md                      # 코딩 에이전트 운영 지침
 ├── config.yaml                    # 앱 전역 설정
 ├── requirements.txt
 ├── Dockerfile.api

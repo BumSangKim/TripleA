@@ -12,13 +12,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check current quote connectivity using read-only providers.")
     parser.add_argument("--source-id", default="mock_current_quotes")
     parser.add_argument("--provider", default="mock")
-    parser.add_argument("--output", default="docs/PHASE_3_CURRENT_PRICE_CHECK.md")
+    parser.add_argument("--output", default="data/PHASE_3_CURRENT_PRICE_CHECK.md")
     args = parser.parse_args(argv)
 
     source = next(source for source in load_data_sources() if source.source_id == args.source_id)
     provider = MockMarketDataProvider()
     result = check_current_quotes(source=source, provider=provider)
     output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         "\n".join(
             [

@@ -11,21 +11,15 @@
 
 Read these before selecting or implementing the next task:
 
-1. `docs/DEVELOPMENT_PROMPT.md`
-2. `docs/MASTER_DEVELOPMENT_GUIDE.md`
-3. `docs/ARCHITECTURE_CONTRACT.md`
-4. `docs/PIPELINE_MANIFEST_CONTRACT.md`
-5. `DevelopPlans/STATUS.md`
+1. `MASTER_DEVELOPMENT_GUIDE.md`
+2. `AGENTS.md`
+3. `DevelopPlans/STATUS.md`
 
 Area-specific references:
 
-- Backtest safety: `docs/BACKTEST_ENGINE_SPEC.md`
-- Strategy SQLite extraction boundary: `docs/STRATEGY_SQLITE_BOUNDARY_INVENTORY.md`
 - Current structure inventory: `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
-- Legacy cleanup completion: `docs/LEGACY_CLEANUP_COMPLETION.md`
 - Legacy cleanup inventory: `DevelopPlans/legacy_cleanup/current_legacy_cleanup_inventory.md`
 - Strategy coupling inventory: `DevelopPlans/strategy_engine_decoupling/current_strategy_engine_coupling_inventory.md`
-- Strategy decoupling completion: `docs/STRATEGY_ENGINE_DECOUPLING_COMPLETION.md`
 
 ## Active Architecture Baseline
 
@@ -89,14 +83,14 @@ Area-specific references:
 
 ## Documentation Policy
 
-- `docs/` keeps current contracts, boundary completion notes with ongoing
-  guardrail value, API reference material, and active boundary inventories.
-- Completed task logs, inspection notes, generic final reports, validation
-  reports, checklists, and one-off runbooks are not kept in `docs/`.
-- `docs/README.md` and `docs/DEVELOPMENT_PROMPT.md` are not present in the
-  current working tree; use this status file and the active docs listed above
-  until a documentation index is explicitly restored.
-- `AGENTS.md` is a short entrypoint that points agents to the canonical docs.
+- `docs/` has been intentionally removed, including API guide material.
+- `MASTER_DEVELOPMENT_GUIDE.md` at the repository root is the canonical
+  development guide.
+- `AGENTS.md` is the short operational entrypoint that requires agents to read
+  the root guide before modifying code, tests, config, prompts, or workflow
+  docs.
+- Do not recreate `docs/` as a parallel source of truth without explicit
+  approval.
 
 ## Last Verified Commands
 
@@ -107,9 +101,7 @@ Area-specific references:
 ```
 
 Last recorded result: architecture 47 passed and 2 xfailed; pipeline integration
-18 passed; unit/integration 149 passed and 2 skipped. Deleted legacy root
-service names appear only in `docs/LEGACY_CLEANUP_COMPLETION.md` as historical
-removal evidence.
+18 passed; unit/integration 149 passed and 2 skipped.
 
 ## Next Recommended Task
 

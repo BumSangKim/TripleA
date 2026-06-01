@@ -56,3 +56,15 @@ def test_secretless_live_check_defaults_to_mock_safe_path(monkeypatch):
     result = check_current_quotes(source=_quote_source(), provider=MockMarketDataProvider(), db_session=_conn())
 
     assert result.status == "success"
+
+
+def test_current_quote_cli_default_output_does_not_recreate_docs(tmp_path, monkeypatch):
+    from api.data.check_current_quotes import main
+
+    source = _quote_source()
+    monkeypatch.setattr("api.data.check_current_quotes.load_data_sources", lambda: [source])
+    monkeypatch.chdir(tmp_path)
+
+    assert main([]) == 0
+    assert (tmp_path / "data" / "PHASE_3_CURRENT_PRICE_CHECK.md").exists()
+    assert not (tmp_path / "docs").exists()
