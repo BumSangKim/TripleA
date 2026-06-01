@@ -1,8 +1,8 @@
 # Legacy Cleanup Inventory
 
-Status: inspection inventory only. This file records removable legacy
-candidates after strategy engine decoupling. It does not authorize deletion by
-itself.
+Status: legacy cleanup complete for the scoped macro/bottleneck root data
+services. This file records completed removals and remaining out-of-scope
+legacy candidates. It does not authorize unrelated deletion by itself.
 
 ## Scope
 
@@ -36,26 +36,23 @@ itself.
 | `api/asset_universe_snapshot.py` | `blocked` | Root asset-universe snapshot exporter in architecture allowlist | Separate asset-universe owner task | none | Snapshot reproducibility contract owner is unresolved |
 | `api/asset_universe_validator.py` | `blocked` | Root asset-universe validator in architecture allowlist | Separate asset-universe owner task | none | Validator relocation may affect config tests |
 
-## Observed Reference Scans
+## Completed Reference Cleanup
 
-Macro root references currently appear in:
+Macro root service references were removed from active code paths. Current
+behavior is covered by:
 
+- `api/data/macro_snapshot_reader.py`
 - `api/data/strategy_data_readers.py`
-- `tests/test_macro_data_service.py` now imports the data-layer owner
-- `tests/strategy/test_macro_engine_no_db_coupling.py`
-- `tests/architecture/test_modular_monolith_import_boundaries.py`
-- `docs/STRATEGY_ENGINE_DECOUPLING_COMPLETION.md`
-- `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
-- `DevelopPlans/strategy_engine_decoupling/current_strategy_engine_coupling_inventory.md`
+- `tests/data/test_macro_snapshot_reader.py`
+- architecture guardrails
 
-Bottleneck root references currently appear in:
+Bottleneck root service references were removed from active code paths. Current
+behavior is covered by:
 
+- `api/data/bottleneck_snapshot_reader.py`
 - `api/data/strategy_data_readers.py`
-- `tests/test_trade_bottleneck_data_services.py` now imports the data-layer owner
-- `tests/strategy/test_bottleneck_sector_engine_no_root_service.py`
-- `tests/architecture/test_modular_monolith_import_boundaries.py`
-- `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
-- `DevelopPlans/strategy_engine_decoupling/current_strategy_engine_coupling_inventory.md`
+- `tests/data/test_bottleneck_snapshot_reader.py`
+- architecture guardrails
 
 ## Required Cleanup Order
 
@@ -66,6 +63,8 @@ Bottleneck root references currently appear in:
 5. Root bottleneck snapshot and mapping service removal is complete after behavior-preserving tests pass.
 6. Remove or scope stale historical docs and shrink root allowlists.
 7. Add full input-to-output regression coverage and update status.
+
+All seven cleanup steps are complete for the scoped macro/bottleneck services.
 
 ## Non-Goals
 

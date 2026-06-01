@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, and strategy engine decoupling are complete.
+- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, and legacy root data-service cleanup are complete.
 - Current task: none.
 - Default execution posture: read-only analysis, backtest, score generation, review-only order candidates.
 - Out of scope unless explicitly approved: live broker order submission, real-account mutation, automatic execution.
@@ -22,6 +22,8 @@ Area-specific references:
 - Backtest safety: `docs/BACKTEST_ENGINE_SPEC.md`
 - Strategy SQLite extraction boundary: `docs/STRATEGY_SQLITE_BOUNDARY_INVENTORY.md`
 - Current structure inventory: `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md`
+- Legacy cleanup completion: `docs/LEGACY_CLEANUP_COMPLETION.md`
+- Legacy cleanup inventory: `DevelopPlans/legacy_cleanup/current_legacy_cleanup_inventory.md`
 - Strategy coupling inventory: `DevelopPlans/strategy_engine_decoupling/current_strategy_engine_coupling_inventory.md`
 - Strategy decoupling completion: `docs/STRATEGY_ENGINE_DECOUPLING_COMPLETION.md`
 
@@ -30,6 +32,9 @@ Area-specific references:
 - File-based investment decision manifest exists at `config/pipelines/investment_decision.yaml`.
 - Pipeline manifest loading and validation live under `api/score_pipeline/pipeline_manifest.py`.
 - Score persistence ownership is under `api/score_pipeline/score_store.py`.
+- Macro snapshot reads are owned by `api/data/macro_snapshot_reader.py`.
+- Bottleneck snapshot and sector asset mapping reads are owned by
+  `api/data/bottleneck_snapshot_reader.py`.
 - Trade data domain/port boundary exists under:
   - `api/domain/trade_data.py`
   - `api/strategy/trade_data_ports.py`
@@ -44,13 +49,19 @@ Area-specific references:
 - Status: complete.
 - Completed tasks: `001` through `015` from the strategy engine decoupling task pack.
 - Completed boundaries:
-  - macro snapshot reader port and SQLite adapter;
-  - bottleneck snapshot reader port and SQLite adapter;
-  - sector asset mapping reader port and SQLite adapter;
+  - macro snapshot reader port, SQLite adapter, and data-layer owner;
+  - bottleneck snapshot reader port, SQLite adapter, and data-layer owner;
+  - sector asset mapping reader port, SQLite adapter, and data-layer owner;
   - price history reader port and SQLite adapter;
   - decision log writer port and reporting repository;
   - score store persistence under score pipeline ownership;
   - deterministic raw-input-to-allocation-output integration test.
+- Legacy cleanup:
+  - root macro snapshot service removed after data-layer owner migration;
+  - root bottleneck snapshot and sector mapping service removed after
+    data-layer owner migration;
+  - stale refactor redirect documentation removed;
+  - legacy removed input-to-output regression added.
 - Guardrails:
   - `api/strategy/**` direct SQLite import baseline is empty.
   - `api/strategy/**` must not import root data services, DB modules,
@@ -68,8 +79,8 @@ Area-specific references:
 
 ## Remaining Work
 
-- Strategy SQLite/root data service extraction is complete; preserve the empty
-  strategy SQLite baseline.
+- Strategy SQLite/root data service extraction and macro/bottleneck legacy
+  cleanup are complete; preserve the empty strategy SQLite baseline.
 - Two architecture tests are expected xfails for known follow-up boundary work.
 - Phase 4 feature-layer work is not represented as formal task files in the current plan tree.
 - Legacy/current engines for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates remain partial relative to the master guide.
@@ -78,10 +89,13 @@ Area-specific references:
 
 ## Documentation Policy
 
-- `docs/` keeps only current contracts, the development prompt, API reference material, and active boundary inventories.
-- Completed task logs, inspection notes, final reports, validation reports, checklists, and one-off runbooks are not kept in `docs/`.
-- `docs/README.md` is the documentation index.
-- `docs/DEVELOPMENT_PROMPT.md` is the active Codex/LLM prompt.
+- `docs/` keeps current contracts, boundary completion notes with ongoing
+  guardrail value, API reference material, and active boundary inventories.
+- Completed task logs, inspection notes, generic final reports, validation
+  reports, checklists, and one-off runbooks are not kept in `docs/`.
+- `docs/README.md` and `docs/DEVELOPMENT_PROMPT.md` are not present in the
+  current working tree; use this status file and the active docs listed above
+  until a documentation index is explicitly restored.
 - `AGENTS.md` is a short entrypoint that points agents to the canonical docs.
 
 ## Last Verified Commands
@@ -92,14 +106,16 @@ Area-specific references:
 .venv/bin/python -m pytest tests/unit tests/integration -q
 ```
 
-Last recorded result: architecture 43 passed and 2 xfailed; pipeline integration
-16 passed; unit/integration 147 passed and 2 skipped.
+Last recorded result: architecture 47 passed and 2 xfailed; pipeline integration
+18 passed; unit/integration 149 passed and 2 skipped. Deleted legacy root
+service names appear only in `docs/LEGACY_CLEANUP_COMPLETION.md` as historical
+removal evidence.
 
 ## Next Recommended Task
 
 Choose one explicit execution unit:
 
-- Preserve the completed strategy engine decoupling boundary while continuing the next approved product or architecture task.
+- Preserve the completed strategy engine decoupling and legacy cleanup boundaries while continuing the next approved product or architecture task.
 - Formalize the next Phase 4 feature-layer task.
 - Harden read-only provider/data quality integration.
 - Improve UI/API coverage for existing non-execution workflows.

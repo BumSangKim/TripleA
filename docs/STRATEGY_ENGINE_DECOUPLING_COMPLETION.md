@@ -2,6 +2,9 @@
 
 Status: complete as of 2026-06-01.
 
+Legacy root data-service cleanup is recorded in
+`docs/LEGACY_CLEANUP_COMPLETION.md`.
+
 ## Removed Coupling Points
 
 - `api/strategy/macro_engine.py` no longer imports SQLite or root macro data

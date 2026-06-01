@@ -6,6 +6,9 @@ Status: completed historical inventory.
 is `tests/architecture/test_strategy_sqlite_baseline.py`, whose baseline is now
 empty.
 
+Legacy root data-service cleanup is recorded in
+`docs/LEGACY_CLEANUP_COMPLETION.md`.
+
 ## Completed Extractions
 
 | Former coupling | Current owner | Current contract |

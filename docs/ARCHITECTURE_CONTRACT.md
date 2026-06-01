@@ -40,6 +40,9 @@
   `api/strategy/data_ports.py` or explicit domain inputs.
 - DB-backed strategy readers live outside strategy, currently under
   `api/data/strategy_data_readers.py`.
+- Macro snapshot reads live under `api/data/macro_snapshot_reader.py`.
+- Bottleneck snapshot and sector asset mapping reads live under
+  `api/data/bottleneck_snapshot_reader.py`.
 - Strategy audit persistence lives outside strategy, currently under
   `api/reporting/strategy_decision_log_repository.py`.
 - Score persistence lives outside strategy, currently under
@@ -75,6 +78,8 @@
 ### root orphan 처리 원칙
 - Root-level `api/*.py` files are inventory-controlled by
   `tests/architecture/test_modular_monolith_import_boundaries.py`.
+- Removed macro/bottleneck root data services must not be reintroduced as
+  compatibility shims.
 - Owner-unresolved root files must stay allowlisted until an explicit relocation
   task assigns an owner.
 - Relocations must avoid shims unless a task explicitly allows compatibility

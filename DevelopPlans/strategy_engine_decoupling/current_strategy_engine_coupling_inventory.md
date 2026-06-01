@@ -22,7 +22,7 @@ The requested `docs/PROJECT_CONTEXT.md`, `docs/PHASE_ROADMAP.md`, and
 ## Search Commands
 
 ```bash
-rg -n "(^|\s)(import sqlite3|from sqlite3)|api\.features|fastapi|starlette|api\.(macro_data_service|market_data_service|trade_data_service|bottleneck_data_service|data|market_data_collector|macro_indicator_collector)" api/strategy
+rg -n "(^|\s)(import sqlite3|from sqlite3)|api\.features|fastapi|starlette|api\.(market_data_service|trade_data_service|data|market_data_collector|macro_indicator_collector)" api/strategy
 ```
 
 Current matches after completion:
