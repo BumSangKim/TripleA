@@ -4,6 +4,7 @@ from datetime import date
 
 from api.strategy.bottleneck_sector_engine import BottleneckSectorEngine
 from api.strategy.indicator_plugins.base import PluginScore
+from api.strategy.trade_data_ports import TradeSnapshotReader
 from api.strategy_config import load_sector_taxonomy
 
 
@@ -19,10 +20,21 @@ class BottleneckIndicatorPlugin:
             return self.plugin_name in plugins
         return bool(sector.get("trade_items") or sector.get("indicators"))
 
-    def score(self, conn, sector_code: str, as_of_date: date) -> PluginScore:
+    def score(
+        self,
+        conn,
+        sector_code: str,
+        as_of_date: date,
+        *,
+        trade_snapshot_reader: TradeSnapshotReader | None = None,
+    ) -> PluginScore:
         if not self.applies_to(sector_code):
             return PluginScore(self.plugin_name, sector_code, 0.5, 0.0, 0.0, 0.0, {}, ["plugin_not_applicable"], as_of_date, self.model_version, self.parameter_version)
-        match = next((item for item in BottleneckSectorEngine(conn).score(as_of_date) if item.sector_code == sector_code), None)
+        scores = BottleneckSectorEngine(
+            conn,
+            trade_snapshot_reader=trade_snapshot_reader,
+        ).score(as_of_date)
+        match = next((item for item in scores if item.sector_code == sector_code), None)
         if not match:
             return PluginScore(self.plugin_name, sector_code, 0.5, 0.2, 0.2, 0.0, {}, ["missing_bottleneck_data"], as_of_date, self.model_version, self.parameter_version)
         components = {

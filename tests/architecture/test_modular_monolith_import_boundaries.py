@@ -71,6 +71,34 @@ def test_strategy_does_not_import_transport_or_feature_layers():
     assert not violations
 
 
+def test_strategy_does_not_import_root_trade_data_service():
+    violations = _imports_with_forbidden_prefixes(
+        API_ROOT / "strategy",
+        ("api.trade_data_service",),
+    )
+
+    assert not violations
+
+
+def test_bottleneck_sector_engine_does_not_import_db_or_data_adapters():
+    imports = _collect_imports(API_ROOT / "strategy" / "bottleneck_sector_engine.py")
+    forbidden = [
+        item.display
+        for item in imports
+        if any(
+            item.matches(prefix)
+            for prefix in (
+                "api.trade_data_service",
+                "sqlite3",
+                "api.data",
+                "api.features.market_data",
+            )
+        )
+    ]
+
+    assert not forbidden
+
+
 def test_feature_routers_do_not_import_repository_db_or_sqlite():
     violations: list[str] = []
     for router_file in _feature_files("router.py"):

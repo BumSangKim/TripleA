@@ -11,6 +11,7 @@ from .bottleneck_sector_engine import BottleneckSectorEngine
 from .macro_engine import MacroEngine, MacroRegimeDecision
 from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
 from .sector_tilt_engine import SectorTiltEngine
+from .trade_data_ports import TradeSnapshotReader
 from .types import AllocationDecision, SectorBottleneckScore
 
 
@@ -24,11 +25,13 @@ class TripleAAllocator:
         risk_profile: str = "balanced",
         universe_id: str = "default_global",
         strategy_mode: str = "triplea_dynamic",
+        trade_snapshot_reader: TradeSnapshotReader | None = None,
     ):
         self.conn = conn
         self.risk_profile = risk_profile
         self.universe_id = universe_id
         self.strategy_mode = strategy_mode
+        self.trade_snapshot_reader = trade_snapshot_reader
 
     @classmethod
     def from_config(
@@ -38,12 +41,14 @@ class TripleAAllocator:
         risk_profile: str,
         universe_id: str,
         strategy_mode: str = "triplea_dynamic",
+        trade_snapshot_reader: TradeSnapshotReader | None = None,
     ) -> "TripleAAllocator":
         return cls(
             conn,
             risk_profile=risk_profile,
             universe_id=universe_id,
             strategy_mode=strategy_mode,
+            trade_snapshot_reader=trade_snapshot_reader,
         )
 
     def asset_codes(self) -> list[str]:
@@ -119,7 +124,10 @@ class TripleAAllocator:
             self._assign_bucket(weights, bucket_assets, float(policy["target"]))
 
         asset_to_bucket = _asset_to_bucket(assets)
-        sector_scores = BottleneckSectorEngine(self.conn).score(as_of_date)
+        sector_scores = BottleneckSectorEngine(
+            self.conn,
+            trade_snapshot_reader=self.trade_snapshot_reader,
+        ).score(as_of_date)
         sector_assets = _sector_asset_codes(self.conn, assets)
         tilt_result = SectorTiltEngine().apply(
             _normalize(weights),

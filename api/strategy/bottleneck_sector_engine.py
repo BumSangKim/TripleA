@@ -1,32 +1,41 @@
 from __future__ import annotations
 
-import sqlite3
 from datetime import date
 from statistics import mean
 
 from api.bottleneck_data_service import BottleneckIndicatorItem, get_bottleneck_snapshot
+from api.domain.trade_data import TradeSeriesItem, TradeSnapshot
+from api.strategy.trade_data_ports import TradeSnapshotReader
 from api.strategy_config import load_sector_taxonomy
-from api.trade_data_service import TradeSeriesItem, get_trade_snapshot
 
 from .types import SectorBottleneckScore
 
 
 class BottleneckSectorEngine:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(self, conn, *, trade_snapshot_reader: TradeSnapshotReader | None = None):
         self.conn = conn
+        self.trade_snapshot_reader = trade_snapshot_reader
 
     def score(
         self,
         as_of_date: date,
         *,
         lookback_months: int = 60,
+        trade_snapshot: TradeSnapshot | None = None,
     ) -> list[SectorBottleneckScore]:
         taxonomy = load_sector_taxonomy()
-        trade_snapshot = get_trade_snapshot(
-            self.conn,
-            as_of_date,
-            lookback_months=lookback_months,
-        )
+        if trade_snapshot is None:
+            if self.trade_snapshot_reader is None:
+                trade_snapshot = TradeSnapshot(
+                    as_of_date=as_of_date,
+                    lookback_months=lookback_months,
+                    items=[],
+                )
+            else:
+                trade_snapshot = self.trade_snapshot_reader.get_trade_snapshot(
+                    as_of_date,
+                    lookback_months=lookback_months,
+                )
         bottleneck_snapshot = get_bottleneck_snapshot(
             self.conn,
             as_of_date,

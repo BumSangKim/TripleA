@@ -6,6 +6,7 @@ from api.domain.exceptions import (
     OrderBlockedError,
     StrategyValidationError,
 )
+from api.domain.trade_data import TradeSeriesItem, TradeSnapshot
 
 __all__ = [
     "DomainError",
@@ -14,4 +15,6 @@ __all__ = [
     "ConstraintViolationError",
     "DataQualityError",
     "StrategyValidationError",
+    "TradeSeriesItem",
+    "TradeSnapshot",
 ]

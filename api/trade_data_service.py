@@ -1,31 +1,22 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 from datetime import date
 
-
-@dataclass(frozen=True)
-class TradeSeriesItem:
-    period: str
-    country: str | None
-    flow: str
-    item_code: str
-    item_name: str | None
-    amount_usd: float | None
-    quantity: float | None
-    unit: str | None
-    yoy: float | None
-    mom: float | None
-    source: str | None
-    release_date: date
+from api.domain.trade_data import TradeSeriesItem, TradeSnapshot
 
 
-@dataclass(frozen=True)
-class TradeSnapshot:
-    as_of_date: date
-    lookback_months: int
-    items: list[TradeSeriesItem]
+class SqliteTradeSnapshotReader:
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+
+    def get_trade_snapshot(
+        self,
+        as_of_date: date,
+        *,
+        lookback_months: int = 60,
+    ) -> TradeSnapshot:
+        return get_trade_snapshot(self.conn, as_of_date, lookback_months=lookback_months)
 
 
 def get_trade_snapshot(
