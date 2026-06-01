@@ -1,0 +1,132 @@
+version: 1
+name: investment_decision_pipeline
+execution_mode_default: review_required
+auto_execution_allowed: false
+fallback_policy:
+  allowed_actions:
+    - NO_ACTION
+    - HOLD
+    - REVIEW_REQUIRED
+    - RISK_REDUCE_ONLY
+  forbidden_actions:
+    - BUY
+    - INCREASE_RISK
+    - INCREASE_SATELLITE_WEIGHT
+    - FORCE_REBALANCE
+    - AUTO_EXECUTE
+stages:
+  - id: collect_raw_data
+    layer: data
+    required_inputs: []
+    required_outputs:
+      - raw_data_snapshot
+      - data_quality_metadata
+    required_validations:
+      - source_present
+      - as_of_date_present
+      - no_future_data
+      - stale_check
+  - id: build_features
+    layer: feature
+    required_inputs:
+      - raw_data_snapshot
+      - data_quality_metadata
+    required_outputs:
+      - feature_snapshot
+    required_validations:
+      - feature_version_present
+      - missing_ratio_checked
+  - id: calculate_scores
+    layer: score
+    required_inputs:
+      - feature_snapshot
+    required_outputs:
+      - score_snapshot
+    required_validations:
+      - score_contract_fields
+      - confidence_present
+      - data_quality_present
+  - id: macro_regime_distribution
+    layer: macro_regime_engine
+    required_inputs:
+      - score_snapshot
+    required_outputs:
+      - regime_distribution
+    required_validations:
+      - distribution_sums_to_one
+      - dominant_regime_is_descriptive_only
+  - id: sector_asset_scoring
+    layer: sector_scoring_engine
+    required_inputs:
+      - score_snapshot
+      - regime_distribution
+    required_outputs:
+      - sector_scores
+      - asset_scores
+    required_validations:
+      - component_scores_present
+      - confidence_present
+  - id: risk_budget
+    layer: risk_budget_engine
+    required_inputs:
+      - sector_scores
+      - asset_scores
+      - account_state
+    required_outputs:
+      - risk_budget_result
+    required_validations:
+      - portfolio_risk_checked
+      - account_risk_checked
+  - id: allocation
+    layer: allocation_engine
+    required_inputs:
+      - risk_budget_result
+      - sector_scores
+      - current_positions
+    required_outputs:
+      - target_weight_ranges
+    required_validations:
+      - target_ranges_present
+      - gradual_change_limit_checked
+  - id: rebalancing
+    layer: rebalancing_engine
+    required_inputs:
+      - target_weight_ranges
+      - current_positions
+    required_outputs:
+      - rebalance_intensity
+      - rebalance_candidates
+    required_validations:
+      - intensity_present
+      - turnover_checked
+  - id: hard_constraint_filter
+    layer: account_constraint_engine
+    required_inputs:
+      - rebalance_candidates
+      - account_constraints
+    required_outputs:
+      - validated_candidates
+    required_validations:
+      - hard_constraints_blocking
+      - no_softening_of_constraints
+  - id: order_candidate_generation
+    layer: execution_engine
+    required_inputs:
+      - validated_candidates
+    required_outputs:
+      - order_candidates
+    required_validations:
+      - manual_review_required
+      - no_live_execution_by_default
+  - id: audit_report
+    layer: reporting_audit
+    required_inputs:
+      - order_candidates
+      - all_intermediate_outputs
+    required_outputs:
+      - decision_log
+      - warnings
+    required_validations:
+      - reason_codes_present
+      - versions_present
+      - as_of_date_present
