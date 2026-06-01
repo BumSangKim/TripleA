@@ -3,7 +3,7 @@ from datetime import date
 
 from api.bottleneck_data_service import get_bottleneck_snapshot, get_sector_asset_mappings
 from api.db.initialize import initialize_database as ensure_dashboard_tables
-from api.trade_data_service import get_trade_snapshot
+from api.features.market_data.trade_data_service import get_trade_snapshot
 
 
 def test_trade_snapshot_filters_by_release_date(tmp_path, monkeypatch):

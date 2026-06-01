@@ -2,7 +2,10 @@ import sqlite3
 from datetime import date
 
 from api.domain.trade_data import TradeSnapshot
-from api.trade_data_service import SqliteTradeSnapshotReader, get_trade_snapshot
+from api.features.market_data.trade_data_service import (
+    SqliteTradeSnapshotReader,
+    get_trade_snapshot,
+)
 
 
 def test_get_trade_snapshot_returns_empty_when_table_missing():

@@ -32,7 +32,6 @@ ROOT_ALLOWED_FILES = {
     "observation_universe.py",
     "strategy_config.py",
     "telegram_service.py",
-    "trade_data_service.py",
 }
 ROOT_OWNER_UNRESOLVED = {
     "asset_data_requirements.py",
@@ -48,7 +47,6 @@ ROOT_OWNER_UNRESOLVED = {
     "market_data_collector.py",
     "market_data_service.py",
     "telegram_service.py",
-    "trade_data_service.py",
 }
 SERVICE_SQL_PATTERN = re.compile(r"\b(SELECT|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER)\b", re.IGNORECASE)
 
