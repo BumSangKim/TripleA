@@ -182,6 +182,8 @@ def get_price_on_or_before(
     asset_code: str,
     value_date: date,
     max_forward_days: int = 7,
+    *,
+    allow_forward_lookup: bool = False,
 ) -> tuple[date, float]:
     row = conn.execute(
         """
@@ -194,8 +196,7 @@ def get_price_on_or_before(
         """,
         (asset_code, value_date.isoformat()),
     ).fetchone()
-    if not row:
-        # Fallback: look slightly ahead for holidays/weekends at start of dataset
+    if not row and allow_forward_lookup and max_forward_days > 0:
         row = conn.execute(
             """
             SELECT price_date, COALESCE(adj_close, close) AS price
@@ -220,6 +221,7 @@ def get_fx_rate_on_or_before(
     *,
     quote_currency: str = "KRW",
     max_forward_days: int = 7,
+    allow_forward_lookup: bool = False,
 ) -> tuple[date, float]:
     if base_currency == quote_currency:
         return value_date, 1.0
@@ -235,8 +237,7 @@ def get_fx_rate_on_or_before(
         """,
         (base_currency, quote_currency, value_date.isoformat()),
     ).fetchone()
-    if not row:
-        # Fallback: look slightly ahead for holidays/weekends at start of dataset
+    if not row and allow_forward_lookup and max_forward_days > 0:
         row = conn.execute(
             """
             SELECT rate_date, rate
@@ -291,7 +292,6 @@ def _validate_asset_coverage(
             ok=True,
         )
 
-    # start_row: start 날짜가 휴장일/주말일 경우 max_stale_days 이내의 다음 거래일을 허용
     start_row = conn.execute(
         """
         SELECT price_date
@@ -300,7 +300,7 @@ def _validate_asset_coverage(
         ORDER BY price_date DESC
         LIMIT 1
         """,
-        (asset_code, (start + timedelta(days=max_stale_days)).isoformat()),
+        (asset_code, start.isoformat()),
     ).fetchone()
     end_row = conn.execute(
         """
@@ -355,7 +355,6 @@ def _validate_fx_coverage(
     end: date,
     max_stale_days: int,
 ) -> FxCoverage:
-    # start_row: start 날짜가 휴장일/주말일 경우 max_stale_days 이내의 다음 거래일을 허용
     start_row = conn.execute(
         """
         SELECT rate_date
@@ -364,7 +363,7 @@ def _validate_fx_coverage(
         ORDER BY rate_date DESC
         LIMIT 1
         """,
-        (base_currency, quote_currency, (start + timedelta(days=max_stale_days)).isoformat()),
+        (base_currency, quote_currency, start.isoformat()),
     ).fetchone()
     end_row = conn.execute(
         """
