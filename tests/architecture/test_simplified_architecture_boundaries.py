@@ -79,16 +79,22 @@ def test_app_imports_without_live_credential_environment(monkeypatch):
     assert app.title == "TripleA Dashboard API"
 
 
-def test_simplification_docs_and_boundaries_agree_on_removed_areas():
-    doc = (ROOT / "docs" / "simplification" / "SIMPLIFIED_ARCHITECTURE.md").read_text(encoding="utf-8")
+def test_canonical_root_guides_define_removed_live_boundaries():
+    master = (ROOT / "MASTER_DEVELOPMENT_GUIDE.md").read_text(encoding="utf-8")
+    status = (ROOT / "DevelopPlans" / "STATUS.md").read_text(encoding="utf-8")
 
+    assert not (ROOT / "docs").exists()
+    assert "Do not depend on `docs/` as the source of truth" in master
     for phrase in (
-        "Broker adapters",
-        "KIS or other live brokerage API integration",
-        "Order candidate API/features",
-        "Automatic order execution",
+        "broker, KIS, live execution, or account mutation",
+        "No default automatic execution",
     ):
-        assert phrase in doc
+        assert phrase in master
+    for phrase in (
+        "`docs/` has been intentionally removed",
+        "live broker order submission, real-account mutation, automatic execution",
+    ):
+        assert phrase in status
 
 
 def _python_files(roots: tuple[Path, ...]) -> list[Path]:
