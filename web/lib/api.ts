@@ -17,6 +17,9 @@ import type {
   RebalanceResultItem,
   RebalanceRunResponse,
   RiskBudgetItem,
+  SectorComponentRunRequest,
+  SectorComponentRunResponse,
+  SectorComponentUiMetadataResponse,
   SuggestionItem,
   TargetItem,
   TradingMode,
@@ -103,6 +106,15 @@ export const api = {
 
   runBacktest: (data: BacktestRunRequest): Promise<BacktestRunResponse> =>
     fetchJSON<BacktestRunResponse>("/api/backtests/run", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  getSectorComponentUiMetadata: (): Promise<SectorComponentUiMetadataResponse> =>
+    fetchJSON<SectorComponentUiMetadataResponse>("/api/backtests/sector-components/ui-metadata"),
+
+  runSectorComponentBacktest: (data: SectorComponentRunRequest): Promise<SectorComponentRunResponse> =>
+    fetchJSON<SectorComponentRunResponse>("/api/backtests/sector-components/run", {
       method: "POST",
       body: JSON.stringify(data),
     }),

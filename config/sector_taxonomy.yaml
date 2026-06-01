@@ -2,7 +2,7 @@ sectors:
   SEMICONDUCTOR:
     name: Semiconductor
     bucket: AGGRESSIVE_ALPHA
-    assets: [SMH, SOXX]
+    assets: ["000660", "005930", "042700", "058470", "403870", "039030", "091160", "396500", "381180", NVDA, TSM, AVGO, ASML, AMD, MU, AMAT, SMH, SOXX]
     trade_items:
       - HS_8542
       - HS_8486
@@ -15,7 +15,7 @@ sectors:
   POWER_GRID:
     name: Power Grid
     bucket: DEFENSIVE_CORE
-    assets: [XLU]
+    assets: ["010120", "267260", "298040", "006260", "001440", "103590", "000500", "487240", "487230", "491010", ETN, ABB, PWR, GEV, VRT, HUBB, NVT, GRID, XLU]
     trade_items:
       - HS_8504
       - HS_8535
@@ -28,7 +28,7 @@ sectors:
   BATTERY:
     name: Battery
     bucket: AGGRESSIVE_ALPHA
-    assets: [LIT]
+    assets: ["373220", "006400", "005490", "247540", "051910", "003670", "066970", "096770", "305720", "305540", "364980", TSLA, ALB, 300750.SZ, 1211.HK, 6752.T, RIO, LIT, BATT, DRIV]
     trade_items:
       - HS_8507
     indicators:

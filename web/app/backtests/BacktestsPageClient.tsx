@@ -6,6 +6,7 @@ import { APIRequestError, api } from "@/lib/api";
 import type { BacktestDecision, BacktestPoint, BacktestPosition, BacktestTrade, BacktestRunRequest, BacktestRunResponse } from "@/lib/types";
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
+import SectorComponentDiagnosticPanel from "./SectorComponentDiagnosticPanel";
 
 type Frequency = BacktestRunRequest["rebalanceFrequency"];
 
@@ -152,135 +153,138 @@ export default function BacktestsPageClient() {
       )}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <Card title="조건">
-          <div className="space-y-4">
-            <label className="block">
-              <span className="text-xs text-slate-400">이름</span>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <Card title="조건">
+            <div className="space-y-4">
               <label className="block">
-                <span className="text-xs text-slate-400">시작일</span>
+                <span className="text-xs text-slate-400">이름</span>
                 <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
                 />
               </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">종료일</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs text-slate-400">시작일</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">종료일</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs text-slate-400">전략 모드</span>
+                  <select
+                    value={strategyMode}
+                    disabled
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
+                  >
+                    <option value="triplea_dynamic">TripleA Dynamic</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">위험 프로파일</span>
+                  <select
+                    value={riskProfile}
+                    onChange={(e) => setRiskProfile(e.target.value as BacktestRunRequest["riskProfile"])}
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  >
+                    {RISK_PROFILE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">투자 유니버스</span>
+                  <select
+                    value={universeId}
+                    disabled
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
+                  >
+                    <option value="default_global">default_global</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">초기자본</span>
+                  <input
+                    value={initialCapital}
+                    onChange={(e) => setInitialCapital(e.target.value)}
+                    inputMode="numeric"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">주기</span>
+                  <select
+                    value={frequency}
+                    onChange={(e) => setFrequency(e.target.value as Frequency)}
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  >
+                    {FREQUENCY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="text-xs text-slate-400">수수료 bps</span>
+                  <input
+                    value={feeBps}
+                    onChange={(e) => setFeeBps(e.target.value)}
+                    inputMode="decimal"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">슬리피지 bps</span>
+                  <input
+                    value={slippageBps}
+                    onChange={(e) => setSlippageBps(e.target.value)}
+                    inputMode="decimal"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">세금 bps</span>
+                  <input
+                    value={taxBps}
+                    onChange={(e) => setTaxBps(e.target.value)}
+                    inputMode="decimal"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-slate-400">데이터 룩백</span>
+                  <input
+                    value={dataLookbackYears}
+                    onChange={(e) => setDataLookbackYears(e.target.value)}
+                    inputMode="numeric"
+                    className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
+                  />
+                </label>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-xs text-slate-400">전략 모드</span>
-                <select
-                  value={strategyMode}
-                  disabled
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
-                >
-                  <option value="triplea_dynamic">TripleA Dynamic</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">위험 프로파일</span>
-                <select
-                  value={riskProfile}
-                  onChange={(e) => setRiskProfile(e.target.value as BacktestRunRequest["riskProfile"])}
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                >
-                  {RISK_PROFILE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">투자 유니버스</span>
-                <select
-                  value={universeId}
-                  disabled
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none disabled:text-slate-500"
-                >
-                  <option value="default_global">default_global</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">초기자본</span>
-                <input
-                  value={initialCapital}
-                  onChange={(e) => setInitialCapital(e.target.value)}
-                  inputMode="numeric"
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">주기</span>
-                <select
-                  value={frequency}
-                  onChange={(e) => setFrequency(e.target.value as Frequency)}
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                >
-                  {FREQUENCY_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="text-xs text-slate-400">수수료 bps</span>
-                <input
-                  value={feeBps}
-                  onChange={(e) => setFeeBps(e.target.value)}
-                  inputMode="decimal"
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">슬리피지 bps</span>
-                <input
-                  value={slippageBps}
-                  onChange={(e) => setSlippageBps(e.target.value)}
-                  inputMode="decimal"
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">세금 bps</span>
-                <input
-                  value={taxBps}
-                  onChange={(e) => setTaxBps(e.target.value)}
-                  inputMode="decimal"
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
-              <label className="block">
-                <span className="text-xs text-slate-400">데이터 룩백</span>
-                <input
-                  value={dataLookbackYears}
-                  onChange={(e) => setDataLookbackYears(e.target.value)}
-                  inputMode="numeric"
-                  className="mt-1 h-9 w-full rounded-md border border-slate-600 bg-slate-900 px-3 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </label>
-            </div>
-          </div>
-        </Card>
+          </Card>
+          <SectorComponentDiagnosticPanel />
+        </div>
 
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">

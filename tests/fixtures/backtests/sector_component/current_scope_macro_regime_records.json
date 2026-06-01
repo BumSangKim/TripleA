@@ -1,0 +1,8 @@
+[
+  {"sector_id": "SEMICONDUCTOR", "as_of_date": "2026-01-31", "regime": "risk_on", "available_at": "2026-01-31T12:00:00+00:00", "data_snapshot_id": "scope:regime:semiconductor:2026-01-31"},
+  {"sector_id": "SEMICONDUCTOR", "as_of_date": "2026-02-28", "regime": "risk_on", "available_at": "2026-02-28T12:00:00+00:00", "data_snapshot_id": "scope:regime:semiconductor:2026-02-28"},
+  {"sector_id": "POWER_GRID", "as_of_date": "2026-01-31", "regime": "risk_off", "available_at": "2026-01-31T12:00:00+00:00", "data_snapshot_id": "scope:regime:power_grid:2026-01-31"},
+  {"sector_id": "POWER_GRID", "as_of_date": "2026-02-28", "regime": "risk_off", "available_at": "2026-02-28T12:00:00+00:00", "data_snapshot_id": "scope:regime:power_grid:2026-02-28"},
+  {"sector_id": "BATTERY", "as_of_date": "2026-01-31", "regime": "risk_off", "available_at": "2026-01-31T12:00:00+00:00", "data_snapshot_id": "scope:regime:battery:2026-01-31"},
+  {"sector_id": "BATTERY", "as_of_date": "2026-02-28", "regime": "risk_off", "available_at": "2026-02-28T12:00:00+00:00", "data_snapshot_id": "scope:regime:battery:2026-02-28"}
+]

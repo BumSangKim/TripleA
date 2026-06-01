@@ -17,10 +17,21 @@ It validates component observations through leakage-safe snapshots, attribution 
 
 Parameter sensitivity output is diagnostic only. The highest historical-return parameter set must not be adopted automatically.
 
+The scoped sector component UI/API extension is documented in `docs/backtests/SECTOR_COMPONENT_BACKTEST_STRUCTURAL_SPEC.md`. It adds diagnostic metadata and run endpoints separate from the existing general backtest endpoint:
+
+- `GET /api/backtests/sector-components/ui-metadata`
+- `POST /api/backtests/sector-components/run`
+
+For that extension, `전체 섹터` means `independent_enabled_sector_backtests`. Each enabled sector sleeve is backtested independently for comparison. A combined sector rotation portfolio is explicitly out of scope.
+
+Scoped responses preserve audit metadata: `parameterVersion`, `modelVersion`, `dataSnapshotId`, `reasonCodes`, and `warnings`.
+
 ## Required Checks
 
 ```bash
 pytest tests/backtest/test_sector_component_backtest_e2e.py -q
+pytest tests/backtest/test_sector_component_scope_backtest_e2e.py -q
 pytest tests/unit/features/backtests -q
+pytest tests/features/backtests -q
 pytest tests/architecture -q
 ```

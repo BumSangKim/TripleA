@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class BacktestRunRequest(BaseModel):
@@ -98,3 +98,92 @@ class BacktestRunResponse(BaseModel):
     trades: List[BacktestTrade] = Field(default_factory=list)
     decisions: List[BacktestDecision] = Field(default_factory=list)
     createdAt: Optional[str] = None
+
+
+class SectorComponentScopePayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["all", "single"]
+    sectorId: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> "SectorComponentScopePayload":
+        if self.mode == "all" and self.sectorId is not None:
+            raise ValueError("all sector scope must not include sectorId")
+        if self.mode == "single" and not (isinstance(self.sectorId, str) and self.sectorId.strip()):
+            raise ValueError("single sector scope requires sectorId")
+        if isinstance(self.sectorId, str):
+            self.sectorId = self.sectorId.strip()
+        return self
+
+
+class SectorComponentRunRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sectorScope: SectorComponentScopePayload
+
+
+class SectorComponentComparisonRowResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    sectorId: str
+    displayName: str
+    portfolioId: str
+    status: str
+    totalReturn: Optional[float] = None
+    maxDrawdown: Optional[float] = None
+    volatility: Optional[float] = None
+    hitRate: Optional[float] = None
+    observationCount: int = 0
+    warningCount: int = 0
+    reasonCodes: List[str] = Field(default_factory=list)
+
+
+class SectorComponentRunResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ok: bool
+    sectorScope: SectorComponentScopePayload
+    semantics: str = "independent_enabled_sector_backtests"
+    parameterVersion: str
+    modelVersion: str
+    dataSnapshotId: str
+    status: str
+    comparisonRows: List[SectorComponentComparisonRowResponse] = Field(default_factory=list)
+    sectorResults: List[Dict[str, Any]] = Field(default_factory=list)
+    warnings: List[Dict[str, Any]] = Field(default_factory=list)
+    reasonCodes: List[str] = Field(default_factory=list)
+
+
+class SectorComponentAllSectorOptionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str
+    value: str
+    sectorScope: SectorComponentScopePayload
+
+
+class SectorComponentSectorOptionResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: str
+    value: str
+    sectorId: str
+    portfolioId: str
+    enabled: bool
+    assetCount: int
+    assets: List[Dict[str, Any]] = Field(default_factory=list)
+    warnings: List[Dict[str, Any]] = Field(default_factory=list)
+    reasonCodes: List[str] = Field(default_factory=list)
+
+
+class SectorComponentUiMetadataResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ok: bool
+    parameterVersion: str
+    modelVersion: str
+    allSectorOption: SectorComponentAllSectorOptionResponse
+    sectorOptions: List[SectorComponentSectorOptionResponse] = Field(default_factory=list)
+    warnings: List[Dict[str, Any]] = Field(default_factory=list)
+    reasonCodes: List[str] = Field(default_factory=list)

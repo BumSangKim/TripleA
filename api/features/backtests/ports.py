@@ -27,3 +27,15 @@ class ISectorComponentBacktestRunner(Protocol):
         *,
         macro_regime_records: Sequence[Any] = (),
     ) -> Any: ...
+
+
+class ISectorComponentScopeBacktestRunner(Protocol):
+    def __call__(
+        self,
+        config: Any,
+        observations: Sequence[Any],
+        historical_returns: Sequence[Any],
+        macro_regime_records: Sequence[Any],
+        portfolios: Sequence[Any],
+        scope: Any,
+    ) -> Any: ...

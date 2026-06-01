@@ -145,7 +145,10 @@ export default function DashboardClient({ initialData }: DashboardClientProps) {
 
   // 클라이언트 마운트 후 초기 시간 설정 (SSR hydration mismatch 방지)
   useEffect(() => {
-    setLastUpdate(new Date().toLocaleTimeString("ko-KR"));
+    const id = window.setTimeout(() => {
+      setLastUpdate(new Date().toLocaleTimeString("ko-KR"));
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   // 5분마다 자동 갱신

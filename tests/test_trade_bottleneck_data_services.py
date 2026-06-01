@@ -52,4 +52,5 @@ def test_bottleneck_snapshot_filters_by_release_date_and_loads_sector_assets(tmp
     mappings = get_sector_asset_mappings(conn)
 
     assert [item.value_date for item in snapshot.indicators] == [date(2024, 2, 29)]
-    assert mappings["SEMICONDUCTOR"][0].asset_code == "SMH"
+    semiconductor_assets = {item.asset_code for item in mappings["SEMICONDUCTOR"]}
+    assert {"000660", "SMH"} <= semiconductor_assets

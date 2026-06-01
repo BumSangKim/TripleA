@@ -1,0 +1,51 @@
+version: sector_component_sector_portfolios_current_scope_test_v1
+semantics: diagnostic_sector_sleeve_fixture
+source_taxonomy: config/sector_taxonomy.yaml
+not_for:
+  - account_strategy
+  - order_candidate
+  - broker_execution
+  - production_parameter_approval
+portfolios:
+  - sector_id: SEMICONDUCTOR
+    display_name: Semiconductor
+    portfolio_id: sector_semiconductor_current_v1
+    enabled: true
+    display_order: 10
+    assets:
+      - asset_code: SMH
+        weight: 0.50
+        role: primary_proxy
+      - asset_code: SOXX
+        weight: 0.50
+        role: secondary_proxy
+    reason_codes:
+      - CURRENT_SCOPE_E2E_FIXTURE
+  - sector_id: POWER_GRID
+    display_name: Power Grid
+    portfolio_id: sector_power_grid_current_v1
+    enabled: true
+    display_order: 20
+    assets:
+      - asset_code: XLU
+        weight: 1.00
+        role: primary_proxy
+    reason_codes:
+      - CURRENT_SCOPE_E2E_FIXTURE
+  - sector_id: BATTERY
+    display_name: Battery
+    portfolio_id: sector_battery_current_v1
+    enabled: true
+    display_order: 30
+    assets:
+      - asset_code: LIT
+        weight: 1.00
+        role: primary_proxy
+    reason_codes:
+      - CURRENT_SCOPE_E2E_FIXTURE
+validation_policy:
+  unknown_sector: error
+  weight_sum_tolerance: 0.000001
+  asset_not_in_taxonomy: error
+  asset_not_in_investment_universe: review_required_warning
+fallback_policy: REVIEW_REQUIRED

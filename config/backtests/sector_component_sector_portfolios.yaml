@@ -1,0 +1,917 @@
+portfolio_version: sector_trade_reference_portfolios_v1
+as_of_date: '2026-06-01'
+classification: trade_reference_model_portfolio
+purpose: Sector sleeve portfolios for backtest, UI diagnostics, and human-reviewed trading reference. Not an automatic order
+  candidate.
+global_policy:
+  not_personalized_investment_advice: true
+  requires_user_review_before_order: true
+  automatic_execution_allowed: false
+  score_flow_required: true
+  hard_constraints_first: true
+  backtest_before_execution: true
+  must_include_categories:
+  - domestic_stock
+  - domestic_etf
+  - overseas_stock
+  - overseas_etf
+  base_weights_must_sum_to: 1.0
+  rebalance_frequency_reference: monthly_or_score_event
+  max_single_asset_reference_weight: 0.12
+  max_single_etf_reference_weight: 0.15
+  lookthrough_overlap_control: true
+  risk_gate:
+    data_quality_below_0_70: REVIEW_REQUIRED
+    missing_price_or_fx: REVIEW_REQUIRED
+    spread_or_liquidity_anomaly: REVIEW_REQUIRED
+    earnings_event_or_policy_event: REVIEW_REQUIRED
+    drawdown_or_volatility_spike: RISK_REDUCE_OR_HOLD
+  account_constraints_to_check:
+  - taxable
+  - isa
+  - pension
+  - irp
+  - foreign_stock_tradability
+  - foreign_etf_tax_treatment
+  - domestic_listed_foreign_etf_tax_treatment
+  - minimum_order_unit
+  - broker_product_support
+  - currency_conversion_cost
+  - withholding_tax_and_dividend_policy
+sectors:
+- sector_id: SEMICONDUCTOR
+  display_name: 반도체
+  portfolio_id: sector_semiconductor_trade_reference_v1
+  sector_role: high_growth_satellite
+  reference_total_portfolio_cap:
+    conservative: 0.07
+    balanced: 0.12
+    aggressive: 0.18
+  category_base_weights:
+    domestic_stock: 0.3
+    domestic_etf: 0.2
+    overseas_stock: 0.3
+    overseas_etf: 0.2
+  assets:
+  - asset_code: '000660'
+    name: SK하이닉스
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: memory_hbm_leader
+    min_weight: 0.04
+    base_weight: 0.09
+    max_weight: 0.12
+    risk_tags:
+    - memory_cycle
+    - single_stock_volatility
+    notes: ''
+  - asset_code: 005930
+    name: 삼성전자
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: memory_foundry_platform
+    min_weight: 0.04
+    base_weight: 0.08
+    max_weight: 0.12
+    risk_tags:
+    - memory_cycle
+    - foundry_execution
+    notes: ''
+  - asset_code: '042700'
+    name: 한미반도체
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: hbm_equipment
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - equipment_cycle
+    - valuation_burden
+    notes: ''
+  - asset_code: 058470
+    name: 리노공업
+    category: domestic_stock
+    market: KR
+    exchange: KOSDAQ
+    currency: KRW
+    role: test_socket_quality
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - small_mid_cap
+    - valuation_burden
+    notes: ''
+  - asset_code: '403870'
+    name: HPSP
+    category: domestic_stock
+    market: KR
+    exchange: KOSDAQ
+    currency: KRW
+    role: annealing_equipment
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - equipment_cycle
+    - small_mid_cap
+    notes: ''
+  - asset_code: 039030
+    name: 이오테크닉스
+    category: domestic_stock
+    market: KR
+    exchange: KOSDAQ
+    currency: KRW
+    role: laser_equipment
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.04
+    risk_tags:
+    - equipment_cycle
+    notes: ''
+  - asset_code: 091160
+    name: KODEX 반도체
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_semiconductor_broad_etf
+    min_weight: 0.0
+    base_weight: 0.08
+    max_weight: 0.12
+    risk_tags:
+    - domestic_stock_etf
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: '396500'
+    name: TIGER 반도체TOP10
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_top10_concentrated_etf
+    min_weight: 0.0
+    base_weight: 0.07
+    max_weight: 0.1
+    risk_tags:
+    - domestic_stock_etf
+    - top_two_concentration
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: '381180'
+    name: TIGER 미국필라델피아반도체나스닥
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_listed_us_semiconductor_etf
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - fx_embedded
+    - overseas_underlying
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: NVDA
+    name: NVIDIA
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: ai_accelerator_leader
+    min_weight: 0.0
+    base_weight: 0.07
+    max_weight: 0.1
+    risk_tags:
+    - mega_cap_concentration
+    - earnings_event_risk
+    notes: ''
+  - asset_code: TSM
+    name: Taiwan Semiconductor Manufacturing ADR
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: foundry_leader
+    min_weight: 0.0
+    base_weight: 0.06
+    max_weight: 0.09
+    risk_tags:
+    - geopolitical_risk
+    - foundry_cycle
+    notes: ''
+  - asset_code: AVGO
+    name: Broadcom
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: custom_asic_networking
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - mega_cap_concentration
+    notes: ''
+  - asset_code: ASML
+    name: ASML Holding ADR
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: lithography_monopoly
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - equipment_cycle
+    - export_control_risk
+    notes: ''
+  - asset_code: AMD
+    name: Advanced Micro Devices
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: ai_cpu_gpu_challenger
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.06
+    risk_tags:
+    - competitive_position
+    notes: ''
+  - asset_code: MU
+    name: Micron Technology
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: memory_hbm_us
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.06
+    risk_tags:
+    - memory_cycle
+    notes: ''
+  - asset_code: AMAT
+    name: Applied Materials
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: wafer_equipment
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.05
+    risk_tags:
+    - equipment_cycle
+    notes: ''
+  - asset_code: SMH
+    name: VanEck Semiconductor ETF
+    category: overseas_etf
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: global_semiconductor_core_etf
+    min_weight: 0.0
+    base_weight: 0.12
+    max_weight: 0.15
+    risk_tags:
+    - lookthrough_overlap
+    - single_name_concentration
+    notes: ''
+  - asset_code: SOXX
+    name: iShares Semiconductor ETF
+    category: overseas_etf
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: us_semiconductor_balanced_etf
+    min_weight: 0.0
+    base_weight: 0.08
+    max_weight: 0.12
+    risk_tags:
+    - lookthrough_overlap
+    notes: ''
+  rebalance_rules:
+    increase_conditions:
+    - sector_score_improving
+    - risk_budget_available
+    - data_quality_ok
+    - valuation_burden_not_extreme
+    reduce_or_hold_conditions:
+    - score_falling
+    - volatility_spike
+    - earnings_revision_deterioration
+    - single_name_concentration_breach
+    lookthrough_caps:
+      max_effective_nvda: 0.14
+      max_effective_skhynix: 0.14
+      max_effective_samsung_electronics: 0.14
+- sector_id: POWER_GRID
+  display_name: 전력망/전력설비
+  portfolio_id: sector_power_grid_trade_reference_v1
+  sector_role: infrastructure_growth_satellite
+  reference_total_portfolio_cap:
+    conservative: 0.06
+    balanced: 0.1
+    aggressive: 0.15
+  category_base_weights:
+    domestic_stock: 0.35
+    domestic_etf: 0.25
+    overseas_stock: 0.25
+    overseas_etf: 0.15
+  assets:
+  - asset_code: '010120'
+    name: LS ELECTRIC
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: power_equipment_switchgear
+    min_weight: 0.03
+    base_weight: 0.08
+    max_weight: 0.12
+    risk_tags:
+    - cyclical_orders
+    - valuation_burden
+    notes: ''
+  - asset_code: '267260'
+    name: HD현대일렉트릭
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: transformer_export_leader
+    min_weight: 0.02
+    base_weight: 0.07
+    max_weight: 0.1
+    risk_tags:
+    - export_order_cycle
+    - valuation_burden
+    notes: ''
+  - asset_code: '298040'
+    name: 효성중공업
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: transformer_heavy_equipment
+    min_weight: 0.02
+    base_weight: 0.06
+    max_weight: 0.09
+    risk_tags:
+    - project_margin
+    - backlog_execution
+    notes: ''
+  - asset_code: '006260'
+    name: LS
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: holding_company_power_cable_exposure
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - holding_company_discount
+    notes: ''
+  - asset_code: '001440'
+    name: 대한전선
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: power_cable
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.06
+    risk_tags:
+    - commodity_input_cost
+    - turnaround_risk
+    notes: ''
+  - asset_code: '103590'
+    name: 일진전기
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: power_cable_equipment
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - small_mid_cap
+    notes: ''
+  - asset_code: '000500'
+    name: 가온전선
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: cable_supplier
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.04
+    risk_tags:
+    - small_mid_cap
+    - liquidity_check
+    notes: ''
+  - asset_code: '487240'
+    name: KODEX AI전력핵심설비
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_ai_power_equipment_etf
+    min_weight: 0.0
+    base_weight: 0.15
+    max_weight: 0.18
+    risk_tags:
+    - domestic_sector_etf
+    - single_theme_momentum
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: '487230'
+    name: KODEX 미국AI전력핵심인프라
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_listed_us_ai_power_infra_etf
+    min_weight: 0.0
+    base_weight: 0.06
+    max_weight: 0.09
+    risk_tags:
+    - fx_embedded
+    - overseas_underlying
+    notes: ''
+  - asset_code: '491010'
+    name: TIGER 글로벌AI전력인프라액티브
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_listed_global_ai_power_active_etf
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - active_etf
+    - fx_embedded
+    - methodology_review
+    notes: ''
+  - asset_code: ETN
+    name: Eaton
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: electrical_power_management
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - valuation_burden
+    - industrial_cycle
+    notes: ''
+  - asset_code: ABB
+    name: ABB ADR
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: electrification_automation
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - adr_fx
+    - industrial_cycle
+    notes: ''
+  - asset_code: PWR
+    name: Quanta Services
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: grid_engineering_construction
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - project_execution
+    notes: ''
+  - asset_code: GEV
+    name: GE Vernova
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: grid_power_generation_equipment
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - newly_listed_history
+    - valuation_burden
+    notes: ''
+  - asset_code: VRT
+    name: Vertiv
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: data_center_power_cooling
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.06
+    risk_tags:
+    - ai_infrastructure_momentum
+    - valuation_burden
+    notes: ''
+  - asset_code: HUBB
+    name: Hubbell
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: electrical_components
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - industrial_cycle
+    notes: ''
+  - asset_code: NVT
+    name: nVent Electric
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: electrical_enclosures
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.04
+    risk_tags:
+    - industrial_cycle
+    notes: ''
+  - asset_code: GRID
+    name: First Trust NASDAQ Clean Edge Smart Grid Infrastructure ETF
+    category: overseas_etf
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: global_smart_grid_core_etf
+    min_weight: 0.0
+    base_weight: 0.1
+    max_weight: 0.14
+    risk_tags:
+    - global_infrastructure
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: XLU
+    name: Utilities Select Sector SPDR Fund
+    category: overseas_etf
+    market: US
+    exchange: NYSE Arca
+    currency: USD
+    role: defensive_utility_reference_etf
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - regulated_utility_rate_sensitivity
+    notes: ''
+  rebalance_rules:
+    increase_conditions:
+    - backlog_growth
+    - grid_capex_cycle_positive
+    - sector_score_improving
+    - rate_pressure_not_extreme
+    reduce_or_hold_conditions:
+    - valuation_burden_extreme
+    - order_margin_deterioration
+    - bond_yield_spike
+    - small_cap_liquidity_deterioration
+    lookthrough_caps:
+      max_effective_ls_electric: 0.14
+      max_effective_hd_hyundai_electric: 0.13
+      max_effective_hyosung_heavy: 0.12
+      max_effective_eaton: 0.12
+- sector_id: BATTERY
+  display_name: 2차전지/배터리
+  portfolio_id: sector_battery_trade_reference_v1
+  sector_role: cyclical_high_volatility_satellite
+  reference_total_portfolio_cap:
+    conservative: 0.04
+    balanced: 0.08
+    aggressive: 0.12
+  category_base_weights:
+    domestic_stock: 0.35
+    domestic_etf: 0.2
+    overseas_stock: 0.25
+    overseas_etf: 0.2
+  assets:
+  - asset_code: '373220'
+    name: LG에너지솔루션
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: battery_cell_leader
+    min_weight: 0.02
+    base_weight: 0.08
+    max_weight: 0.12
+    risk_tags:
+    - ev_demand_cycle
+    - customer_concentration
+    notes: ''
+  - asset_code: '006400'
+    name: 삼성SDI
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: premium_battery_cell
+    min_weight: 0.02
+    base_weight: 0.07
+    max_weight: 0.1
+    risk_tags:
+    - ev_demand_cycle
+    notes: ''
+  - asset_code: 005490
+    name: POSCO홀딩스
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: battery_materials_lithium_chain
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - commodity_cycle
+    - holding_company
+    notes: ''
+  - asset_code: '247540'
+    name: 에코프로비엠
+    category: domestic_stock
+    market: KR
+    exchange: KOSDAQ
+    currency: KRW
+    role: cathode_materials
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - high_volatility
+    - valuation_burden
+    notes: ''
+  - asset_code: 051910
+    name: LG화학
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: battery_materials_chemicals
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - chemical_cycle
+    - subsidiary_valuation
+    notes: ''
+  - asset_code: '003670'
+    name: 포스코퓨처엠
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: cathode_anode_materials
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.06
+    risk_tags:
+    - materials_cycle
+    notes: ''
+  - asset_code: 066970
+    name: 엘앤에프
+    category: domestic_stock
+    market: KR
+    exchange: KOSDAQ
+    currency: KRW
+    role: cathode_supplier
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.04
+    risk_tags:
+    - small_mid_cap
+    - customer_concentration
+    notes: ''
+  - asset_code: 096770
+    name: SK이노베이션
+    category: domestic_stock
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: battery_energy_transition
+    min_weight: 0.0
+    base_weight: 0.01
+    max_weight: 0.03
+    risk_tags:
+    - refining_battery_mix
+    - balance_sheet
+    notes: ''
+  - asset_code: '305720'
+    name: KODEX 2차전지산업
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_battery_industry_etf
+    min_weight: 0.0
+    base_weight: 0.09
+    max_weight: 0.12
+    risk_tags:
+    - domestic_sector_etf
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: '305540'
+    name: TIGER 2차전지테마
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_battery_theme_etf
+    min_weight: 0.0
+    base_weight: 0.06
+    max_weight: 0.09
+    risk_tags:
+    - theme_etf
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: '364980'
+    name: TIGER 2차전지TOP10
+    category: domestic_etf
+    market: KR
+    exchange: KRX
+    currency: KRW
+    role: domestic_battery_top10_etf
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - top10_concentration
+    - lookthrough_overlap
+    notes: ''
+  - asset_code: TSLA
+    name: Tesla
+    category: overseas_stock
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: ev_battery_demand_platform
+    min_weight: 0.0
+    base_weight: 0.06
+    max_weight: 0.09
+    risk_tags:
+    - ev_demand
+    - single_name_volatility
+    notes: ''
+  - asset_code: ALB
+    name: Albemarle
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: lithium_materials
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - lithium_price_cycle
+    notes: ''
+  - asset_code: 300750.SZ
+    name: CATL
+    category: overseas_stock
+    market: CN
+    exchange: Shenzhen
+    currency: CNY
+    role: global_battery_cell_leader
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - china_market_access
+    - geopolitical_risk
+    notes: ''
+  - asset_code: 1211.HK
+    name: BYD
+    category: overseas_stock
+    market: HK
+    exchange: HKEX
+    currency: HKD
+    role: ev_battery_integrated
+    min_weight: 0.0
+    base_weight: 0.04
+    max_weight: 0.07
+    risk_tags:
+    - ev_competition
+    - china_market_access
+    notes: ''
+  - asset_code: 6752.T
+    name: Panasonic Holdings
+    category: overseas_stock
+    market: JP
+    exchange: TSE
+    currency: JPY
+    role: battery_partner_electronics
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - fx_jpy
+    - conglomerate_discount
+    notes: ''
+  - asset_code: RIO
+    name: Rio Tinto ADR
+    category: overseas_stock
+    market: US
+    exchange: NYSE
+    currency: USD
+    role: battery_minerals_diversified_mining
+    min_weight: 0.0
+    base_weight: 0.02
+    max_weight: 0.04
+    risk_tags:
+    - commodity_cycle
+    - diversified_miner
+    notes: ''
+  - asset_code: LIT
+    name: Global X Lithium & Battery Tech ETF
+    category: overseas_etf
+    market: US
+    exchange: NYSE Arca
+    currency: USD
+    role: global_lithium_battery_core_etf
+    min_weight: 0.0
+    base_weight: 0.12
+    max_weight: 0.15
+    risk_tags:
+    - battery_cycle
+    - materials_concentration
+    notes: ''
+  - asset_code: BATT
+    name: Amplify Lithium & Battery Technology ETF
+    category: overseas_etf
+    market: US
+    exchange: NYSE Arca
+    currency: USD
+    role: global_battery_alternative_etf
+    min_weight: 0.0
+    base_weight: 0.05
+    max_weight: 0.08
+    risk_tags:
+    - battery_cycle
+    - liquidity_check
+    notes: ''
+  - asset_code: DRIV
+    name: Global X Autonomous & Electric Vehicles ETF
+    category: overseas_etf
+    market: US
+    exchange: NASDAQ
+    currency: USD
+    role: ev_demand_adjacent_etf
+    min_weight: 0.0
+    base_weight: 0.03
+    max_weight: 0.05
+    risk_tags:
+    - ev_demand
+    - theme_overlap
+    notes: ''
+  rebalance_rules:
+    increase_conditions:
+    - battery_score_improving
+    - ev_or_ess_demand_revision_positive
+    - lithium_price_stabilizing
+    - risk_budget_available
+    reduce_or_hold_conditions:
+    - inventory_correction
+    - lithium_price_shock
+    - policy_subsidy_risk
+    - drawdown_or_debt_risk
+    lookthrough_caps:
+      max_effective_lges: 0.14
+      max_effective_samsung_sdi: 0.14
+      max_effective_tesla: 0.1
+      max_effective_catl: 0.1

@@ -78,6 +78,25 @@ Stress periods come only from configuration. The backtest does not invent stress
 
 The output intentionally does not contain account IDs, order candidates, order instructions, broker fields, or execution fields.
 
+## Scoped UI And API Contract
+
+The structural UI/API scope is documented in `docs/backtests/SECTOR_COMPONENT_BACKTEST_STRUCTURAL_SPEC.md`.
+
+Sector component diagnostics use separate endpoints and do not modify the existing `POST /api/backtests/run` payload or response:
+
+- `GET /api/backtests/sector-components/ui-metadata`;
+- `POST /api/backtests/sector-components/run`.
+
+`전체 섹터` means `independent_enabled_sector_backtests`: enabled sector portfolios are backtested independently and returned as comparison rows. It does not mean a combined sector rotation portfolio, best-sector selector, allocation target, or production parameter promotion path.
+
+Scoped run responses carry audit metadata:
+
+- `parameterVersion`;
+- `modelVersion`;
+- `dataSnapshotId`;
+- `reasonCodes`;
+- `warnings`.
+
 ## Warnings And Conservative Fallback
 
 Conservative statuses are `NO_ACTION`, `HOLD`, `REVIEW_REQUIRED`, and `RISK_REDUCE_ONLY`. The sector component backtest uses `REVIEW_REQUIRED` when uncertainty is detected.
@@ -96,6 +115,8 @@ The current E2E fixture verifies raw fixture loading, config parsing, leakage-sa
 
 ```bash
 pytest tests/backtest/test_sector_component_backtest_e2e.py -q
+pytest tests/backtest/test_sector_component_scope_backtest_e2e.py -q
 pytest tests/unit/features/backtests -q
+pytest tests/features/backtests -q
 pytest tests/architecture -q
 ```

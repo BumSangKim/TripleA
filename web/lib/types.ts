@@ -259,6 +259,92 @@ export interface BacktestRunResponse {
   createdAt?: string | null;
 }
 
+export interface SectorComponentScopePayload {
+  mode: "all" | "single";
+  sectorId?: string | null;
+}
+
+export interface SectorComponentWarning {
+  code?: string;
+  message?: string;
+  fallbackState?: string;
+  [key: string]: unknown;
+}
+
+export interface SectorComponentAllSectorOption {
+  label: string;
+  value: string;
+  sectorScope: SectorComponentScopePayload;
+}
+
+export interface SectorComponentPortfolioAsset {
+  assetCode: string;
+  name?: string | null;
+  category?: string | null;
+  weight: number;
+  role: string;
+  market?: string | null;
+  exchange?: string | null;
+  currency?: string | null;
+  minWeight?: number | null;
+  maxWeight?: number | null;
+  riskTags: string[];
+}
+
+export interface SectorComponentSectorOption {
+  label: string;
+  value: string;
+  sectorId: string;
+  portfolioId: string;
+  enabled: boolean;
+  assetCount: number;
+  assets: SectorComponentPortfolioAsset[];
+  warnings: SectorComponentWarning[];
+  reasonCodes: string[];
+}
+
+export interface SectorComponentUiMetadataResponse {
+  ok: boolean;
+  parameterVersion: string;
+  modelVersion: string;
+  allSectorOption: SectorComponentAllSectorOption;
+  sectorOptions: SectorComponentSectorOption[];
+  warnings: SectorComponentWarning[];
+  reasonCodes: string[];
+}
+
+export interface SectorComponentRunRequest {
+  sectorScope: SectorComponentScopePayload;
+}
+
+export interface SectorComponentComparisonRow {
+  sectorId: string;
+  displayName: string;
+  portfolioId: string;
+  status: string;
+  totalReturn?: number | null;
+  maxDrawdown?: number | null;
+  volatility?: number | null;
+  hitRate?: number | null;
+  observationCount: number;
+  warningCount: number;
+  reasonCodes: string[];
+}
+
+export interface SectorComponentRunResponse {
+  ok: boolean;
+  sectorScope: SectorComponentScopePayload;
+  semantics: "independent_enabled_sector_backtests" | string;
+  parameterVersion: string;
+  modelVersion: string;
+  dataSnapshotId: string;
+  status: string;
+  comparisonRows: SectorComponentComparisonRow[];
+  sectorResults: Record<string, unknown>[];
+  warnings: SectorComponentWarning[];
+  reasonCodes: string[];
+}
+
 export interface APIErrorDetail {
   code?: string;
   message?: string;
