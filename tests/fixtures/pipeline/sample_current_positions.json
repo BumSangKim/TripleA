@@ -1,0 +1,23 @@
+{
+  "decision_date": "2026-05-31",
+  "positions": [
+    {
+      "account_id": "fixture_general_account",
+      "asset_id": "SAMPLE_US_EQUITY",
+      "current_weight": 0.20,
+      "market_value": 500000.0
+    },
+    {
+      "account_id": "fixture_general_account",
+      "asset_id": "SAMPLE_KR_EQUITY",
+      "current_weight": 0.12,
+      "market_value": 300000.0
+    },
+    {
+      "account_id": "fixture_irp_account",
+      "asset_id": "SAMPLE_DEFENSIVE_FUND",
+      "current_weight": 0.35,
+      "market_value": 525000.0
+    }
+  ]
+}

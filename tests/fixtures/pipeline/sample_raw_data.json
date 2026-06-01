@@ -1,0 +1,35 @@
+{
+  "decision_date": "2026-05-31",
+  "rows": [
+    {
+      "row_id": "price:sample_us_equity:2026-05-30",
+      "kind": "price",
+      "entity_id": "SAMPLE_US_EQUITY",
+      "metric": "close",
+      "source": "deterministic_pipeline_fixture",
+      "as_of_date": "2026-05-30",
+      "available_at": "2026-05-30T21:00:00+00:00",
+      "value": 100.0
+    },
+    {
+      "row_id": "macro:sample_policy_rate:2026-05-29",
+      "kind": "macro",
+      "entity_id": "SAMPLE_POLICY_RATE",
+      "metric": "level",
+      "source": "deterministic_pipeline_fixture",
+      "as_of_date": "2026-05-29",
+      "available_at": "2026-05-29T12:00:00+00:00",
+      "value": 0.035
+    },
+    {
+      "row_id": "sector:sample_semiconductor:2026-05-28",
+      "kind": "sector",
+      "entity_id": "SAMPLE_SEMICONDUCTOR",
+      "metric": "normalized_component",
+      "source": "deterministic_pipeline_fixture",
+      "as_of_date": "2026-05-28",
+      "available_at": "2026-05-28T09:00:00+00:00",
+      "value": 0.62
+    }
+  ]
+}

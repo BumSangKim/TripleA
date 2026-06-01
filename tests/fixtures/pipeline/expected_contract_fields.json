@@ -1,0 +1,44 @@
+{
+  "score_contract_fields": [
+    "score",
+    "previous_score",
+    "score_change",
+    "confidence",
+    "data_quality",
+    "stability",
+    "adjustment_intensity",
+    "reason_codes",
+    "as_of_date",
+    "parameter_version",
+    "model_version"
+  ],
+  "decision_log_fields": [
+    "date",
+    "data_snapshot_id",
+    "parameter_version",
+    "model_version",
+    "macro_scores",
+    "sector_scores",
+    "risk_budget_scores",
+    "target_weights",
+    "current_weights",
+    "rebalance_scores",
+    "account_constraints",
+    "decision",
+    "adjustment_intensity",
+    "reason_codes",
+    "warnings"
+  ],
+  "order_candidate_validation_fields": [
+    "candidate_id",
+    "asset_id",
+    "account_id",
+    "side",
+    "quantity",
+    "validation_status",
+    "manual_review_required",
+    "hard_constraint_result",
+    "reason_codes",
+    "warnings"
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "decision_date": "2026-05-31",
+  "accounts": [
+    {
+      "account_id": "fixture_general_account",
+      "account_type": "GENERAL",
+      "cash": {
+        "currency": "KRW",
+        "amount": 1000000.0
+      },
+      "holdings_summary": {
+        "market_value": 2500000.0,
+        "position_count": 2
+      },
+      "constraints": {
+        "manual_review_required": true,
+        "automatic_execution_allowed": false,
+        "fallback_action": "REVIEW_REQUIRED"
+      }
+    },
+    {
+      "account_id": "fixture_irp_account",
+      "account_type": "IRP",
+      "cash": {
+        "currency": "KRW",
+        "amount": 500000.0
+      },
+      "holdings_summary": {
+        "market_value": 1500000.0,
+        "position_count": 1
+      },
+      "constraints": {
+        "manual_review_required": true,
+        "automatic_execution_allowed": false,
+        "fallback_action": "REVIEW_REQUIRED",
+        "risky_asset_limit_check_required": true
+      }
+    }
+  ]
+}
