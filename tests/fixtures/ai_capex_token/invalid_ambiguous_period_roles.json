@@ -1,0 +1,21 @@
+{
+  "decision_date": "2026-02-10",
+  "snapshot_id": "ai-capex-token-invalid-ambiguous-period",
+  "metadata": {
+    "synthetic": true,
+    "expected_validation_error": "ambiguous_period_role",
+    "description": "Invalid fixture: source name hints current/previous but period_role is missing or ambiguous."
+  },
+  "token_sources_current": [
+    {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 120.0, "as_of_date": "2026-01-31", "available_at": "2026-02-05T00:00:00", "source": "synthetic_current_source_name_must_not_be_used", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "token_sources_previous": [
+    {"metric_key": "tokens.aggregate.synthetic", "value": 100.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_previous_source_name_must_not_be_used", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "capex_series": [
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "current", "value": 145.0, "as_of_date": "2026-01-31", "available_at": "2026-02-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 115.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "sector_metrics": {},
+  "macro_overlay_metrics": {}
+}

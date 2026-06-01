@@ -1,0 +1,32 @@
+{
+  "decision_date": "2026-02-10",
+  "snapshot_id": "ai-capex-token-s3-fixture",
+  "metadata": {
+    "synthetic": true,
+    "intended_scenario": "S3",
+    "description": "Synthetic expanding-token and decelerating-capex fixture for platform transition tests."
+  },
+  "token_sources_current": [
+    {"metric_key": "tokens.aggregate.synthetic", "period_role": "current", "value": 130.0, "as_of_date": "2026-01-31", "available_at": "2026-02-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "token_sources_previous": [
+    {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 100.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "capex_series": [
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 116.0, "as_of_date": "2026-01-31", "available_at": "2026-02-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 110.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 90.0, "as_of_date": "2025-11-30", "available_at": "2025-12-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "sector_metrics": {
+    "power_equipment": {"backlog_growth_score": 0.55, "backlog_slowdown_score": 0.35, "asp_growth_score": 0.5, "asp_slowdown_score": 0.3, "valuation_burden_score": 0.45},
+    "semiconductor_hbm": {"hbm_asp_growth_score": 0.6, "hbm_supply_growth_score": 0.45, "hbm_inventory_risk_score": 0.3, "valuation_burden_score": 0.45},
+    "bigtech_platform": {"ai_monetization_score": 0.75, "fcf_margin_improvement_score": 0.7, "capex_burden_score": 0.25, "valuation_burden_score": 0.35}
+  },
+  "macro_overlay_metrics": {
+    "real_rate_shock_score": 0.15,
+    "credit_spread_stress_score": 0.1,
+    "liquidity_stress_score": 0.15,
+    "fx_stress_score": 0.1,
+    "volatility_stress_score": 0.15
+  }
+}

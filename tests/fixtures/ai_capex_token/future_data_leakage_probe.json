@@ -1,0 +1,30 @@
+{
+  "decision_date": "2026-02-10",
+  "snapshot_id": "ai-capex-token-future-leakage-probe",
+  "metadata": {
+    "synthetic": true,
+    "expected_validation_warning": "future_available_at_present",
+    "description": "Invalid-for-decision fixture: includes at least one row not available at decision time."
+  },
+  "token_sources_current": [
+    {"metric_key": "tokens.aggregate.synthetic", "period_role": "current", "value": 80.0, "as_of_date": "2026-01-31", "available_at": "2026-02-20T00:00:00", "source": "synthetic_future_probe", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "token_sources_previous": [
+    {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 100.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "capex_series": [
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 145.0, "as_of_date": "2026-01-31", "available_at": "2026-02-20T00:00:00", "source": "synthetic_future_probe", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 115.0, "as_of_date": "2025-12-31", "available_at": "2026-01-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+    {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 100.0, "as_of_date": "2025-11-30", "available_at": "2025-12-05T00:00:00", "source": "synthetic_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+  ],
+  "sector_metrics": {
+    "power_equipment": {"backlog_growth_score": 0.35, "backlog_slowdown_score": 0.7, "asp_growth_score": 0.35, "asp_slowdown_score": 0.65, "valuation_burden_score": 0.7}
+  },
+  "macro_overlay_metrics": {
+    "real_rate_shock_score": 0.45,
+    "credit_spread_stress_score": 0.35,
+    "liquidity_stress_score": 0.4,
+    "fx_stress_score": 0.3,
+    "volatility_stress_score": 0.45
+  }
+}
