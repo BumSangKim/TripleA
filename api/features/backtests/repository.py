@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import date
 from typing import Any
 
+from api import backtest_engine as _backtest_engine
+from api.domain.strategy_inputs import StrategyDecisionLogInput
 from api.features.backtests.schemas import (
     BacktestDecision,
     BacktestPoint,
@@ -13,20 +14,33 @@ from api.features.backtests.schemas import (
     BacktestRunResponse,
     BacktestTrade,
 )
-from api.data.strategy_data_readers import (
-    SqliteBottleneckSnapshotReader,
-    SqliteMacroSnapshotReader,
-    SqliteSectorAssetMappingReader,
-)
-from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.reporting.strategy_decision_log_repository import SqliteStrategyDecisionLogRepository
-from api.backtest_engine import BacktestConfig, BacktestEngine
-from api.market_data_service import validate_market_data_coverage
-from api.market_data_collector import collect_for_asset_codes
-from api.strategy.triplea_allocator import TripleAAllocator
-from api.strategy_config import list_risk_profiles, list_universe_ids
 
-BACKTEST_STRATEGY_MODES = {"triplea_dynamic"}
+
+_DEFAULT_MARKET_DATA_COLLECTOR = _backtest_engine.collect_for_asset_codes
+
+
+def collect_for_asset_codes(*args: Any, **kwargs: Any) -> dict[str, int]:
+    return _DEFAULT_MARKET_DATA_COLLECTOR(*args, **kwargs)
+
+
+def _collect_for_backtest_runner(
+    conn: sqlite3.Connection,
+    asset_codes: list[str],
+    start: Any,
+    end: Any,
+) -> dict[str, int]:
+    result = collect_for_asset_codes(conn, asset_codes, start, end)
+    coverage = _backtest_engine.validate_market_data_coverage(conn, asset_codes, start, end)
+    if not coverage.ok:
+        missing = "; ".join(coverage.missing_messages)
+        raise ValueError(f"시장 데이터 수집 후에도 데이터가 부족합니다: {missing}")
+    return result
+
+
+_RUNNER_DEFAULTS = _backtest_engine.BacktestExecutionRunner.__init__.__kwdefaults__
+if _RUNNER_DEFAULTS is not None:
+    _RUNNER_DEFAULTS["market_data_collector"] = _collect_for_backtest_runner
 
 
 class BacktestsRepository:
@@ -34,82 +48,14 @@ class BacktestsRepository:
         self._conn = conn
 
     def run_backtest(self, request: BacktestRunRequest) -> BacktestRunResponse:
-        start = _parse_backtest_date(request.startDate, "startDate")
-        end = _parse_backtest_date(request.endDate, "endDate")
-        if start >= end:
-            raise ValueError("startDate must be before endDate")
-        if request.initialCapital <= 0:
-            raise ValueError("initialCapital must be greater than zero")
+        raise RuntimeError("BacktestsRepository requires BacktestsService runner orchestration")
 
-        frequency = (request.rebalanceFrequency or "monthly").strip().lower()
-        strategy_mode = _normalize_backtest_option(
-            request.strategyMode,
-            "strategyMode",
-            BACKTEST_STRATEGY_MODES,
-        )
-        risk_profile = _normalize_backtest_option(
-            request.riskProfile,
-            "riskProfile",
-            set(list_risk_profiles()),
-        )
-        universe_id = _normalize_backtest_option(
-            request.universeId,
-            "universeId",
-            set(list_universe_ids()),
-        )
-        base_currency = (request.baseCurrency or "KRW").strip().upper()
-        if not base_currency:
-            raise ValueError("baseCurrency must not be empty")
-        fee_bps = _non_negative_bps(request.feeBps, "feeBps")
-        slippage_bps = _non_negative_bps(request.slippageBps, "slippageBps")
-        tax_bps = _non_negative_bps(request.taxBps, "taxBps")
-        if request.dataLookbackYears < 1:
-            raise ValueError("dataLookbackYears must be at least 1")
-        if request.initialSeedPolicy not in {"CURRENT", "EQUAL_WEIGHT", "MINIMAL_PROBE", "VIRTUAL_OBSERVATION", "RANDOMIZED"}:
-            raise ValueError("unsupported initialSeedPolicy")
-
-        allocator = TripleAAllocator.from_config(
-            self._conn,
-            risk_profile=risk_profile,
-            universe_id=universe_id,
-            strategy_mode=strategy_mode,
-            macro_snapshot_reader=SqliteMacroSnapshotReader(self._conn),
-            bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(self._conn),
-            sector_asset_mapping_reader=SqliteSectorAssetMappingReader(self._conn),
-            trade_snapshot_reader=SqliteTradeSnapshotReader(self._conn),
-        )
-
-        asset_codes = allocator.asset_codes()
-        coverage = validate_market_data_coverage(self._conn, asset_codes, start, end)
-        if not coverage.ok:
-            import logging
-            logger = logging.getLogger("uvicorn.error")
-            missing = "; ".join(coverage.missing_messages)
-            logger.info("[run_backtest] coverage insufficient (%s) — collecting data", missing)
-            collect_for_asset_codes(self._conn, asset_codes, start, end)
-            coverage = validate_market_data_coverage(self._conn, asset_codes, start, end)
-            if not coverage.ok:
-                missing = "; ".join(coverage.missing_messages)
-                logger.warning("[run_backtest] coverage still incomplete after collection: %s", missing)
-                raise ValueError(f"시장 데이터 수집 후에도 데이터가 부족합니다: {missing}")
-
-        result = BacktestEngine(self._conn, allocator=allocator).run(
-            BacktestConfig(
-                start_date=start,
-                end_date=end,
-                initial_capital=request.initialCapital,
-                rebalance_frequency=frequency,
-                strategy_mode=strategy_mode,
-                risk_profile=risk_profile,
-                universe_id=universe_id,
-                base_currency=base_currency,
-                fee_bps=fee_bps,
-                slippage_bps=slippage_bps,
-                tax_bps=tax_bps,
-                data_lookback_years=request.dataLookbackYears,
-            ),
-        )
-
+    def save_backtest_result(
+        self,
+        request: BacktestRunRequest,
+        config: Any,
+        result: Any,
+    ) -> BacktestRunResponse:
         cur = self._conn.execute("""
             INSERT INTO backtest_runs
             (name, start_date, end_date, initial_capital, strategy_mode, risk_profile,
@@ -119,18 +65,18 @@ class BacktestsRepository:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'COMPLETED', ?, ?, ?, ?)
         """, (
             (request.name or "TripleA Dynamic Backtest").strip() or "TripleA Dynamic Backtest",
-            start.isoformat(),
-            end.isoformat(),
-            request.initialCapital,
-            strategy_mode,
-            risk_profile,
-            universe_id,
-            frequency,
-            base_currency,
-            fee_bps,
-            slippage_bps,
-            tax_bps,
-            request.dataLookbackYears,
+            config.start_date.isoformat(),
+            config.end_date.isoformat(),
+            config.initial_capital,
+            config.strategy_mode,
+            config.risk_profile,
+            config.universe_id,
+            config.rebalance_frequency,
+            config.base_currency,
+            config.fee_bps,
+            config.slippage_bps,
+            config.tax_bps,
+            config.data_lookback_years,
             result.total_return,
             result.annual_return,
             result.max_drawdown,
@@ -207,23 +153,23 @@ class BacktestsRepository:
             ))
             decision_id = int(decision_cur.lastrowid)
             if request.enableDecisionLogging:
-                from api.strategy.decision_logger import log_strategy_decision
-
-                log_strategy_decision(
-                    SqliteStrategyDecisionLogRepository(self._conn),
+                SqliteStrategyDecisionLogRepository(self._conn).write_decision_log(
+                    StrategyDecisionLogInput(
+                        decision_id=f"backtest:{run_id}:{decision_id}",
+                        snapshot_id=None,
+                        as_of_date=decision.as_of_date,
+                        decision_type="backtest_allocation",
+                        payload={
+                            "run_id": run_id,
+                            "parameter_set_id": request.parameterSetId,
+                            "optimization_run_id": request.optimizationRunId,
+                            "initial_seed_policy": request.initialSeedPolicy,
+                            "final_weights": decision.final_weights,
+                        },
+                        reason_codes=decision.reasons,
+                        warnings=[],
+                    ),
                     enabled=True,
-                    decision_id=f"backtest:{run_id}:{decision_id}",
-                    as_of_date=decision.as_of_date,
-                    decision_type="backtest_allocation",
-                    snapshot_id=None,
-                    payload={
-                        "run_id": run_id,
-                        "parameter_set_id": request.parameterSetId,
-                        "optimization_run_id": request.optimizationRunId,
-                        "initial_seed_policy": request.initialSeedPolicy,
-                        "final_weights": decision.final_weights,
-                    },
-                    reason_codes=decision.reasons,
                 )
             self._conn.executemany("""
                 INSERT INTO backtest_sector_decisions
@@ -453,25 +399,3 @@ def _decode_json_list(value: str | None) -> list[str]:
     if not isinstance(parsed, list):
         return []
     return [str(item) for item in parsed]
-
-
-def _parse_backtest_date(value: str, field_name: str) -> date:
-    try:
-        return date.fromisoformat(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{field_name} must be YYYY-MM-DD") from exc
-
-
-def _normalize_backtest_option(value: str, field_name: str, allowed: set[str]) -> str:
-    normalized = (value or "").strip().lower()
-    if normalized not in allowed:
-        options = ", ".join(sorted(allowed))
-        raise ValueError(f"{field_name} must be one of {options}")
-    return normalized
-
-
-def _non_negative_bps(value: float, field_name: str) -> float:
-    parsed = float(value)
-    if parsed < 0:
-        raise ValueError(f"{field_name} must be zero or greater")
-    return parsed
