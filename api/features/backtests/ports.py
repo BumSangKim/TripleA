@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Protocol, Sequence
+
+if TYPE_CHECKING:
+    from api.backtest_engine import BacktestConfig, BacktestEngineResult
 
 
 class IBacktestsRepository(Protocol):
@@ -10,6 +13,10 @@ class IBacktestsRepository(Protocol):
     def get_decisions(self, run_id: int) -> list[Any]: ...
     def get_positions(self, run_id: int) -> list[Any]: ...
     def get_trades(self, run_id: int) -> list[Any]: ...
+
+
+class IBacktestExecutionRunner(Protocol):
+    def run(self, config: BacktestConfig) -> BacktestEngineResult: ...
 
 
 class ISectorComponentBacktestDataProvider(Protocol):

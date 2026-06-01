@@ -4,7 +4,7 @@ import math
 import sqlite3
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Protocol
+from typing import Callable, Protocol
 
 from .market_data_service import (
     AssetUniverseItem,
@@ -13,6 +13,7 @@ from .market_data_service import (
     get_price_on_or_before,
     validate_market_data_coverage,
 )
+from .market_data_collector import collect_for_asset_codes
 from .data.strategy_data_readers import (
     SqliteBottleneckSnapshotReader,
     SqliteMacroSnapshotReader,
@@ -110,16 +111,7 @@ class BacktestEngine:
 
     def run(self, config: BacktestConfig) -> BacktestEngineResult:
         _validate_config(config)
-        allocator = self.allocator or TripleAAllocator.from_config(
-            self.conn,
-            risk_profile=config.risk_profile,
-            universe_id=config.universe_id,
-            strategy_mode=config.strategy_mode,
-            macro_snapshot_reader=SqliteMacroSnapshotReader(self.conn),
-            bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(self.conn),
-            sector_asset_mapping_reader=SqliteSectorAssetMappingReader(self.conn),
-            trade_snapshot_reader=SqliteTradeSnapshotReader(self.conn),
-        )
+        allocator = self.allocator or _default_allocator(self.conn, config)
         asset_codes = allocator.asset_codes()
         coverage = validate_market_data_coverage(
             self.conn,
@@ -227,6 +219,59 @@ class BacktestEngine:
             max_drawdown=max_drawdown,
             volatility=volatility,
         )
+
+
+BacktestMarketDataCollector = Callable[[sqlite3.Connection, list[str], date, date], object]
+
+
+class BacktestExecutionRunner:
+    def __init__(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        allocator: BacktestAllocator | None = None,
+        market_data_collector: BacktestMarketDataCollector | None = collect_for_asset_codes,
+    ) -> None:
+        self.conn = conn
+        self.allocator = allocator
+        self.market_data_collector = market_data_collector
+
+    def run(self, config: BacktestConfig) -> BacktestEngineResult:
+        _validate_config(config)
+        allocator = self.allocator or _default_allocator(self.conn, config)
+        asset_codes = allocator.asset_codes()
+        coverage = validate_market_data_coverage(
+            self.conn,
+            asset_codes,
+            config.start_date,
+            config.end_date,
+            base_currency=config.base_currency,
+        )
+        if not coverage.ok and self.market_data_collector is not None:
+            self.market_data_collector(self.conn, asset_codes, config.start_date, config.end_date)
+            coverage = validate_market_data_coverage(
+                self.conn,
+                asset_codes,
+                config.start_date,
+                config.end_date,
+                base_currency=config.base_currency,
+            )
+        if not coverage.ok:
+            raise ValueError("Market data coverage is insufficient: " + "; ".join(coverage.missing_messages))
+        return BacktestEngine(self.conn, allocator=allocator).run(config)
+
+
+def _default_allocator(conn: sqlite3.Connection, config: BacktestConfig) -> BacktestAllocator:
+    return TripleAAllocator.from_config(
+        conn,
+        risk_profile=config.risk_profile,
+        universe_id=config.universe_id,
+        strategy_mode=config.strategy_mode,
+        macro_snapshot_reader=SqliteMacroSnapshotReader(conn),
+        bottleneck_snapshot_reader=SqliteBottleneckSnapshotReader(conn),
+        sector_asset_mapping_reader=SqliteSectorAssetMappingReader(conn),
+        trade_snapshot_reader=SqliteTradeSnapshotReader(conn),
+    )
 
 
 def _validate_config(config: BacktestConfig) -> None:
