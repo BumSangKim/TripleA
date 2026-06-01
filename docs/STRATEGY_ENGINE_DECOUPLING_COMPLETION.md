@@ -4,8 +4,8 @@ Status: complete as of 2026-06-01.
 
 ## Removed Coupling Points
 
-- `api/strategy/macro_engine.py` no longer imports SQLite or
-  `api.macro_data_service`.
+- `api/strategy/macro_engine.py` no longer imports SQLite or root macro data
+  services.
 - `api/strategy/bottleneck_sector_engine.py` no longer imports root bottleneck
   data services or DB-backed adapters.
 - `api/strategy/common_sector_scoring_engine.py` no longer reads
@@ -19,7 +19,7 @@ Status: complete as of 2026-06-01.
 
 | Concern | Strategy port | Concrete owner |
 |---|---|---|
-| Macro snapshot input | `MacroSnapshotReader` | `api/data/strategy_data_readers.py` |
+| Macro snapshot input | `MacroSnapshotReader` | `api/data/macro_snapshot_reader.py` via `api/data/strategy_data_readers.py` |
 | Bottleneck snapshot input | `BottleneckSnapshotReader` | `api/data/strategy_data_readers.py` |
 | Sector asset mappings | `SectorAssetMappingReader` | `api/data/strategy_data_readers.py` |
 | Price history | `PriceHistoryReader` | `api/data/strategy_data_readers.py` |
@@ -45,10 +45,9 @@ review-only/no-execution output shape.
 
 ## Remaining Risks
 
-- Root data service files still exist as legacy/data-layer implementation
+- Remaining root data service files are legacy/data-layer implementation
   details and should not be imported by strategy.
 - Feature repositories still have known architecture xfails for broader
   repository/strategy ownership cleanup.
 - This work did not add live execution, broker order submission, real-account
   mutation, or automatic order behavior.
-

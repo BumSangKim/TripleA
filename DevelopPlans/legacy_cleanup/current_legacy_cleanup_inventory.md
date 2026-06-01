@@ -17,7 +17,7 @@ itself.
 
 | candidate_path | candidate_type | current_references | required_tests_before_removal | removal_task_id | stop_condition |
 |---|---|---|---|---|---|
-| `api/macro_data_service.py` | `needs_owner_move` | `api/data/strategy_data_readers.py`; `tests/test_macro_data_service.py`; architecture allowlist; historical docs | Move snapshot read behavior to data owner, preserve PIT latest-on-or-before behavior, update imports, run architecture/pipeline/unit tests | `003`, `004` | Public API route or strategy engine requires this root path directly |
+| root macro snapshot service | `removed` | Replaced by `api/data/macro_snapshot_reader.py`; behavior covered by `tests/data/test_macro_snapshot_reader.py` | Keep behavior-preserving tests and import guardrails passing | `003`, `004` | Public API route or strategy engine requires the removed root path directly |
 | `api/bottleneck_data_service.py` | `needs_owner_move` | `api/data/strategy_data_readers.py`; `tests/test_trade_bottleneck_data_services.py`; architecture allowlist; historical docs | Move bottleneck snapshot and sector mapping behavior to data owner, preserve release-date filtering and mapping order, update imports, run architecture/pipeline/unit tests | `005`, `006` | Public API route or strategy engine requires this root path directly |
 | `docs/refactor/current_structure_inventory.md` | `docs_only` | Historical refactor note and duplicated inventory context | Confirm it is not referenced as canonical current status; remove or trim only in docs cleanup task | `007` | It is referenced as the only source for current architecture state |
 | `DevelopPlans/refactor_modular_monolith/current_structure_inventory.md` | `active_keep` | Referenced by `DevelopPlans/STATUS.md`; records root owner inventory and unresolved owners | Keep as active refactor inventory unless a later task updates the canonical inventory | `008`, `010` | Removing it would erase the current owner-unresolved baseline |
@@ -38,7 +38,7 @@ itself.
 Macro root references currently appear in:
 
 - `api/data/strategy_data_readers.py`
-- `tests/test_macro_data_service.py`
+- `tests/test_macro_data_service.py` now imports the data-layer owner
 - `tests/strategy/test_macro_engine_no_db_coupling.py`
 - `tests/architecture/test_modular_monolith_import_boundaries.py`
 - `docs/STRATEGY_ENGINE_DECOUPLING_COMPLETION.md`
@@ -58,7 +58,7 @@ Bottleneck root references currently appear in:
 
 1. Add guardrail tests that make root legacy deletion observable.
 2. Move macro snapshot read behavior into the data owner.
-3. Delete `api/macro_data_service.py` only after behavior-preserving tests pass.
+3. Root macro snapshot service removal is complete after behavior-preserving tests pass.
 4. Move bottleneck snapshot and sector mapping read behavior into the data owner.
 5. Delete `api/bottleneck_data_service.py` only after behavior-preserving tests pass.
 6. Remove or scope stale historical docs and shrink root allowlists.

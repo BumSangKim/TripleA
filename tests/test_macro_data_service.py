@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import date
 
-from api.macro_data_service import get_macro_snapshot
+from api.data.macro_snapshot_reader import get_macro_snapshot
 
 
 def test_macro_snapshot_uses_latest_indicator_on_or_before_as_of_date():

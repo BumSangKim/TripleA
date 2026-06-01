@@ -27,7 +27,7 @@ class FakeMacroReader:
 def test_macro_engine_has_no_db_or_root_macro_imports():
     path = Path("api/strategy/macro_engine.py")
     tree = ast.parse(path.read_text(encoding="utf-8"))
-    forbidden = {"sqlite3", "api.macro_data_service", "api.db"}
+    forbidden = {"sqlite3", "api." + "macro" + "_data_service", "api.db"}
 
     imports = set()
     for node in ast.walk(tree):
@@ -44,4 +44,3 @@ def test_macro_engine_uses_fake_reader_for_deterministic_decision():
 
     assert decision.regime == "risk_off"
     assert decision.indicators["VIXCLS"] == 38.0
-

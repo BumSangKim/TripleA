@@ -10,7 +10,7 @@ empty.
 
 | Former coupling | Current owner | Current contract |
 |---|---|---|
-| Macro snapshot DB/root service read | `api/data/strategy_data_readers.py` | `MacroSnapshotReader` |
+| Macro snapshot DB read | `api/data/macro_snapshot_reader.py` via `api/data/strategy_data_readers.py` | `MacroSnapshotReader` |
 | Bottleneck snapshot DB/root service read | `api/data/strategy_data_readers.py` | `BottleneckSnapshotReader` |
 | Sector asset mapping root service read | `api/data/strategy_data_readers.py` | `SectorAssetMappingReader` |
 | Common sector price history SQLite read | `api/data/strategy_data_readers.py` | `PriceHistoryReader` |
@@ -23,8 +23,8 @@ empty.
   readers or repositories.
 - Application composition points, such as backtest execution, explicitly inject
   SQLite-backed readers/writers.
-- Root data services remain legacy/data-layer implementation details and are
-  not imported by `api/strategy/**`.
+- Remaining root data services are legacy/data-layer implementation details and
+  are not imported by `api/strategy/**`.
 - This inventory is not authorization for new strategy-layer DB access.
 
 ## Validation

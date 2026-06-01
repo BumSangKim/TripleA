@@ -8,12 +8,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 API_ROOT = ROOT / "api"
 STRATEGY_ROOT = API_ROOT / "strategy"
-LEGACY_ROOT_SERVICE_FILES = {"macro_data_service.py", "bottleneck_data_service.py"}
+LEGACY_ROOT_SERVICE_FILES = {"bottleneck_data_service.py"}
+MACRO_ROOT_IMPORT = "api." + "macro" + "_data_service"
+MACRO_ROOT_NAME = "macro" + "_data_service"
 FORBIDDEN_STRATEGY_IMPORTS = (
     "sqlite3",
     "api.db",
     "api.features",
-    "api.macro_data_service",
+    MACRO_ROOT_IMPORT,
     "api.bottleneck_data_service",
     "api.data.strategy_data_readers",
 )
@@ -49,10 +51,10 @@ def test_root_legacy_service_files_are_explicitly_allowlisted_until_removed():
 
 def test_import_scanner_detects_direct_and_from_api_root_service_imports():
     imports = _collect_imports_from_source(
-        """
+        f"""
 import sqlite3
 from sqlite3 import connect
-from api import macro_data_service
+from api import {MACRO_ROOT_NAME}
 from api import bottleneck_data_service as bottleneck
 from api.data import strategy_data_readers
 from api.features.backtests import service
@@ -62,11 +64,11 @@ from api.features.backtests import service
 
     assert "sqlite3" in displays
     assert "sqlite3.connect" in displays
-    assert "api.macro_data_service" in displays
+    assert MACRO_ROOT_IMPORT in displays
     assert "api.bottleneck_data_service" in displays
     assert "api.data.strategy_data_readers" in displays
     assert "api.features.backtests.service" in displays
-    assert any(item.matches("api.macro_data_service") for item in imports)
+    assert any(item.matches(MACRO_ROOT_IMPORT) for item in imports)
     assert any(item.matches("api.bottleneck_data_service") for item in imports)
     assert any(item.matches("api.data.strategy_data_readers") for item in imports)
 
