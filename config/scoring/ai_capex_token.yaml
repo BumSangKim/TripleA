@@ -1,0 +1,115 @@
+enabled: false
+production_enabled: false
+diagnostic_only: true
+requires_backtest_pass: true
+requires_walk_forward_pass: true
+requires_user_approval_for_production: true
+fallback_policy: REVIEW_REQUIRED
+
+parameter_metadata:
+  parameter_version: ai_capex_token_v0_draft
+  model_version: ai_capex_token_score_v0
+  source: config/scoring/ai_capex_token.yaml
+  reason: Draft metadata for diagnostic AI Capex-Token scoring; not production approved.
+  valid_from: "2026-01-01"
+  valid_to: null
+  backtest_result: null
+  walk_forward_result: null
+  approved: false
+  approval_status: draft
+  rollback_condition: Disable diagnostic output if leakage, warning-rate, or score instability tests fail.
+
+normalization_parameters:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  token_change_bounds: null
+  capex_growth_bounds: null
+  capex_acceleration_bounds: null
+
+scenario_probability_parameters:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  probability_model: diagnostic_distribution_only
+  direction_boundary_policy: explicit_feature_builder_output_only
+  smoothing: null
+
+sector_component_weights:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  bigtech_platform:
+    monetization_score_weight: null
+    fcf_margin_improvement_weight: null
+    capex_burden_continuous_penalty_weight: null
+    valuation_burden_continuous_penalty_weight: null
+  power_equipment:
+    backlog_growth_weight: null
+    backlog_slowdown_continuous_penalty_weight: null
+    asp_growth_weight: null
+    asp_slowdown_continuous_penalty_weight: null
+    valuation_burden_continuous_penalty_weight: null
+  semiconductor_hbm:
+    hbm_asp_growth_weight: null
+    hbm_supply_growth_weight: null
+    hbm_inventory_continuous_penalty_weight: null
+    valuation_burden_continuous_penalty_weight: null
+  inverse_hedge:
+    diagnostic_only: true
+    requires_existing_hedge_policy: true
+    weight: null
+
+macro_overlay_weights:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  real_rate_shock_weight: null
+  credit_spread_stress_weight: null
+  liquidity_stress_weight: null
+  fx_stress_weight: null
+  volatility_stress_weight: null
+  adjustment_target: confidence_and_adjustment_intensity_only
+
+data_quality_policy:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  missing_input_action: REVIEW_REQUIRED
+  stale_input_action: HOLD
+  unavailable_at_decision_time_action: REVIEW_REQUIRED
+  risk_increase_on_error_allowed: false
+  min_quality_score: null
+
+production_gate:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    requires_backtest_calibration: true
+    fallback_policy: REVIEW_REQUIRED
+  enabled_when:
+    approved: true
+    backtest_passed: true
+    walk_forward_passed: true
+    user_approval_recorded: true
+  default_state: diagnostic_only
+
+test_parameters:
+  metadata:
+    source: config/scoring/ai_capex_token.yaml
+    approved: false
+    scope: unit_tests_only
+    fallback_policy: REVIEW_REQUIRED
+  scenario_equal_probability: 0.1111111111111111
+  neutral_score: 0.5
+  fixture_quality_score: 0.95
