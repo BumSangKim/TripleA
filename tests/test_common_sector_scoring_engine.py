@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 
+from api.data.strategy_data_readers import SqlitePriceHistoryReader
 from api.strategy.common_sector_scoring_engine import CommonSectorScoringEngine
 
 
@@ -17,8 +18,9 @@ def test_common_sector_score_responds_to_relative_strength_and_missing_data():
         ("SMH", "2026-05-01", 100), ("SMH", "2026-05-27", 120),
         ("SPY", "2026-05-01", 100), ("SPY", "2026-05-27", 105),
     ])
-    score = CommonSectorScoringEngine(conn).score_sector("SEMICONDUCTOR", "SMH", "SPY", date(2026, 5, 27))
-    missing = CommonSectorScoringEngine(conn).score_sector("UNKNOWN", None, "SPY", date(2026, 5, 27))
+    reader = SqlitePriceHistoryReader(conn)
+    score = CommonSectorScoringEngine(reader).score_sector("SEMICONDUCTOR", "SMH", "SPY", date(2026, 5, 27))
+    missing = CommonSectorScoringEngine(reader).score_sector("UNKNOWN", None, "SPY", date(2026, 5, 27))
     assert score.relative_strength_score > 0.5
     assert score.valuation_burden_score is None
     assert score.confidence < 0.75
