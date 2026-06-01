@@ -1,0 +1,2 @@
+"""Pure scoring domain contracts."""
+
