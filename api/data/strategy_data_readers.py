@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date
 
-from api.bottleneck_data_service import get_bottleneck_snapshot, get_sector_asset_mappings
+from api.data.bottleneck_snapshot_reader import get_bottleneck_snapshot, get_sector_asset_mappings
 from api.domain.strategy_inputs import (
     BottleneckIndicatorInput,
     BottleneckSnapshotInput,
