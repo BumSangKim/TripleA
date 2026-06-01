@@ -1,0 +1,2 @@
+"""Score-flow adapter contracts."""
+
