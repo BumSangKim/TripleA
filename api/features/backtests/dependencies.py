@@ -5,6 +5,7 @@ from typing import Generator
 
 from fastapi import Depends
 
+from api.backtest_engine import BacktestExecutionRunner
 from api.db.connection import get_conn
 from api.features.backtests.repository import BacktestsRepository
 from api.features.backtests.service import BacktestsService
@@ -33,10 +34,12 @@ def get_backtests_repository(
 
 
 def get_backtests_service(
+    conn: sqlite3.Connection = Depends(get_db),
     repo: BacktestsRepository = Depends(get_backtests_repository),
 ) -> BacktestsService:
     return BacktestsService(
         repo,
+        backtest_execution_runner=BacktestExecutionRunner(conn),
         sector_component_data_provider=FileSectorComponentBacktestDataProvider(),
         sector_component_runner=run_sector_component_backtest,
         sector_component_scope_runner=run_sector_component_scope_backtest,

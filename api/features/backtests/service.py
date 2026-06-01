@@ -3,7 +3,9 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time
 from typing import Any
 
+from api.backtest_engine import BacktestConfig
 from api.features.backtests.ports import (
+    IBacktestExecutionRunner,
     IBacktestsRepository,
     ISectorComponentBacktestDataProvider,
     ISectorComponentBacktestRunner,
@@ -25,16 +27,23 @@ class BacktestsService:
         self,
         repo: IBacktestsRepository,
         *,
+        backtest_execution_runner: IBacktestExecutionRunner | None = None,
         sector_component_data_provider: ISectorComponentBacktestDataProvider | None = None,
         sector_component_runner: ISectorComponentBacktestRunner | None = None,
         sector_component_scope_runner: ISectorComponentScopeBacktestRunner | None = None,
     ) -> None:
         self._repo = repo
+        self._backtest_execution_runner = backtest_execution_runner
         self._sector_component_data_provider = sector_component_data_provider
         self._sector_component_runner = sector_component_runner
         self._sector_component_scope_runner = sector_component_scope_runner
 
     def run_backtest(self, body: Any) -> Any:
+        save_result = getattr(self._repo, "save_backtest_result", None)
+        if self._backtest_execution_runner is not None and callable(save_result):
+            config = _backtest_config_from_request(body)
+            result = self._backtest_execution_runner.run(config)
+            return save_result(body, config, result)
         return self._repo.run_backtest(body)
 
     def run_sector_component_backtest(self, config: Any) -> Any:
@@ -200,3 +209,40 @@ def _config_text(config: Any, field_name: str, default: str) -> str:
 def _fallback_policy(config: Any) -> str:
     value = _config_text(config, "fallback_policy", "REVIEW_REQUIRED")
     return value if value in CONSERVATIVE_FALLBACK_STATES else "REVIEW_REQUIRED"
+
+
+def _backtest_config_from_request(body: Any) -> BacktestConfig:
+    return BacktestConfig(
+        start_date=_request_date(body, "startDate"),
+        end_date=_request_date(body, "endDate"),
+        initial_capital=float(_request_value(body, "initialCapital", 0)),
+        rebalance_frequency=_request_text(body, "rebalanceFrequency", "monthly").lower(),
+        strategy_mode=_request_text(body, "strategyMode", "triplea_dynamic").lower(),
+        risk_profile=_request_text(body, "riskProfile", "balanced").lower(),
+        universe_id=_request_text(body, "universeId", "default_global").lower(),
+        base_currency=_request_text(body, "baseCurrency", "KRW").upper(),
+        fee_bps=float(_request_value(body, "feeBps", 0.0)),
+        slippage_bps=float(_request_value(body, "slippageBps", 0.0)),
+        tax_bps=float(_request_value(body, "taxBps", 0.0)),
+        data_lookback_years=int(_request_value(body, "dataLookbackYears", 5)),
+    )
+
+
+def _request_date(body: Any, field_name: str) -> date:
+    value = _request_value(body, field_name, None)
+    try:
+        return date.fromisoformat(str(value))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must be YYYY-MM-DD") from exc
+
+
+def _request_text(body: Any, field_name: str, default: str) -> str:
+    value = _request_value(body, field_name, default)
+    text = str(value or default).strip()
+    return text or default
+
+
+def _request_value(body: Any, field_name: str, default: Any) -> Any:
+    if isinstance(body, dict):
+        return body.get(field_name, default)
+    return getattr(body, field_name, default)
