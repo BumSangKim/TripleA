@@ -4,7 +4,9 @@ import sqlite3
 from dataclasses import dataclass, field
 from datetime import date
 
+from api.domain.strategy_inputs import MacroSnapshotInput
 from api.macro_data_service import MacroSnapshot, get_macro_snapshot
+from api.strategy.data_ports import MacroSnapshotReader
 
 
 @dataclass(frozen=True)
@@ -17,15 +19,30 @@ class MacroRegimeDecision:
 
 
 class MacroEngine:
-    def __init__(self, conn: sqlite3.Connection):
+    def __init__(
+        self,
+        conn: sqlite3.Connection | None = None,
+        *,
+        reader: MacroSnapshotReader | None = None,
+    ):
         self.conn = conn
+        self.reader = reader
+
+    @classmethod
+    def from_reader(cls, reader: MacroSnapshotReader) -> "MacroEngine":
+        return cls(reader=reader)
 
     def evaluate(self, as_of_date: date) -> MacroRegimeDecision:
-        snapshot = get_macro_snapshot(self.conn, as_of_date)
+        if self.reader is not None:
+            snapshot = self.reader.read_macro_snapshot(as_of_date)
+        elif self.conn is not None:
+            snapshot = get_macro_snapshot(self.conn, as_of_date)
+        else:
+            snapshot = MacroSnapshotInput(as_of_date=as_of_date)
         return evaluate_macro_snapshot(snapshot)
 
 
-def evaluate_macro_snapshot(snapshot: MacroSnapshot) -> MacroRegimeDecision:
+def evaluate_macro_snapshot(snapshot: MacroSnapshot | MacroSnapshotInput) -> MacroRegimeDecision:
     indicators = {
         key: item.value
         for key, item in snapshot.indicators.items()
