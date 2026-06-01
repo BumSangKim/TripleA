@@ -4,8 +4,8 @@ from datetime import date
 
 import pytest
 
+from api.score_pipeline.score_store import SQLiteScoreStore
 from api.strategy.score_layer import (
-    SQLiteScoreStore,
     ScoreDefinition,
     ScoreInput,
     ScoreLayerError,
@@ -252,4 +252,3 @@ def test_phase5_missing_data_conservative_fallback_and_no_order_generation():
     assert "REVIEW_REQUIRED" in outputs[0].reason_codes
     blocked = {"order", "target_weight", "allocation", "broker"}
     assert not blocked.intersection({field.name for field in fields(type(outputs[0]))})
-
