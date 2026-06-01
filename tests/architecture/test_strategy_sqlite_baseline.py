@@ -7,7 +7,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 STRATEGY_ROOT = ROOT / "api" / "strategy"
 SQLITE_IMPORT_BASELINE = {
-    "api/strategy/decision_logger.py",
     "api/strategy/score_layer.py",
     "api/strategy/triplea_allocator.py",
 }

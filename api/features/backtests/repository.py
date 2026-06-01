@@ -19,6 +19,7 @@ from api.data.strategy_data_readers import (
     SqliteSectorAssetMappingReader,
 )
 from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
+from api.reporting.strategy_decision_log_repository import SqliteStrategyDecisionLogRepository
 from api.backtest_engine import BacktestConfig, BacktestEngine
 from api.market_data_service import validate_market_data_coverage
 from api.market_data_collector import collect_for_asset_codes
@@ -209,7 +210,7 @@ class BacktestsRepository:
                 from api.strategy.decision_logger import log_strategy_decision
 
                 log_strategy_decision(
-                    self._conn,
+                    SqliteStrategyDecisionLogRepository(self._conn),
                     enabled=True,
                     decision_id=f"backtest:{run_id}:{decision_id}",
                     as_of_date=decision.as_of_date,

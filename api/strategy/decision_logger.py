@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import json
-import sqlite3
 from datetime import date
 
-from api.testbed.schema import ensure_testbed_tables
+from api.domain.strategy_inputs import StrategyDecisionLogInput
+from api.strategy.data_ports import StrategyDecisionLogWriter
 
 
 def log_strategy_decision(
-    conn: sqlite3.Connection,
+    writer: StrategyDecisionLogWriter | None,
     *,
     enabled: bool,
     decision_id: str,
@@ -19,27 +18,15 @@ def log_strategy_decision(
     reason_codes: list[str] | None = None,
     warnings: list[str] | None = None,
 ) -> bool:
-    if not enabled:
+    if not enabled or writer is None:
         return False
-    ensure_testbed_tables(conn)
-    conn.execute(
-        """
-        INSERT INTO strategy_decision_logs (decision_id, snapshot_id, as_of_date, decision_type, payload_json, reason_codes_json, warnings_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(decision_id) DO UPDATE SET
-            payload_json=excluded.payload_json,
-            reason_codes_json=excluded.reason_codes_json,
-            warnings_json=excluded.warnings_json
-        """,
-        (
-            decision_id,
-            snapshot_id,
-            as_of_date.isoformat(),
-            decision_type,
-            json.dumps(payload, sort_keys=True),
-            json.dumps(reason_codes or [], sort_keys=True),
-            json.dumps(warnings or [], sort_keys=True),
-        ),
+    log_payload = StrategyDecisionLogInput(
+        decision_id=decision_id,
+        snapshot_id=snapshot_id,
+        as_of_date=as_of_date,
+        decision_type=decision_type,
+        payload=payload,
+        reason_codes=reason_codes or [],
+        warnings=warnings or [],
     )
-    conn.commit()
-    return True
+    return writer.write_decision_log(log_payload, enabled=True)
