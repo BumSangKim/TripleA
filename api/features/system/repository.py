@@ -47,13 +47,33 @@ class SystemRepository:
         )
 
     def list_modes(self) -> list[Any]:
-        from api.providers.router import provider_router
-        return [p.mode_info() for p in provider_router.list()]
+        return [
+            {
+                "mode": "local",
+                "provider": "LocalSimulation",
+                "dbWriteScope": "local_manual",
+                "externalApi": False,
+                "orderPolicy": "disabled",
+                "canWriteUserData": True,
+                "canExecuteOrders": False,
+            },
+            {
+                "mode": "backtest",
+                "provider": "BacktestSimulation",
+                "dbWriteScope": "results",
+                "externalApi": False,
+                "orderPolicy": "disabled",
+                "canWriteUserData": False,
+                "canExecuteOrders": False,
+            },
+        ]
 
     def get_mode_info(self, mode: Any) -> Any:
-        from api.providers.router import provider_router
-        return provider_router.get(mode).mode_info()
+        normalized = (str(mode or "local")).strip().lower()
+        for item in self.list_modes():
+            if item["mode"] == normalized:
+                return item
+        raise ValueError(f"Unsupported simplified mode '{mode}'. Allowed modes: local, backtest")
 
     def sync_accounts(self, mode: Any) -> Any:
-        from api.providers.router import provider_router
-        return provider_router.get(mode).sync_accounts(self._conn)
+        raise NotImplementedError("Live account integration is not supported in the simplified architecture")

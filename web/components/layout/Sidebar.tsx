@@ -12,7 +12,6 @@ const NAV_ITEMS = [
   { href: "/portfolio",  label: "포트폴리오", icon: "💼" },
   { href: "/accounts",   label: "계좌",       icon: "🏦" },
   { href: "/backtests",  label: "백테스트",   icon: "📈" },
-  { href: "/orders",     label: "주문",       icon: "🧾" },
   { href: "/targets",    label: "목표관리",   icon: "🎯" },
   { href: "/reports",    label: "리포트",     icon: "📋" },
   { href: "/documents",  label: "자료실",     icon: "📁" },

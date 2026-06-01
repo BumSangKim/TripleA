@@ -8,7 +8,6 @@ import type {
   AccountSnapshotCreate,
   AccountSnapshotItem,
   AccountSummary,
-  ModeInfo,
   RebalanceResultItem,
   TradingMode,
 } from "@/lib/types";
@@ -16,11 +15,8 @@ import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 
 const MODE_OPTIONS: { value: TradingMode; label: string }[] = [
-  { value: "mock", label: "Mock" },
-  { value: "test", label: "Test" },
+  { value: "local", label: "Local" },
   { value: "backtest", label: "Backtest" },
-  { value: "paper", label: "Paper" },
-  { value: "live", label: "Live" },
 ];
 
 type SnapshotField =
@@ -75,10 +71,6 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function canSyncProvider(modeInfo: ModeInfo | null): boolean {
-  return modeInfo !== null;
-}
-
 function parseMoney(value: string): number {
   const parsed = Number(value.replaceAll(",", "").trim());
   return Number.isFinite(parsed) ? parsed : 0;
@@ -110,14 +102,12 @@ function actionLabel(action: string): string {
   return labels[action] ?? action;
 }
 
-function modeCanWrite(mode: TradingMode, modeInfo: ModeInfo | null): boolean {
-  if (modeInfo) return modeInfo.canWriteUserData;
-  return mode !== "mock" && mode !== "test";
+function modeCanWrite(mode: TradingMode): boolean {
+  return mode === "local";
 }
 
 export default function AccountsPageClient() {
-  const [mode, setMode] = useState<TradingMode>("paper");
-  const [modeInfo, setModeInfo] = useState<ModeInfo | null>(null);
+  const [mode, setMode] = useState<TradingMode>("local");
   const [accounts, setAccounts] = useState<AccountSummary[]>([]);
   const [policies, setPolicies] = useState<AccountPolicyItem[]>([]);
   const [rebalanceResults, setRebalanceResults] = useState<RebalanceResultItem[]>([]);
@@ -130,17 +120,14 @@ export default function AccountsPageClient() {
   const [snapshotLoading, setSnapshotLoading] = useState(false);
   const [snapshotSaving, setSnapshotSaving] = useState(false);
   const [rebalanceRunning, setRebalanceRunning] = useState(false);
-  const [providerSyncing, setProviderSyncing] = useState(false);
   const [toggleBusyId, setToggleBusyId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [snapshotMsg, setSnapshotMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [rebalanceMsg, setRebalanceMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [providerMsg, setProviderMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const canWrite = modeCanWrite(mode, modeInfo);
-  const canSync = canSyncProvider(modeInfo);
+  const canWrite = modeCanWrite(mode);
   const selectedAccount = useMemo(
     () => accounts.find((account) => account.id === selected) ?? null,
     [accounts, selected],
@@ -155,10 +142,8 @@ export default function AccountsPageClient() {
     try {
       const data = await api.getDashboardSummary(mode);
       setAccounts(data.accounts ?? []);
-      setModeInfo(data.modeInfo ?? null);
     } catch {
       setAccounts([]);
-      setModeInfo(null);
     } finally {
       setLoading(false);
     }
@@ -332,36 +317,6 @@ export default function AccountsPageClient() {
     }
   };
 
-  const handleProviderSync = async () => {
-    if (!canSync) {
-      setProviderMsg({ type: "err", text: "현재 모드 정보를 불러온 뒤 다시 시도하세요." });
-      return;
-    }
-
-    setProviderSyncing(true);
-    setProviderMsg(null);
-    try {
-      const result = await api.syncProviderAccounts(mode);
-      const accountLabel = result.accountMasked ? ` (${result.accountMasked})` : "";
-      setProviderMsg({
-        type: "ok",
-        text: `${result.provider} 동기화 완료${accountLabel}: ${result.syncedPositions}개 종목, 총 ${formatKRW(result.totalValue)}`,
-      });
-      await Promise.all([fetchAccounts(), fetchRebalanceResults()]);
-      if (result.accountId) {
-        setSelected(result.accountId);
-        await loadAccountDetails(result.accountId);
-      }
-    } catch (error) {
-      setProviderMsg({
-        type: "err",
-        text: `계좌 동기화 실패: ${getErrorMessage(error)}`,
-      });
-    } finally {
-      setProviderSyncing(false);
-    }
-  };
-
   const totalValue = accounts.reduce((sum, account) => sum + account.value, 0);
   const totalProfit = accounts.reduce((sum, account) => sum + account.profit, 0);
   const includedAccounts = accounts.filter((account) => account.includeInRebalancing !== false).length;
@@ -385,7 +340,6 @@ export default function AccountsPageClient() {
               setUploadMsg(null);
               setSnapshotMsg(null);
               setRebalanceMsg(null);
-              setProviderMsg(null);
             }}
             className="h-9 rounded-md border border-slate-600 bg-slate-800 px-3 text-sm text-white outline-none focus:border-blue-500"
           >
@@ -395,14 +349,6 @@ export default function AccountsPageClient() {
               </option>
             ))}
           </select>
-          <button
-            type="button"
-            onClick={handleProviderSync}
-            disabled={providerSyncing || !canSync}
-            className="rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-500"
-          >
-            {providerSyncing ? "동기화 중..." : "계좌 동기화"}
-          </button>
           <label className={cn(
             "cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors",
             uploading || !canWrite
@@ -429,9 +375,9 @@ export default function AccountsPageClient() {
         </div>
       </div>
 
-      {(uploadMsg || snapshotMsg || rebalanceMsg || providerMsg) && (
+      {(uploadMsg || snapshotMsg || rebalanceMsg) && (
         <div className="space-y-2">
-          {[providerMsg, uploadMsg, snapshotMsg, rebalanceMsg].filter(Boolean).map((message) => (
+          {[uploadMsg, snapshotMsg, rebalanceMsg].filter(Boolean).map((message) => (
             <div
               key={`${message?.type}-${message?.text}`}
               className={cn(
@@ -502,7 +448,7 @@ export default function AccountsPageClient() {
       {loading ? (
         <div className="flex h-40 items-center justify-center text-slate-500">로딩 중...</div>
       ) : (
-        <Card title="계좌 목록" extra={modeInfo?.provider ?? undefined}>
+        <Card title="계좌 목록" extra="LocalSimulation">
           <div className="divide-y divide-slate-700">
             {accounts.map((acct) => {
               const policy = acct.accountType ? policyByType.get(acct.accountType) : null;

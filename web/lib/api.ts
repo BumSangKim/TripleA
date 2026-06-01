@@ -12,8 +12,6 @@ import type {
   APIErrorDetail,
   MacroIndicator,
   ModeInfo,
-  OrderDraftResponse,
-  ProviderSyncResult,
   RebalanceResultItem,
   RebalanceRunResponse,
   RiskBudgetItem,
@@ -98,9 +96,6 @@ export const api = {
   getModes: (): Promise<ModeInfo[]> =>
     fetchJSON<ModeInfo[]>("/api/modes"),
 
-  getOrderDrafts: (mode?: TradingMode, limit = 20): Promise<OrderDraftResponse[]> =>
-    fetchJSON<OrderDraftResponse[]>(withQuery("/api/orders/drafts", { mode, limit })),
-
   getBacktestRuns: (limit = 20): Promise<BacktestRunResponse[]> =>
     fetchJSON<BacktestRunResponse[]>(withQuery("/api/backtests/runs", { limit })),
 
@@ -115,35 +110,6 @@ export const api = {
 
   runSectorComponentBacktest: (data: SectorComponentRunRequest): Promise<SectorComponentRunResponse> =>
     fetchJSON<SectorComponentRunResponse>("/api/backtests/sector-components/run", {
-      method: "POST",
-      body: JSON.stringify(data),
-    }),
-
-  syncProviderAccounts: (mode: TradingMode): Promise<ProviderSyncResult> =>
-    fetchJSON<ProviderSyncResult>(`/api/providers/${mode}/sync-accounts`, {
-      method: "POST",
-    }),
-
-  createOrderDraft: (data: {
-    mode: TradingMode;
-    source?: string;
-    maxOrderAmount?: number | null;
-  }): Promise<OrderDraftResponse> =>
-    fetchJSON<OrderDraftResponse>("/api/orders/draft", {
-      method: "POST",
-      body: JSON.stringify({
-        mode: data.mode,
-        source: data.source ?? "rebalancing",
-        maxOrderAmount: data.maxOrderAmount ?? null,
-      }),
-    }),
-
-  executeOrderDraft: (data: {
-    mode: TradingMode;
-    orderDraftId: number;
-    confirmText?: string | null;
-  }): Promise<OrderDraftResponse> =>
-    fetchJSON<OrderDraftResponse>("/api/orders/execute", {
       method: "POST",
       body: JSON.stringify(data),
     }),

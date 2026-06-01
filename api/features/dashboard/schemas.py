@@ -12,7 +12,6 @@ from api.features.macro.schemas import MacroIndicator
 from api.features.rebalancing.schemas import SuggestionItem
 from api.features.system.schemas import KPISummary, ModeInfo
 from api.features.targets.schemas import TargetItem
-from api.providers.modes import TradingMode
 
 
 class Insights(BaseModel):
@@ -23,7 +22,7 @@ class Insights(BaseModel):
 
 
 class DashboardSummarySchema(BaseModel):
-    mode: TradingMode = TradingMode.TEST
+    mode: str = "local"
     modeInfo: Optional[ModeInfo] = None
     kpi: KPISummary
     macro: List[MacroIndicator]

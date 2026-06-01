@@ -17,24 +17,20 @@ from api.features.accounts.schemas import (
     RebalancingInclusionResponse,
 )
 from api.features.accounts.service import AccountsService
-from api.providers.modes import TradingMode, normalize_mode
-from api.providers.router import provider_router
 
 router = APIRouter(tags=["accounts"])
 
 
-def _parse_mode(mode: Optional[str]) -> TradingMode:
-    try:
-        return normalize_mode(mode)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+def _parse_mode(mode: Optional[str]) -> str:
+    normalized = (mode or "local").strip().lower()
+    if normalized not in {"local", "backtest"}:
+        raise HTTPException(status_code=422, detail="Allowed simplified modes: local, backtest")
+    return normalized
 
 
-def _check_write_allowed(mode: TradingMode) -> None:
-    try:
-        provider_router.get(mode).assert_user_write_allowed()
-    except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e)) from e
+def _check_write_allowed(mode: str) -> None:
+    if mode != "local":
+        raise HTTPException(status_code=403, detail=f"{mode} mode is read-only")
 
 
 @router.get("/api/accounts", response_model=List[AccountSummary])

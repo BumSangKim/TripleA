@@ -13,11 +13,3 @@ class AlertData:
     message: Optional[str]
     is_read: bool
     created_at: str
-
-
-@dataclass(frozen=True)
-class TelegramNotifyResult:
-    ok: bool
-    sent: int
-    skipped: int = 0
-    message: Optional[str] = None

@@ -1,7 +1,8 @@
 import sqlite3
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from api.market_data.price_provider import MockPriceProvider
+from api.market_data.models import PriceQuote
 from api.market_data.repository import get_latest_price_quote, save_price_quote
 from api.universe.loader import load_assets, load_universe_selectors
 from api.universe.selector import resolve_all_selectors
@@ -15,7 +16,15 @@ def test_mock_price_quote_can_be_saved_and_read_back(tmp_path):
     selectors = load_universe_selectors("config/universe")
     resolved = resolve_all_selectors(assets, selectors["selectors"])
     asset = resolved["initial_order_candidate_universe"][0]
-    quote = MockPriceProvider().get_current_price(symbol=asset["symbol"], market=asset["market"])
+    quote = PriceQuote(
+        symbol=asset["symbol"],
+        market=asset["market"],
+        price=Decimal("100.00"),
+        currency="KRW" if asset["market"] == "KRX" else "USD",
+        provider="fixture",
+        as_of=datetime(2026, 5, 31, tzinfo=UTC),
+        raw={"source": "fixture"},
+    )
 
     save_price_quote(asset=asset, quote=quote, db_session=conn)
     saved = get_latest_price_quote(

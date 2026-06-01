@@ -7,16 +7,15 @@ from fastapi import APIRouter, Depends, HTTPException
 from api.features.dashboard.dependencies import get_dashboard_service
 from api.features.dashboard.schemas import DashboardSummarySchema
 from api.features.dashboard.service import DashboardService
-from api.providers.modes import normalize_mode
 
 router = APIRouter(tags=["dashboard"])
 
 
 def _parse_mode(mode: Optional[str]):
-    try:
-        return normalize_mode(mode)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+    normalized = (mode or "local").strip().lower()
+    if normalized not in {"local", "backtest"}:
+        raise HTTPException(status_code=422, detail="Allowed simplified modes: local, backtest")
+    return normalized
 
 
 @router.get("/api/dashboard/summary", response_model=DashboardSummarySchema)

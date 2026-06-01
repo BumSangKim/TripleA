@@ -6,7 +6,7 @@ from typing import Any, Optional
 from api.features.rebalancing.models import RebalanceRunData
 from api.features.rebalancing.schemas import RebalanceResultItem, RiskBudgetItem, SuggestionItem
 from api.features.targets.schemas import TargetItem
-from api.providers.modes import TradingMode
+from api.features.targets.repository import get_local_target_deviations
 
 
 class RebalancingRepository:
@@ -14,19 +14,16 @@ class RebalancingRepository:
         self._conn = conn
 
     def get_suggestions(self, mode: Any) -> list[SuggestionItem]:
-        from api.providers.router import provider_router
-        targets = provider_router.get(mode).get_target_deviations(self._conn)
+        targets = get_local_target_deviations(self._conn)
         return get_rebalancing_suggestions(targets)
 
     def run_rebalancing(self, mode: Any) -> RebalanceRunData:
-        from api.providers.router import provider_router
         from api.features.macro.repository import MacroRepository
 
-        provider = provider_router.get(mode)
         macro_repo = MacroRepository(self._conn)
         macro = macro_repo.get_indicators()
         kpi = macro_repo.get_kpi_summary(macro)
-        targets = provider.get_target_deviations(self._conn)
+        targets = get_local_target_deviations(self._conn)
         run_id, rows = self._record_rebalance_results(mode, targets, kpi.totalAssets)
         return RebalanceRunData(run_id=run_id, rows=rows)
 
@@ -37,7 +34,7 @@ class RebalancingRepository:
                 WHERE mode=?
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?
-            """, (mode.value, limit)).fetchall()
+            """, (str(mode), limit)).fetchall()
         else:
             rows = self._conn.execute("""
                 SELECT * FROM rebalance_results
@@ -103,7 +100,7 @@ class RebalancingRepository:
 
     def record_rebalance_results(
         self,
-        mode: TradingMode,
+        mode: str,
         targets: list[TargetItem],
         total_assets: float,
     ) -> tuple[int, list[RebalanceResultItem]]:
@@ -111,7 +108,7 @@ class RebalancingRepository:
 
     def _record_rebalance_results(
         self,
-        mode: TradingMode,
+        mode: str,
         targets: list[TargetItem],
         total_assets: float,
     ) -> tuple[int, list[RebalanceResultItem]]:
@@ -134,7 +131,7 @@ class RebalancingRepository:
                 VALUES (?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 run_id,
-                mode.value,
+                str(mode),
                 target.asset_class,
                 target.currentRatio,
                 target.targetRatio,
@@ -146,7 +143,7 @@ class RebalancingRepository:
             rows.append(RebalanceResultItem(
                 id=cur.lastrowid,
                 runId=run_id,
-                mode=mode,
+                mode=str(mode),
                 assetClass=target.asset_class,
                 currentRatio=target.currentRatio,
                 targetRatio=target.targetRatio,
@@ -244,7 +241,7 @@ def _rebalance_result_from_row(row: sqlite3.Row) -> RebalanceResultItem:
     return RebalanceResultItem(
         id=row["id"],
         runId=row["run_id"],
-        mode=TradingMode(row["mode"]),
+        mode=str(row["mode"]),
         accountId=row["account_id"],
         accountType=row["account_type"],
         assetClass=row["asset_class"],

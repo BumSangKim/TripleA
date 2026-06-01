@@ -8,16 +8,15 @@ from api.features.targets.dependencies import get_targets_service
 from api.features.targets.models import TargetUpdateData
 from api.features.targets.schemas import TargetItem, TargetUpdate, TargetUpdateResponse
 from api.features.targets.service import TargetsService
-from api.providers.modes import normalize_mode
 
 router = APIRouter(tags=["targets"])
 
 
 def _parse_mode(mode: Optional[str]):
-    try:
-        return normalize_mode(mode)
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e)) from e
+    normalized = (mode or "local").strip().lower()
+    if normalized not in {"local", "backtest"}:
+        raise HTTPException(status_code=422, detail="Allowed simplified modes: local, backtest")
+    return normalized
 
 
 @router.get("/api/targets", response_model=List[TargetItem])

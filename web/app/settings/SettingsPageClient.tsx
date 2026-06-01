@@ -126,44 +126,6 @@ function AlertThresholdSection() {
   );
 }
 
-// ── 데이터 동기화 설정 섹션 ────────────────────────────────────────────
-function TelegramButton() {
-  const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-
-  const send = async () => {
-    setSending(true);
-    setResult(null);
-    try {
-      const res = await fetch(`${BASE_URL}/api/alerts/notify/telegram?level_filter=danger`, { method: "POST" });
-      const d = await res.json();
-      if (res.ok) {
-        setResult(d.sent ? `📤 ${d.sent}개 전송됨` : "전송할 알림 없음");
-      } else {
-        setResult(`⚠️ ${d.detail || "오류"}`);
-      }
-    } catch {
-      setResult("연결 오류");
-    } finally {
-      setSending(false);
-      setTimeout(() => setResult(null), 4000);
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={send}
-        disabled={sending}
-        className="px-4 py-2 bg-blue-500 hover:bg-blue-400 disabled:opacity-50 rounded text-white text-xs transition-colors"
-      >
-        {sending ? "전송 중..." : "📱 Telegram 전송"}
-      </button>
-      {result && <span className="text-xs text-slate-300">{result}</span>}
-    </div>
-  );
-}
-
 function DataSyncSection() {
   const [status, setStatus] = useState<SystemStatus | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -234,7 +196,6 @@ function DataSyncSection() {
         >
           {generating ? "실행 중..." : "알림 자동 생성"}
         </button>
-        <TelegramButton />
         {genResult && <span className="text-xs text-green-400">{genResult}</span>}
       </div>
     </div>

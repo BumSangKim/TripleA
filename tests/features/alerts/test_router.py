@@ -17,7 +17,6 @@ def test_paths_preserved():
     assert "/api/alerts/recent" in paths
     assert "/api/alerts/{alert_id}/read" in paths
     assert "/api/alerts/generate" in paths
-    assert "/api/alerts/notify/telegram" in paths
 
 
 def test_no_db_import():

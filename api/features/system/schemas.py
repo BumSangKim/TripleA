@@ -4,9 +4,6 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from api.providers.modes import TradingMode
-
-
 class HealthResponse(BaseModel):
     status: str
     timestamp: str
@@ -33,22 +30,10 @@ class KPISummary(BaseModel):
 
 
 class ModeInfo(BaseModel):
-    mode: TradingMode
+    mode: str
     provider: str
     dbWriteScope: str
     externalApi: bool
     orderPolicy: str
     canWriteUserData: bool
     canExecuteOrders: bool
-
-
-class ProviderSyncResult(BaseModel):
-    ok: bool
-    mode: TradingMode
-    provider: str
-    accountId: Optional[int] = None
-    accountMasked: Optional[str] = None
-    syncedPositions: int = 0
-    totalValue: float = 0
-    cashValue: float = 0
-    message: Optional[str] = None

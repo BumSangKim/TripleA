@@ -13,10 +13,3 @@ class AlertItemSchema(BaseModel):
     message: Optional[str]
     is_read: bool
     created_at: str
-
-
-class TelegramNotifyResponse(BaseModel):
-    ok: bool
-    sent: int
-    skipped: int = 0
-    message: Optional[str] = None

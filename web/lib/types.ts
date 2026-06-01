@@ -8,7 +8,7 @@ export interface KPISummary {
   macroScore?: number | null;
 }
 
-export type TradingMode = "mock" | "test" | "backtest" | "paper" | "live";
+export type TradingMode = "local" | "backtest";
 
 export interface ModeInfo {
   mode: TradingMode;
@@ -133,42 +133,6 @@ export interface RiskBudgetItem {
   level: "normal" | "warning" | "danger" | string;
   action: "HOLD" | "INCREASE" | "REDUCE" | string;
   reason: string;
-}
-
-export interface ProviderSyncResult {
-  ok: boolean;
-  mode: TradingMode;
-  provider: string;
-  accountId?: number | null;
-  accountMasked?: string | null;
-  syncedPositions: number;
-  totalValue: number;
-  cashValue: number;
-  message?: string | null;
-}
-
-export interface OrderItem {
-  id?: number | null;
-  draftId?: number | null;
-  accountId?: number | null;
-  assetClass: string;
-  side: "BUY" | "SELL" | string;
-  amount: number;
-  status: string;
-  reason?: string | null;
-  createdAt?: string | null;
-}
-
-export interface OrderDraftResponse {
-  ok: boolean;
-  draftId: number;
-  mode: TradingMode;
-  source: string;
-  status: string;
-  totalAmount: number;
-  itemCount: number;
-  items: OrderItem[];
-  message?: string | null;
 }
 
 export interface BacktestRunRequest {

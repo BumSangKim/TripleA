@@ -18,7 +18,6 @@ def include_feature_routers(app: FastAPI) -> None:
     from api.features.holdings.router import router as holdings_router
     from api.features.intraday.router import router as intraday_router
     from api.features.macro.router import router as macro_router
-    from api.features.orders.router import router as orders_router
     from api.features.rebalancing.router import router as rebalancing_router
     from api.features.strategy.router import router as strategy_router
     from api.features.system.router import router as system_router
@@ -38,7 +37,6 @@ def include_feature_routers(app: FastAPI) -> None:
     app.include_router(holdings_router)
     app.include_router(intraday_router)
     app.include_router(macro_router)
-    app.include_router(orders_router)
     app.include_router(rebalancing_router)
     app.include_router(strategy_router)
     app.include_router(system_router)

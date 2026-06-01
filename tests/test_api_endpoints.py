@@ -73,49 +73,21 @@ class TestModes:
         res = client.get("/api/modes")
         assert res.status_code == 200
         modes = {item["mode"] for item in res.json()}
-        assert {"mock", "test", "backtest", "paper", "live"}.issubset(modes)
+        assert modes == {"local", "backtest"}
 
     def test_dashboard_summary_accepts_mode(self, client):
-        res = client.get("/api/dashboard/summary?mode=paper")
+        res = client.get("/api/dashboard/summary?mode=local")
         assert res.status_code == 200
         data = res.json()
-        assert data["mode"] == "paper"
-        assert data["modeInfo"]["provider"] == "PaperTradingProvider"
+        assert data["mode"] == "local"
+        assert data["modeInfo"]["provider"] == "LocalSimulation"
 
     def test_read_only_modes_reject_csv_upload(self, client):
         res = client.post(
-            "/api/accounts/upload-csv?mode=mock",
+            "/api/accounts/upload-csv?mode=backtest",
             files={"file": ("holdings.csv", b"ticker,name,quantity,avg_price,current_price\n005930,Samsung,1,70000,71000\n")},
         )
         assert res.status_code == 403
-
-    def test_read_only_provider_sync_returns_noop_success(self, client):
-        res = client.post("/api/providers/mock/sync-accounts")
-        assert res.status_code == 200
-        data = res.json()
-        assert data["ok"] is True
-        assert data["mode"] == "mock"
-        assert data["provider"] == "MockProvider"
-        assert "No external account sync" in data["message"]
-
-    def test_provider_sync_config_error_is_structured(self, client, monkeypatch):
-        import api.providers.router as provider_router_module
-        from api.brokers.kis.errors import KISConfigError
-
-        class FailingProvider:
-            def sync_accounts(self, conn):
-                raise KISConfigError("raw app secret message")
-
-        monkeypatch.setattr(provider_router_module.provider_router, "get", lambda mode: FailingProvider())
-
-        res = client.post("/api/providers/paper/sync-accounts")
-
-        assert res.status_code == 503
-        detail = res.json()["detail"]
-        assert detail["code"] == "KIS_CONFIG_MISSING"
-        assert detail["message"] == "KIS 계좌 동기화 설정이 누락되었습니다."
-        assert "secret" not in detail["message"].lower()
-        assert "secret" not in detail["userAction"].lower()
 
 
 class TestAccountModeFeatures:
@@ -126,12 +98,12 @@ class TestAccountModeFeatures:
         assert policies["ISA"]["role"] == "TAX_ADVANTAGED"
         assert policies["IRP"]["role"] == "RETIREMENT"
 
-    def test_manual_snapshot_paper_mode_updates_account(self, client, test_db):
+    def test_manual_snapshot_local_mode_updates_account(self, client, test_db):
         conn = sqlite3.connect(test_db)
         cur = conn.execute("""
             INSERT INTO accounts
             (name, type, account_type, broker, initial_value)
-            VALUES ('테스트 ISA', 'ISA', 'ISA', 'KIS', 0)
+            VALUES ('테스트 ISA', 'ISA', 'ISA', 'LOCAL', 0)
         """)
         account_id = cur.lastrowid
         conn.commit()
@@ -147,7 +119,7 @@ class TestAccountModeFeatures:
             "snapshotAt": "2026-05-22T09:00:00+09:00",
         }
         res = client.post(
-            f"/api/accounts/{account_id}/manual-snapshot?mode=paper",
+            f"/api/accounts/{account_id}/manual-snapshot?mode=local",
             json=payload,
         )
         assert res.status_code == 200
@@ -155,19 +127,19 @@ class TestAccountModeFeatures:
         assert body["accountId"] == account_id
         assert body["totalValue"] == 21846000
 
-        accounts = client.get("/api/accounts?mode=paper").json()
+        accounts = client.get("/api/accounts?mode=local").json()
         saved = next(a for a in accounts if a["id"] == account_id)
         assert saved["value"] == 21846000
         assert saved["dataSource"] == "MANUAL"
 
-    def test_manual_snapshot_mock_mode_is_read_only(self, client):
+    def test_manual_snapshot_backtest_mode_is_read_only(self, client):
         res = client.post(
-            "/api/accounts/1/manual-snapshot?mode=mock",
+            "/api/accounts/1/manual-snapshot?mode=backtest",
             json={"totalValue": 1000},
         )
         assert res.status_code == 403
 
-    def test_rebalancing_inclusion_can_be_toggled_in_paper_mode(self, client, test_db):
+    def test_rebalancing_inclusion_can_be_toggled_in_local_mode(self, client, test_db):
         conn = sqlite3.connect(test_db)
         cur = conn.execute("""
             INSERT INTO accounts
@@ -178,20 +150,20 @@ class TestAccountModeFeatures:
         conn.commit()
         conn.close()
 
-        res = client.patch(f"/api/accounts/{account_id}/rebalancing-inclusion?mode=paper&include=false")
+        res = client.patch(f"/api/accounts/{account_id}/rebalancing-inclusion?mode=local&include=false")
 
         assert res.status_code == 200
         assert res.json()["include"] is False
 
     def test_rebalancing_run_records_results(self, client):
-        res = client.post("/api/rebalancing/run?mode=paper")
+        res = client.post("/api/rebalancing/run?mode=local")
         assert res.status_code == 200
         body = res.json()
         assert body["ok"] is True
-        assert body["mode"] == "paper"
+        assert body["mode"] == "local"
         assert body["saved"] == len(body["results"])
 
-        results = client.get("/api/rebalancing/results?mode=paper").json()
+        results = client.get("/api/rebalancing/results?mode=local").json()
         assert len(results) >= body["saved"]
 
 
@@ -233,16 +205,6 @@ class TestMacroEndpoints:
         data = res.json()
         assert [item["date"] for item in data] == ["2023-03-31", "2024-03-31"]
 
-    def test_macro_telegram_dry_run_uses_macro_data(self, client):
-        res = client.post("/api/macro/notify/telegram?dry_run=true")
-        assert res.status_code == 200
-
-        data = res.json()
-        assert data["ok"] is True
-        assert data["sent"] == 0
-        assert data["indicatorCount"] >= 1
-        assert "TripleA 금일 경제 현황 요약" in data["text"]
-        assert "Microsoft CapEx" in data["text"]
 
 
 # ── 목표 관리 ────────────────────────────────────────────────────────
@@ -305,94 +267,6 @@ class TestAlertsEndpoints:
         assert res.status_code == 200
         assert "created" in res.json()
 
-    def test_telegram_notify_records_dedup_logs(self, client, test_db, monkeypatch):
-        import requests
-
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
-        monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
-        posted = []
-
-        class DummyResponse:
-            def raise_for_status(self):
-                return None
-
-            def json(self):
-                return {"ok": True, "result": {"message_id": 1}}
-
-        def fake_post(url, json, timeout):
-            posted.append({"url": url, "json": json, "timeout": timeout})
-            return DummyResponse()
-
-        monkeypatch.setattr(requests, "post", fake_post)
-        conn = sqlite3.connect(test_db)
-        conn.execute("UPDATE dashboard_alerts SET is_read=1")
-        conn.execute("DELETE FROM notification_logs")
-        conn.execute("""
-            INSERT INTO dashboard_alerts (level, category, title, message, is_read)
-            VALUES ('danger', 'target', '중복 방지 테스트', '현금 부족', 0)
-        """)
-        conn.commit()
-        conn.close()
-
-        first = client.post("/api/alerts/notify/telegram?level_filter=danger")
-        second = client.post("/api/alerts/notify/telegram?level_filter=danger")
-
-        assert first.status_code == 200
-        assert first.json()["sent"] == 1
-        assert second.status_code == 200
-        assert second.json()["sent"] == 0
-        assert second.json()["skipped"] == 1
-        assert len(posted) == 1
-
-        conn = sqlite3.connect(test_db)
-        logs = conn.execute(
-            "SELECT channel_type, status, dedup_key, message FROM notification_logs"
-        ).fetchall()
-        conn.close()
-        assert len(logs) == 1
-        assert logs[0] == (
-            "TELEGRAM",
-            "SENT",
-            logs[0][2],
-            "중복 방지 테스트\n현금 부족",
-        )
-        assert "중복 방지 테스트" in logs[0][2]
-
-    def test_telegram_notify_masks_token_on_failure(self, client, test_db, monkeypatch):
-        import requests
-
-        token = "secret-token-for-test"
-        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", token)
-        monkeypatch.setenv("TELEGRAM_CHAT_ID", "1234")
-
-        def fake_post(url, json, timeout):
-            raise requests.RequestException(f"{url} failed")
-
-        monkeypatch.setattr(requests, "post", fake_post)
-        conn = sqlite3.connect(test_db)
-        conn.execute("UPDATE dashboard_alerts SET is_read=1")
-        conn.execute("DELETE FROM notification_logs")
-        conn.execute("""
-            INSERT INTO dashboard_alerts (level, category, title, message, is_read)
-            VALUES ('danger', 'target', '마스킹 테스트', '토큰 보호', 0)
-        """)
-        conn.commit()
-        conn.close()
-
-        res = client.post("/api/alerts/notify/telegram?level_filter=danger")
-
-        assert res.status_code == 502
-        assert token not in res.json()["detail"]
-        assert "***" in res.json()["detail"]
-
-        conn = sqlite3.connect(test_db)
-        log = conn.execute(
-            "SELECT status, error_message FROM notification_logs ORDER BY id DESC LIMIT 1"
-        ).fetchone()
-        conn.close()
-        assert log[0] == "FAILED"
-        assert token not in log[1]
-        assert "***" in log[1]
 
 
 # ── 자료실 ───────────────────────────────────────────────────────────

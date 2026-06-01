@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from api.features.alerts.schemas import AlertItemSchema, TelegramNotifyResponse
-from api.features.alerts.models import AlertData, TelegramNotifyResult
+from api.features.alerts.schemas import AlertItemSchema
+from api.features.alerts.models import AlertData
 from api.features.alerts.ports import IAlertsRepository
 
 

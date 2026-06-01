@@ -100,20 +100,12 @@ interface DashboardClientProps {
 }
 
 function ModeBadge({ data }: { data: DashboardSummary }) {
-  const mode = data.mode ?? "paper";
+  const mode = data.mode ?? "local";
   const labelMap: Record<string, string> = {
-    mock: "Mock",
-    test: "Test",
+    local: "Local",
     backtest: "Backtest",
-    paper: "Paper",
-    live: "Live",
   };
-  const color =
-    mode === "live"
-      ? "border-red-500/40 bg-red-500/10 text-red-300"
-      : mode === "paper"
-        ? "border-sky-500/40 bg-sky-500/10 text-sky-300"
-        : "border-slate-600 bg-slate-800 text-slate-300";
+  const color = "border-slate-600 bg-slate-800 text-slate-300";
 
   return (
     <div className={`rounded-md border px-2 py-1 ${color}`} title={data.modeInfo?.orderPolicy ?? ""}>

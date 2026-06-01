@@ -4,7 +4,6 @@ import sqlite3
 import pytest
 from fastapi.testclient import TestClient
 
-from api.providers.modes import TradingMode
 from api.features.targets.schemas import TargetItem
 from api.features.rebalancing.repository import RebalancingRepository
 
@@ -81,7 +80,7 @@ def test_rebalance_results_include_risk_budget_reason(engine_db):
         level="danger",
     )
 
-    _, rows = RebalancingRepository(conn).record_rebalance_results(TradingMode.PAPER, [target], 100000)
+    _, rows = RebalancingRepository(conn).record_rebalance_results("local", [target], 100000)
 
     conn.close()
     assert rows[0].reason.startswith("목표 초과")

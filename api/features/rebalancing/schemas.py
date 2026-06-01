@@ -4,8 +4,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from api.providers.modes import TradingMode
-
 
 class RebalanceRunResult(BaseModel):
     ok: bool
@@ -21,7 +19,7 @@ class SuggestionItem(BaseModel):
 class RebalanceResultItem(BaseModel):
     id: Optional[int] = None
     runId: Optional[int] = None
-    mode: TradingMode
+    mode: str
     accountId: Optional[int] = None
     accountType: Optional[str] = None
     assetClass: str
@@ -36,7 +34,7 @@ class RebalanceResultItem(BaseModel):
 
 class RebalanceRunResponse(BaseModel):
     ok: bool
-    mode: TradingMode
+    mode: str
     runId: int
     saved: int
     results: List[RebalanceResultItem]

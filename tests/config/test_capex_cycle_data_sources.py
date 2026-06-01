@@ -48,7 +48,7 @@ def test_capex_cycle_data_source_yaml_parses():
 def test_required_source_groups_and_metrics_are_present():
     data = _catalog()
 
-    assert {"fred_alfred", "sec_edgar_companyfacts", "opendart", "ecos", "kis_readonly", "optional_licensed_vendor"}.issubset(
+    assert {"fred_alfred", "sec_edgar_companyfacts", "opendart", "ecos", "optional_licensed_vendor"}.issubset(
         data["source_groups"]
     )
     assert REQUIRED_METRICS.issubset(data["metrics"])

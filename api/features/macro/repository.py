@@ -4,7 +4,6 @@ import sqlite3
 from datetime import date, timedelta
 from typing import Any, List, Optional
 
-from api.features.macro.models import MacroTelegramResult
 from api.features.macro.schemas import MacroIndicator
 from api.features.system.schemas import KPISummary
 from api.features.dashboard.schemas import Insights
@@ -234,19 +233,6 @@ class MacroRepository:
             portfolioSummary=port_summary,
             marketRisk=risk,
             recommendation=recommendation,
-        )
-
-    def send_telegram_report(self, force: bool, dry_run: bool) -> MacroTelegramResult:
-        from api.macro_telegram_report import send_daily_macro_report
-        result = send_daily_macro_report(self._conn, force=force, dry_run=dry_run)
-        return MacroTelegramResult(
-            ok=result.ok,
-            sent=result.sent,
-            skipped=result.skipped,
-            indicator_count=result.indicator_count,
-            message=result.message,
-            message_id=result.message_id,
-            text=result.text,
         )
 
     def _indicator_history_values(self, indicator: str, days: int) -> list[float]:

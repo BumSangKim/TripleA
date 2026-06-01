@@ -18,7 +18,6 @@ def test_macro_paths_preserved():
     assert "/api/macro/summary" in paths
     assert "/api/macro/history/{indicator}" in paths
     assert "/api/indicators/{key}/history" in paths
-    assert "/api/macro/notify/telegram" in paths
 
 
 def test_router_no_db_import():

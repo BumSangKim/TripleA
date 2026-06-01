@@ -17,8 +17,32 @@ class AccountsRepository:
         self._conn = conn
 
     def get_accounts(self, mode: Any) -> list[AccountSummary]:
-        from api.providers.router import provider_router
-        return provider_router.get(mode).get_accounts(self._conn)
+        rows = self._conn.execute("SELECT * FROM accounts ORDER BY id").fetchall()
+        result: list[AccountSummary] = []
+        for account in rows:
+            holdings = self._conn.execute(
+                "SELECT SUM(market_value) as total, SUM(profit) as profit FROM holdings WHERE account_id=?",
+                (account["id"],),
+            ).fetchone()
+            total_value = holdings["total"] or account["initial_value"] or 0
+            profit = holdings["profit"] or 0
+            base_value = total_value - profit
+            profit_rate = round(profit / base_value * 100, 2) if base_value > 0 else 0.0
+            result.append(AccountSummary(
+                id=account["id"],
+                name=account["name"],
+                type=account["type"] or "",
+                value=total_value,
+                profit=profit,
+                profitRate=profit_rate,
+                accountType=account["account_type"] if "account_type" in account.keys() else account["type"],
+                connectionStatus=account["connection_status"] if "connection_status" in account.keys() else "UNLINKED",
+                tradeStatus=account["trade_status"] if "trade_status" in account.keys() else "ORDER_DISABLED",
+                includeInRebalancing=bool(account["include_in_rebalancing"]) if "include_in_rebalancing" in account.keys() else True,
+                dataSource=account["data_source"] if "data_source" in account.keys() else "MANUAL",
+                lastSyncedAt=account["last_synced_at"] if "last_synced_at" in account.keys() else None,
+            ))
+        return result
 
     def get_account_policies(self) -> list[AccountPolicyItem]:
         rows = self._conn.execute("""

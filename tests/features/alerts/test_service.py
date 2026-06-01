@@ -15,12 +15,6 @@ class _FakeRepo:
     def generate_target_alerts(self) -> int:
         return 3
 
-    def get_pending_telegram_alerts(self, level_filter: str):
-        return [], [], 0, "2024-01-01"
-
-    def record_telegram_logs(self, pending, status, error=None) -> None:
-        pass
-
 
 def test_list_recent():
     svc = AlertsService(_FakeRepo())
@@ -38,13 +32,6 @@ def test_generate_alerts():
     svc = AlertsService(_FakeRepo())
     result = svc.generate_alerts()
     assert result["created"] == 3
-
-
-def test_notify_telegram_no_alerts():
-    svc = AlertsService(_FakeRepo())
-    result = svc.notify_telegram("danger")
-    assert result.ok is True
-    assert result.sent == 0
 
 
 def test_service_no_db_import():

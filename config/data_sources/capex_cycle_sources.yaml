@@ -23,11 +23,6 @@ source_groups:
     enabled_by_default: false
     optional: false
     notes: "Bank of Korea macro, rates, FX, and trade series identifiers."
-  kis_readonly:
-    provider: "KIS_READONLY_MARKET_DATA"
-    enabled_by_default: false
-    optional: false
-    notes: "Read-only quotation and fundamental lookup boundary only; no order endpoints."
   optional_licensed_vendor:
     provider: "LICENSED_VENDOR_PLACEHOLDER"
     enabled_by_default: false
@@ -66,8 +61,6 @@ metrics:
     source_priority:
       - source_group: "optional_licensed_vendor"
         source_metric: "ai_token_or_compute_usage_proxy"
-      - source_group: "kis_readonly"
-        source_metric: "listed_ai_infrastructure_proxy_quotes"
     cadence: "daily"
     stale_after_days: 7
     expected_release_lag_days: 1
@@ -165,8 +158,6 @@ metrics:
         source_metric: "gross_margin_ebitda_margin_fcf_margin"
       - source_group: "opendart"
         source_metric: "gross_margin_operating_margin"
-      - source_group: "kis_readonly"
-        source_metric: "readonly_fundamental_margin_snapshot"
     cadence: "quarterly"
     stale_after_days: 150
     expected_release_lag_days: 60
@@ -178,8 +169,6 @@ metrics:
     source_priority:
       - source_group: "sec_edgar_companyfacts"
         source_metric: "eps_and_shares"
-      - source_group: "kis_readonly"
-        source_metric: "readonly_price_and_fundamental_snapshot"
       - source_group: "optional_licensed_vendor"
         source_metric: "forward_eps_consensus"
     cadence: "daily_or_quarterly"

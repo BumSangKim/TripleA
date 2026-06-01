@@ -45,10 +45,7 @@ if [ ! -f ".env" ]; then
     echo ""
     echo "     ECOS_API_KEY=발급받은키"
     echo "     FRED_API_KEY=발급받은키"
-    echo "     TELEGRAM_BOT_TOKEN=봇토큰"
-    echo "     TELEGRAM_CHAT_ID=채팅ID"
     echo ""
-    echo "  📱 텔레그램 알림을 쓰려면 봇 토큰과 채팅 ID를 직접 설정하세요."
 else
     echo "  ✅ .env 파일 존재"
 fi
