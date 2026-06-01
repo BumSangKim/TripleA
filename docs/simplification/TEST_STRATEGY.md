@@ -63,15 +63,21 @@ contract supports them:
 ## Current Validation Commands
 
 Task-specific commands may narrow this list. The final simplification sweep
-should converge on supported commands such as:
+uses these supported commands:
 
 ```bash
 git diff --check
 pytest -q --collect-only
 pytest tests/backtest -q
 pytest tests/code -q
-pytest tests/unit tests/integration -q
 pytest tests/architecture -q
+```
+
+The broader deterministic suite can be run separately with:
+
+```bash
+pytest tests/unit tests/integration -q
+pytest tests -q
 ```
 
 If repository test directories are renamed during explicit tasks, this file

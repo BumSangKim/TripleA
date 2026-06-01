@@ -76,3 +76,11 @@ This directory is not a replacement for the root development guide. It exists
 only to define the simplification contract and the supported test strategy for
 this task batch. Do not recreate a parallel documentation tree or make
 `docs/` the source of truth for development rules.
+
+## Completion Summary
+
+The simplification pass removed broker/provider/KIS integration, order feature
+APIs, Telegram-style external reporting delivery, and UI paper/live mode
+surfaces. It added deterministic code tests, backtest leakage guards, and
+architecture boundary tests so the supported system remains local and
+simulation-only.
