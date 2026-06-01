@@ -12,7 +12,7 @@ from api.domain.strategy_inputs import (
     PriceHistoryPointInput,
     SectorAssetMappingInput,
 )
-from api.macro_data_service import get_macro_snapshot
+from api.data.macro_snapshot_reader import get_macro_snapshot
 
 
 class SqliteMacroSnapshotReader:
