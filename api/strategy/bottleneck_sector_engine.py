@@ -4,7 +4,9 @@ from datetime import date
 from statistics import mean
 
 from api.bottleneck_data_service import BottleneckIndicatorItem, get_bottleneck_snapshot
+from api.domain.strategy_inputs import BottleneckIndicatorInput, BottleneckSnapshotInput
 from api.domain.trade_data import TradeSeriesItem, TradeSnapshot
+from api.strategy.data_ports import BottleneckSnapshotReader
 from api.strategy.trade_data_ports import TradeSnapshotReader
 from api.strategy_config import load_sector_taxonomy
 
@@ -12,8 +14,15 @@ from .types import SectorBottleneckScore
 
 
 class BottleneckSectorEngine:
-    def __init__(self, conn, *, trade_snapshot_reader: TradeSnapshotReader | None = None):
+    def __init__(
+        self,
+        conn=None,
+        *,
+        bottleneck_snapshot_reader: BottleneckSnapshotReader | None = None,
+        trade_snapshot_reader: TradeSnapshotReader | None = None,
+    ):
         self.conn = conn
+        self.bottleneck_snapshot_reader = bottleneck_snapshot_reader
         self.trade_snapshot_reader = trade_snapshot_reader
 
     def score(
@@ -36,12 +45,24 @@ class BottleneckSectorEngine:
                     as_of_date,
                     lookback_months=lookback_months,
                 )
-        bottleneck_snapshot = get_bottleneck_snapshot(
-            self.conn,
-            as_of_date,
-            lookback_months=lookback_months,
-        )
-        indicators_by_sector: dict[str, list[BottleneckIndicatorItem]] = {}
+        if self.bottleneck_snapshot_reader is not None:
+            bottleneck_snapshot = self.bottleneck_snapshot_reader.read_bottleneck_snapshot(
+                as_of_date,
+                lookback_months=lookback_months,
+            )
+        elif self.conn is not None:
+            bottleneck_snapshot = get_bottleneck_snapshot(
+                self.conn,
+                as_of_date,
+                lookback_months=lookback_months,
+            )
+        else:
+            bottleneck_snapshot = BottleneckSnapshotInput(
+                as_of_date=as_of_date,
+                lookback_months=lookback_months,
+                indicators=[],
+            )
+        indicators_by_sector: dict[str, list[BottleneckIndicatorItem | BottleneckIndicatorInput]] = {}
         for item in bottleneck_snapshot.indicators:
             indicators_by_sector.setdefault(item.sector_code, []).append(item)
 
@@ -101,7 +122,7 @@ def _score_trade_items(
     return score, reasons
 
 
-def _score_layer(items: list[BottleneckIndicatorItem], layer: str) -> float:
+def _score_layer(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput], layer: str) -> float:
     values = [
         item.value
         for item in _latest_indicators(items, layer=layer).values()
@@ -112,7 +133,7 @@ def _score_layer(items: list[BottleneckIndicatorItem], layer: str) -> float:
     return _clamp(mean(values), 0.0, 100.0)
 
 
-def _score_relative_strength(items: list[BottleneckIndicatorItem]) -> float:
+def _score_relative_strength(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput]) -> float:
     latest = _latest_indicators(items, layer="relative_strength")
     if not latest:
         latest = {
@@ -127,11 +148,11 @@ def _score_relative_strength(items: list[BottleneckIndicatorItem]) -> float:
 
 
 def _latest_indicators(
-    items: list[BottleneckIndicatorItem],
+    items: list[BottleneckIndicatorItem | BottleneckIndicatorInput],
     *,
     layer: str | None = None,
-) -> dict[str, BottleneckIndicatorItem]:
-    result: dict[str, BottleneckIndicatorItem] = {}
+) -> dict[str, BottleneckIndicatorItem | BottleneckIndicatorInput]:
+    result: dict[str, BottleneckIndicatorItem | BottleneckIndicatorInput] = {}
     for item in items:
         if layer and (item.layer or "").lower() != layer:
             continue
@@ -141,7 +162,7 @@ def _latest_indicators(
     return result
 
 
-def _indicator_reasons(items: list[BottleneckIndicatorItem]) -> list[str]:
+def _indicator_reasons(items: list[BottleneckIndicatorItem | BottleneckIndicatorInput]) -> list[str]:
     reasons = []
     for item in _latest_indicators(items).values():
         if item.value is None:
