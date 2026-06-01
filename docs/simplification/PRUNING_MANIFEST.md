@@ -25,8 +25,8 @@ read for this manifest and they must not be committed.
 ## delete_live_integration
 
 These files are direct live, paper, or broker-account integration candidates.
-They should be deleted or disconnected only after the `review_required`
-couplings below are resolved.
+Owner decision: all-A deletion; future implementation only, no current
+adapter/stub retention.
 
 | File | Basis | Expected impact | Import/use references |
 |---|---|---|---|
@@ -37,6 +37,15 @@ couplings below are resolved.
 | `api/providers/live.py` | Live KIS account sync provider. | Removing it changes `live` mode behavior and `/api/providers/live/sync-accounts`. | Imported by `api/providers/router.py`, `tests/providers/test_kis_providers.py`. |
 | `api/providers/paper.py` | Paper KIS account sync provider. | Removing it changes `paper` mode behavior and `/api/providers/paper/sync-accounts`. | Imported by `api/providers/router.py`, `tests/providers/test_kis_providers.py`. |
 | `api/providers/_upsert.py` | Persists KIS balance snapshots into local accounts, holdings, and snapshots. | Removing it requires a non-broker local/simulated account refresh path. | Imported by `api/providers/live.py`, `api/providers/paper.py`. |
+| `api/providers/**` | Owner decision: all-A deletion; future implementation only, no current adapter/stub retention. Provider compatibility shims are forbidden. | Removes provider layer, paper/live modes, and local provider routing. Remaining features must use deterministic local queries or backtest/simulation contracts, not provider compatibility shims. | Imported by accounts, dashboard, system, alerts, rebalancing, targets, orders, tests, and web mode contracts. |
+| `api/features/orders/**` | Owner decision: all-A deletion; future implementation only, no current adapter/stub retention. Order candidate API/feature stubs are forbidden. | Removes order drafts, order approval logs, and order feature API. Allowed outputs remain local `DecisionSnapshot`, `RebalancePlan`, `BacktestReport`, or `AuditLog`. | Used by orders routers/tests and web orders page. |
+| `api/market_data/price_provider.py` | Owner decision: all-A deletion for KIS read-only price adapters and credential/env dependency. Disabled KIS adapters are forbidden. | Removes KIS/env-backed read-only price provider; deterministic fixtures or mock/local price paths must be used instead. | Imports `api.brokers.kis.config` and `api.brokers.kis.client`. |
+| `api/data/adapters/kis_readonly.py` | Owner decision: all-A deletion for KIS read-only adapters. Disabled KIS adapter retention is forbidden. | Removes KIS external market-data adapter and endpoint allowlist. Fixture/local data adapters must replace it in tests. | Used by `tests/data/adapters/test_kis_readonly_adapter.py` and `config/data_sources/capex_cycle_sources.yaml`. |
+| `api/telegram_service.py` | Owner decision: all-A deletion for Telegram/reporting feature/API. Disabled Telegram adapters are forbidden. | Removes external Telegram notification delivery. Local output contracts may keep reason codes/warnings only. | Imported by alerts service, macro router, macro report tests. |
+| `api/macro_telegram_report.py` | Owner decision: all-A deletion for Telegram/reporting feature/API. Disabled reporting adapters are forbidden. | Removes Telegram macro report delivery. Local report/audit fields remain allowed only if deterministic. | Imported by macro feature repository, daily report script, macro telegram tests. |
+| `scripts/send_daily_macro_report.py` | Owner decision: all-A deletion for Telegram/reporting automation. | Removes external report delivery script. | Imports `api.macro_telegram_report`. |
+| `scripts/install_macro_cron.sh` | Owner decision: all-A deletion for Telegram/reporting automation. | Removes cron installer for external report delivery. | Writes cron command for Telegram script. |
+| `web/app/orders/**` | Owner decision: all-A deletion for order feature and UI paper/live mode. | Removes order feature UI. No order candidate UI stub should remain. | Uses order API and paper/live mode controls. |
 
 ## delete_live_tests
 
@@ -52,6 +61,10 @@ tests when the corresponding source files are removed.
 | `tests/brokers/kis/test_models.py` | KIS balance snapshot model tests. | Delete or rewrite around simulated account models if a pure replacement is needed. | Imports `api.brokers.kis.models`. |
 | `tests/providers/test_kis_providers.py` | Paper/live provider import and credential-error behavior. | Delete or replace with simplified provider/router contract tests. | Imports `api.providers.live`, `api.providers.paper`, `api.brokers.kis.errors`. |
 | `tests/test_kis_provider.py` | KIS config/client parsing and paper/live sync-to-DB tests. | Delete or split into deterministic local account ingestion tests if preserving useful parser assertions. | Imports KIS broker modules and `ProviderRouter`. |
+| `tests/providers/**` | Owner decision: all-A deletion for `api/providers`. | Remove provider layer tests; replace with deterministic local contract tests only if needed by later tasks. | Imports `api.providers.*`. |
+| `tests/data/adapters/test_kis_readonly_adapter.py` | Owner decision: all-A deletion for KIS read-only adapters. | Delete with `api/data/adapters/kis_readonly.py`. | Imports `api.data.adapters.kis_readonly`. |
+| `tests/features/orders/**` | Owner decision: all-A deletion for orders feature. | Delete with `api/features/orders/**`; no order candidate feature stub should remain. | Imports orders feature. |
+| `tests/test_macro_telegram_report.py` | Owner decision: all-A deletion for Telegram/reporting feature/API. | Delete with Telegram report delivery code. | Imports `api.macro_telegram_report` and `api.telegram_service`. |
 
 ## keep_domain_contract
 
@@ -96,60 +109,56 @@ dependency.
 | `tests/integration/pipeline/**` | Deterministic pipeline integration tests. | Keep for input-to-output validation. | Uses fixture-backed pipeline data. |
 | `tests/unit/**` | Unit tests for pure contracts. | Keep. | Unit-level deterministic checks. |
 | `tests/score_pipeline/**` | Score pipeline and plugin contract tests. | Keep if no external service is required. | Existing tests guard against broker/order imports. |
-| `tests/data/adapters/test_kis_readonly_adapter.py` | Deterministic parser/read-only allowlist tests. | Keep only if the project explicitly keeps read-only KIS market-data adapter code; otherwise reclassify with KIS adapter deletion. | Imports `api.data.adapters.kis_readonly`. |
 | `tests/test_price_provider_contract.py` | Ensures price providers have no order methods. | Keep or adapt to simplified provider set. | Guards against order surface. |
 | `tests/test_no_live_execution_guardrails.py` | Guardrail against order/execution terms in universe and market-data code. | Keep and extend in Task 008 if compatible. | Static scan. |
 
-## review_required
+## owner_decision_all_a_reclassified
 
-The following files or groups are coupled to live/paper modes, external
-providers, UI contracts, or owner-unresolved reporting behavior. Because at
-least one item is unclear, Task 002 must stop after this manifest and must not
-continue to Task 003 until the owner decisions are made.
+The following files or groups were previously `review_required`. They are now
+classified as deletion targets by owner decision.
+
+Owner decision: all-A deletion; future implementation only, no current
+adapter/stub retention.
+
+Forbidden retention patterns:
+
+- provider compatibility shim
+- disabled KIS adapter
+- disabled Telegram/reporting adapter
+- paper/live UI mode stub
+- order candidate API/feature stub
 
 | File or group | Why review is required | Expected impact | Import/use references |
 |---|---|---|---|
-| `api/providers/base.py` | Base provider is shared by mock/test/backtest and paper/live; not itself a broker adapter. | Deleting provider concepts wholesale would break local dashboard/account reads. | Used by all provider implementations and provider tests. |
-| `api/providers/modes.py` | Defines `paper` and `live` modes plus write/order policies, but also defines mock/test/backtest. | Simplification likely requires removing or redefining `paper`/`live`; public API/UI impact. | Imported by feature schemas, routers, repositories, web types/tests. |
-| `api/providers/router.py` | Imports live/paper providers while also routing mock/test/backtest providers. | Needs a small replacement router or mode policy update before deleting live/paper files. | Imported by accounts, dashboard, system, alerts, rebalancing, targets, orders. |
-| `api/providers/mock.py` | Local providers are allowed, but currently live in the same package as live/paper providers. | Likely keep or relocate after router simplification. | Imported by provider router and tests. |
-| `api/features/system/router.py` | Exposes `/api/providers/{mode}/sync-accounts` and catches KIS errors; also owns health/status/settings routes. | Must split or disable only provider sync without breaking health/status APIs. | Imports KIS errors and provider modes. |
-| `api/features/system/repository.py` | `sync_accounts`, `list_modes`, and `get_mode_info` call `provider_router`. | Requires simplified mode/provider contract. | Imported by system service/router/tests. |
-| `api/features/system/schemas.py` | `ModeInfo` and `ProviderSyncResult` expose provider mode status. | Needs schema decision for simplified modes and local-only sync outputs. | Used by providers and system API tests. |
-| `api/features/accounts/repository.py` | Account reads use `provider_router.get(mode)`, but manual snapshots/local accounts are allowed. | Needs local provider or direct local repository path. | Used by account service/router/tests. |
-| `api/features/dashboard/repository.py` | Dashboard reads provider mode info, accounts, allocation, target deviations, top movers. | Requires simplified local/backtest provider behavior before removing provider router. | Used by dashboard route/tests/UI. |
-| `api/features/rebalancing/repository.py` | Rebalancing suggestions use provider target deviations and record local results. | Keep pure simulation behavior, but remove live/paper mode dependency carefully. | Used by rebalancing service/router/tests. |
-| `api/features/targets/repository.py` | Uses provider router for target state. | Needs local/simulated mode decision. | Imported by targets feature. |
-| `api/features/alerts/repository.py` | Uses provider router for generated target alerts. | Needs local/test mode replacement. | Imported by alerts feature. |
-| `api/features/orders/**` | Produces paper/live order drafts and manual paper approval logs; does not submit broker orders, but exposes order-like UI/API. | Simplified output contract allows `RebalancePlan`, not order drafts; product/API decision needed. | Orders page and tests exercise this feature. |
-| `web/lib/types.ts` | Includes `paper` and `live` trading modes. | UI contract change required if modes are removed. | Used across web UI. |
-| `web/lib/api.ts` | Calls `/api/providers/${mode}/sync-accounts`. | Must be updated if sync endpoint is removed/disabled. | Used by dashboard/account/system UI. |
-| `web/app/orders/OrdersPageClient.tsx` | Shows paper/live order draft and approval UI; live is disabled but still user-facing. | Simplification likely removes or replaces with simulation/report output UI. | Uses orders API and `TradingMode`. |
-| `web/components/dashboard/DashboardClient.tsx` | Displays paper/live mode labels and external API state. | Needs simplified mode UX decision. | Uses dashboard API response. |
-| `api/market_data/price_provider.py` | Read-only KIS quote provider imports `api.brokers.kis` helpers and can use env credentials when explicitly enabled. | Simplification wants no external API dependency; removing it affects live price smoke tests and market-data contracts. | Imported by price-provider tests and market data call sites. |
-| `api/data/adapters/kis_readonly.py` | Read-only KIS market-data adapter with endpoint guardrails; not account sync, but still a KIS external API adapter. | Needs owner decision: keep as disabled code contract or remove from simplified architecture. | Used by `tests/data/adapters/test_kis_readonly_adapter.py` and capex data-source config. |
-| `config/data_sources/capex_cycle_sources.yaml` | References `kis_readonly` source group. | Removing KIS read-only adapter requires config fallback or fixture-only source. | Used by capex source config tests. |
-| `config/settings.py` and `config/__init__.py` | Load KIS and Telegram/API env settings. | Removing external service settings may affect non-broker data adapters and system status. | Imported by legacy setup/tests and scripts. |
-| `api/telegram_service.py`, `api/macro_telegram_report.py` | External notification/report delivery paths; owner was already unresolved in `DevelopPlans/post_legacy_gap_resolution/root_owner_decision_inventory.md`. | Simplification likely removes external service dependency, but reporting/local alert semantics need owner approval. | Imported by macro feature, alerts service, script, and tests. |
-| `scripts/send_daily_macro_report.py`, `scripts/install_macro_cron.sh` | Telegram delivery automation. | Likely outside simplified test/code scope; deletion needs script/ops approval. | Imports macro Telegram report or installs cron. |
-| `tests/test_api_endpoints.py` | Mixed API tests include provider sync/KIS error tests and unrelated endpoint tests. | Must split rather than delete wholesale. | Imports provider router and KIS errors in specific tests. |
-| `tests/test_modes.py`, `tests/providers/test_modes.py`, `tests/providers/test_router.py`, `tests/providers/test_base.py`, `tests/providers/test_mock.py` | Provider mode tests mix allowed mock/backtest behavior with paper/live mode expectations. | Needs rewrite after mode policy decision. | Import `api.providers.*`. |
-| `tests/features/orders/**` | Tests order draft/approval UI contracts. | Needs output-contract decision: delete, rewrite to `RebalancePlan`, or keep simulation-only. | Imports orders feature. |
-| `tests/features/alerts/**`, `tests/test_macro_telegram_report.py` | Alerts include local behavior plus Telegram notification contracts. | Need split local alert tests from external Telegram tests. | Import alert/macro Telegram services. |
-| `README.md` | Describes KIS, paper/live modes, sync endpoints, API keys, and broker tests. | Must be rewritten after code decisions, not in analysis task. | Root documentation only; no runtime import. |
+| `api/providers/**` | Previously mixed local and paper/live behavior. | Delete; do not preserve provider compatibility shim. | Accounts, dashboard, system, alerts, rebalancing, targets, orders, tests, web mode contracts. |
+| `api/features/system/router.py` sync route and KIS error handling | Provider sync and KIS-specific errors are removed. | Remove `/api/providers/{mode}/sync-accounts`; preserve unrelated health/status routes if possible. | Imports KIS errors and provider modes. |
+| `api/features/system/repository.py` provider-mode methods | Provider mode listing/sync depends on deleted provider router. | Remove provider-mode methods or replace with local app state only where needed for collection. | Imported by system service/router/tests. |
+| `api/features/system/schemas.py` provider sync/mode schemas | Provider sync/mode API is removed. | Delete or simplify only if unused by remaining local API. | Used by providers and system tests. |
+| `api/features/accounts/repository.py` provider-router reads | Account local/manual behavior can remain, but provider-router dependency must be removed. | Replace with direct local deterministic SQL reads if account feature remains. | Used by account service/router/tests. |
+| `api/features/dashboard/repository.py` provider-router reads and paper/live mode info | UI paper/live mode is removed. | Replace with local/simulation-only dashboard data if dashboard remains. | Used by dashboard route/tests/UI. |
+| `api/features/rebalancing/repository.py` provider-router reads | Rebalancing remains simulation-only; provider dependency is deleted. | Replace target deviation lookup with local deterministic logic if needed. | Used by rebalancing tests/API. |
+| `api/features/targets/repository.py` provider-router usage | Provider dependency is removed. | Replace with local deterministic target reads if target feature remains. | Imported by targets feature. |
+| `api/features/alerts/repository.py` provider-router usage and Telegram paths | External notification/reporting is removed. | Keep local alerts only if they do not require provider or Telegram. | Imported by alerts feature/tests. |
+| `api/features/orders/**` | Order candidate API/feature is removed. | Delete; do not replace with order stubs. | Orders page/tests. |
+| `web/lib/types.ts` paper/live modes | UI paper/live modes are removed. | Keep only local/backtest/simulation mode types if UI remains. | Used across web UI. |
+| `web/lib/api.ts` provider sync and order API calls | Provider sync and order API are removed. | Delete or update affected client functions. | Dashboard/account/system/orders UI. |
+| `web/app/orders/**` | Order UI is removed. | Delete; no paper/live/order stub. | Uses order API and paper/live controls. |
+| `web/components/dashboard/DashboardClient.tsx` paper/live presentation | UI paper/live mode is removed. | Replace with local/backtest/simulation presentation if dashboard remains. | Uses dashboard API response. |
+| `api/market_data/price_provider.py` | KIS/env-backed price provider is removed. | Delete or replace with non-provider local fixture path only if required by tests. | Price provider tests and market-data call sites. |
+| `api/data/adapters/kis_readonly.py` | KIS read-only adapter is removed. | Delete and remove config/test references. | KIS read-only adapter tests and capex source config. |
+| `config/data_sources/capex_cycle_sources.yaml` `kis_readonly` entries | KIS read-only source group is removed. | Remove entries or replace with fixture/local source only if existing deterministic tests require it. | Capex source config tests. |
+| `config/settings.py` and `config/__init__.py` KIS/Telegram settings | External service settings are removed when no remaining non-live code uses them. | Remove KIS/Telegram-only settings while preserving non-live data keys if still used. | Setup/tests/config imports. |
+| `api/telegram_service.py`, `api/macro_telegram_report.py` | Telegram/reporting feature/API is removed. | Delete; no disabled Telegram/reporting adapter. | Macro feature, alerts service, script, tests. |
+| `scripts/send_daily_macro_report.py`, `scripts/install_macro_cron.sh` | External report delivery automation is removed. | Delete. | Macro Telegram report script/cron. |
+| `tests/test_api_endpoints.py` provider-sync/KIS parts | Mixed tests must be split or rewritten. | Remove provider-sync/KIS assertions, keep unrelated local API assertions. | Provider router and KIS errors. |
+| `tests/providers/**`, `tests/test_modes.py` | Provider tests are removed. | Delete or replace with local deterministic tests in later tasks. | Imports `api.providers.*`. |
+| `tests/features/orders/**` | Orders feature tests are removed. | Delete. | Imports orders feature. |
+| `tests/features/alerts/**`, `tests/test_macro_telegram_report.py` external notification parts | Telegram/reporting tests are removed; local alert tests can remain only without provider/Telegram. | Split or delete external notification parts. | Alert/macro Telegram services. |
+| `README.md` KIS, paper/live, orders, provider sync docs | Documentation must be updated after code deletion. | Rewrite stale references during final docs task. | Root documentation only. |
 
-## Stop Decision
+## Remaining Review Items Outside Owner Scope
 
-`review_required` is not empty. Per Task 002, this is not a test failure, but it
-does block Task 003 and all subsequent deletion tasks. The next safe action is
-an owner decision for:
-
-1. whether read-only KIS market-data adapters are removed or kept as disabled
-   fixture-only contracts;
-2. how `paper` and `live` modes should be represented after simplification;
-3. whether `api/features/orders/**` is removed or replaced by `RebalancePlan`;
-4. whether Telegram/reporting delivery scripts are removed or kept outside the
-   supported test suite;
-5. how UI pages should degrade when account sync and order drafts are removed.
-
-Until those decisions are made, no live integration files should be deleted.
+None recorded in this manifest. If new owner decisions are discovered during
+deletion, stop only when the issue is outside the owner all-A scope or would
+require removing score flow, backtest engine, or deterministic data-to-output
+contracts.
