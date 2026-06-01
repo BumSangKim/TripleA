@@ -4,10 +4,11 @@ Task: `001_inspect_current_structure_and_boundaries.md`
 Phase: modular-monolith-refactor  
 Scope: inspection-only, no code/config/test changes
 
-Updated through Task 011 after the manifest, trade-data relocation, and
-score-store relocation tasks. The original discovery counts below are retained
-as historical inspection evidence; source file inventories are normalized where
-later tasks changed ownership.
+Updated through legacy cleanup Task 008 after the manifest, trade-data
+relocation, score-store relocation, strategy engine decoupling, and root
+macro/bottleneck data service cleanup. The original discovery counts below are
+retained as historical inspection evidence; source file inventories are
+normalized where later tasks changed ownership.
 
 ## Preconditions Read
 
@@ -50,9 +51,7 @@ api/asset_universe_snapshot.py
 api/asset_universe_validator.py
 api/backtest_engine.py
 api/backtest_foundation.py
-api/bottleneck_data_service.py
 api/data_contracts.py
-api/macro_data_service.py
 api/macro_indicator_collector.py
 api/macro_telegram_report.py
 api/main.py
@@ -172,9 +171,7 @@ These are root-level source files outside the declared feature, strategy, score_
 | `api/asset_universe_validator.py` | `owner_unresolved` | Universe validation; possible data/config owner. |
 | `api/backtest_engine.py` | top-level engine | Existing declared engine; do not relocate without explicit task. |
 | `api/backtest_foundation.py` | top-level engine support | Existing declared backtest support; do not relocate without explicit task. |
-| `api/bottleneck_data_service.py` | `owner_unresolved` | Root data service consumed by strategy and tests. |
 | `api/data_contracts.py` | shared contract | Cross-layer data contract; owner should be kept explicit. |
-| `api/macro_data_service.py` | `owner_unresolved` | Root data service consumed by strategy and tests. |
 | `api/macro_indicator_collector.py` | `owner_unresolved` | Collector; likely data collection boundary. |
 | `api/macro_telegram_report.py` | `owner_unresolved` | Reporting/notification helper; possible alerts/documents boundary. |
 | `api/market_data_collector.py` | `owner_unresolved` | Collector; likely market_data/data boundary. |
@@ -187,13 +184,8 @@ No owner is finalized here. Files marked `owner_unresolved` require a later task
 
 ## Strategy SQLite / DB Coupling Candidates
 
-| File | Evidence | Classification |
-|---|---|---|
-| `api/strategy/score_layer.py` | imports `sqlite3`; contains storage class creating `score_runs` and `score_values` tables | persistence candidate |
-| `api/strategy/decision_logger.py` | imports `sqlite3`; writes `strategy_decision_logs` | persistence candidate |
-| `api/strategy/macro_engine.py` | imports `sqlite3`; reads macro data through a connection | DB-coupled strategy read path, not classified as persistence |
-| `api/strategy/common_sector_scoring_engine.py` | imports `sqlite3`; reads price rows | DB-coupled strategy read path |
-| `api/strategy/triplea_allocator.py` | imports `sqlite3`; imports root bottleneck mappings | DB/root-service-coupled orchestration path |
+No direct strategy SQLite, DB module, root data service, feature module, or
+concrete strategy data reader imports remain in `api/strategy/**`.
 
 Resolved during this batch:
 
@@ -201,6 +193,11 @@ Resolved during this batch:
 - Bottleneck sector engine no longer imports `sqlite3` or the root trade-data
   service; it consumes `TradeSnapshot` / `TradeSnapshotReader`.
 - Legacy score-store helper moved to `api/score_pipeline/score_store.py`.
+- Macro snapshot reads moved to `api/data/macro_snapshot_reader.py` and are
+  injected through strategy data reader ports.
+- Bottleneck snapshot and sector mapping reads moved to
+  `api/data/bottleneck_snapshot_reader.py` and are injected through strategy
+  data reader ports.
 
 ## Existing Import Contract Enforcement
 
@@ -232,8 +229,6 @@ Resolved during this batch:
 
 ## Remaining Gaps
 
-- Strategy sqlite usage is still visible in the baseline-listed files and should
-  be separated only by explicit future tasks.
 - Root-level `api/*.py` ownership is now allowlist-enforced but several files
   remain `owner_unresolved`.
 - Service-layer tests do not detect every raw SQL string pattern; they focus on
@@ -262,10 +257,9 @@ Executed with `.venv/bin/python` because the repository shell does not expose a 
 .venv/bin/python -m pytest tests/unit tests/integration -q
 ```
 
-Results:
+Latest legacy-cleanup architecture result:
 
-- `tests/architecture`: 17 passed.
-- `tests/unit tests/integration`: 111 passed, 2 skipped.
+- `tests/architecture`: 47 passed, 2 xfailed.
 
 Later tasks added manifest, architecture, and input-to-output validation tests.
 See `docs/PIPELINE_MANIFEST_CONTRACT.md` for the current command set.
