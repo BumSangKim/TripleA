@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, and post-legacy gap resolution checkpoint are complete.
+- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, post-legacy gap resolution checkpoint, and layered score-flow feedback contract checkpoint are complete.
 - Current task: none.
 - Default execution posture: read-only analysis, backtest, score generation, review-only order candidates.
 - Out of scope unless explicitly approved: live broker order submission, real-account mutation, automatic execution.
@@ -46,6 +46,13 @@ Area-specific references:
   collector modules directly.
 - Intraday monitoring now has service/ports/schemas and router dependency
   wiring while remaining display/alert-ready only.
+- Layered score-flow feedback contracts are present but non-activating:
+  - `api/domain/decision_feedback.py`
+  - `api/domain/decision_state.py`
+  - `api/score_pipeline/feedback.py`
+  - `api/score_pipeline/adapters/macro_distribution_adapter.py`
+  - `api/score_pipeline/orchestrator_contracts.py`
+  - `api/score_pipeline/orchestrator.py`
 
 ## Strategy Engine Decoupling Checkpoint
 
@@ -93,6 +100,27 @@ Area-specific references:
     order-candidate behavior was intentionally changed;
   - root owner-unresolved files were documented only and not relocated.
 
+## Layered Score Flow Feedback Checkpoint
+
+- Status: complete for tasks `001` through `011` from the layered score-flow
+  feedback task pack.
+- Completed boundaries:
+  - current layered feedback inventory and target architecture contract;
+  - `FeedbackSignal` domain contract;
+  - `DecisionStateSnapshot` domain contract;
+  - `FeedbackCollector` review-only collector;
+  - `MacroDistributionAdapter` as non-activating `SFG-TASK-001` work;
+  - orchestrator request/result contracts and non-activating
+    `DecisionOrchestrator` skeleton;
+  - raw SQLite macro input to feedback/output snapshot integration test;
+  - layered feedback architecture guardrails.
+- Preserved boundaries:
+  - no allocation behavior activation;
+  - no rebalancing or order-candidate behavior change;
+  - no broker, KIS, live execution, real-account mutation, or automatic trading
+    behavior;
+  - no `docs/` recreation.
+
 ## Current Product Baseline
 
 - Score pipeline foundations are implemented.
@@ -109,6 +137,8 @@ Area-specific references:
   files.
 - Phase 4 feature-layer work is not represented as formal task files in the current plan tree.
 - Legacy/current engines for macro regime, sector tilt, risk budget, allocation, rebalancing, and order candidates remain partial relative to the master guide; see `DevelopPlans/post_legacy_gap_resolution/score_flow_gap_plan.md`.
+- Layered score-flow feedback foundation is contract/skeleton only. Activation
+  requires owner confirmation plus backtest/walk-forward validation.
 - Root owner-unresolved files require owner-specific tasks before relocation; see `DevelopPlans/post_legacy_gap_resolution/root_owner_decision_inventory.md`.
 - Real provider integrations should be added as read-only tasks first, with explicit env gates and tests.
 - Order execution, real-account mutation, and automatic trading are not active development targets.
@@ -132,11 +162,14 @@ Area-specific references:
 .venv/bin/python -m pytest tests/unit tests/integration -q
 ```
 
-Last recorded result: architecture 50 passed and 1 xfailed; pipeline integration
-22 passed; unit/integration 153 passed and 2 skipped.
+Last recorded result: architecture 65 passed and 1 xfailed; pipeline
+integration 25 passed; unit/integration 180 passed and 1 warning.
 
 ## Next Recommended Task
 
-Run one explicit execution unit only:
+Run one explicit execution unit only, after owner confirmation:
 
-- `SFG-TASK-001` Macro Distribution Adapter from `DevelopPlans/post_legacy_gap_resolution/score_flow_gap_plan.md`, after owner confirmation, as adapter/contract work only with no allocation behavior activation.
+- `SFG-TASK-002` Fixed Bucket Shift Replacement Plan as design and
+  characterization only; do not activate allocation behavior.
+- Alternative next adapter-only task: `SFG-TASK-003` Allocation Target Range
+  Compatibility, with no default route/backtest wiring.

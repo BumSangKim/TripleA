@@ -24,7 +24,7 @@ Canonical rule source: `MASTER_DEVELOPMENT_GUIDE.md`.
 
 | gap_id | current state | guide-aligned target | risk | required owner confirmation |
 |---|---|---|---|---|
-| `SFG-001` | Macro decision uses threshold-like labels (`risk_on`, `neutral`, `cautious`, `risk_off`) | Macro state should flow as a continuous distribution input | Behavior change can alter risk posture across all backtests | `requires_owner_confirmation` |
+| `SFG-001` | Macro decision uses threshold-like labels (`risk_on`, `neutral`, `cautious`, `risk_off`); non-activating adapter contract is complete | Macro state should flow as a continuous distribution input | Behavior change can alter risk posture across all backtests | `contract_adapter_completed_not_activated` |
 | `SFG-002` | Allocation profile uses fixed bucket shifts by regime label | Bucket and asset adjustments should be score/intensity based | New formulas or defaults would be investment rules | `requires_owner_confirmation` |
 | `SFG-003` | Score pipeline allocation ranges are not the main allocator output contract | Existing `AllocationDecision` must remain API/backtest-compatible while target ranges are introduced | Response shape or persistence can break if changed abruptly | `requires_owner_confirmation` |
 | `SFG-004` | Rebalancing/order-candidate foundations exist but are not fully wired to score-flow intensity | Rebalancing intensity and review-only candidate generation should consume score-flow outputs after hard constraints | Could accidentally create execution-like behavior | `requires_owner_confirmation` |
@@ -34,6 +34,7 @@ Canonical rule source: `MASTER_DEVELOPMENT_GUIDE.md`.
 
 ### `SFG-TASK-001` Macro Distribution Adapter
 
+- Status: `contract_adapter_completed_not_activated`.
 - Objective: expose macro distribution as an allocation input without replacing
   the current allocator behavior.
 - Allowed change shape: adapter/contract and tests only.
@@ -47,11 +48,14 @@ Canonical rule source: `MASTER_DEVELOPMENT_GUIDE.md`.
 - Approval: `requires_owner_confirmation` before activating the adapter in
   production allocation.
 
+No allocation default path is changed by `SFG-TASK-001`. Activation requires
+owner confirmation and backtest/walk-forward validation.
+
 ### `SFG-TASK-002` Fixed Bucket Shift Replacement Plan
 
 - Objective: define how fixed shifts could become score/intensity-based
   adjustments.
-- Allowed change shape: design spec and failing characterization tests only.
+- Allowed change shape: design spec and characterization tests only.
 - Required tests:
   - current fixed-shift behavior characterization;
   - proposed score/intensity inputs documented with expected conservative
@@ -68,7 +72,7 @@ Canonical rule source: `MASTER_DEVELOPMENT_GUIDE.md`.
 
 - Objective: map score-pipeline allocation target ranges into the existing
   `AllocationDecision` shape without changing public API fields.
-- Allowed change shape: compatibility adapter and tests.
+- Allowed change shape: compatibility adapter and tests only.
 - Required tests:
   - score-pipeline range output to `AllocationDecision`;
   - API/backtest response compatibility;
@@ -77,6 +81,13 @@ Canonical rule source: `MASTER_DEVELOPMENT_GUIDE.md`.
   - public response shape must change;
   - account constraints cannot be represented as hard constraints first.
 - Approval: `requires_owner_confirmation` before route/backtest default wiring.
+
+## Next Owner-Confirmation Candidates
+
+- `SFG-TASK-002` Fixed Bucket Shift Replacement Plan: design and
+  characterization only; no allocation behavior activation.
+- `SFG-TASK-003` Allocation Target Range Compatibility: adapter only; no
+  default route, allocator, or backtest wiring.
 
 ### `SFG-TASK-004` Rebalancing Intensity And Review-Only Candidate Flow
 

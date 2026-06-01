@@ -6,6 +6,11 @@ This inventory records the current repository baseline before adding layered
 score-flow feedback contracts. It is inspection-only and does not approve any
 activation of new allocation, rebalancing, or order behavior.
 
+Checkpoint update: tasks `001` through `011` added the target contract,
+feedback/domain contracts, non-activating macro distribution adapter,
+non-activating orchestrator skeleton, integration regression, and architecture
+guardrails. This remains a contract/skeleton checkpoint only.
+
 ## Evidence Read
 
 - `DevelopPlans/STATUS.md`
@@ -41,3 +46,4 @@ activation of new allocation, rebalancing, or order behavior.
 - This task pack may add adapter, contract, skeleton, and test artifacts only.
 - Active allocation, rebalancing, order candidate, broker, KIS, or execution behavior changes require separate owner confirmation.
 - Missing or uncertain business rules must remain `REVIEW_REQUIRED`, `NO_ACTION`, `HOLD`, or `RISK_REDUCE_ONLY`.
+- No allocation default path was changed by the completed adapter/skeleton work.
