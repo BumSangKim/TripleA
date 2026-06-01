@@ -91,13 +91,8 @@ def test_macro_reader_documents_point_in_time_filtering_boundary():
     assert decision.regime in {"neutral", "risk_on"}
 
 
-def test_macro_engine_reader_path_does_not_call_legacy_root_service(monkeypatch):
-    def fail_legacy_call(*args, **kwargs):
-        raise AssertionError("reader path must not call get_macro_snapshot")
-
-    monkeypatch.setattr(macro_engine_module, "get_macro_snapshot", fail_legacy_call)
-
+def test_macro_engine_reader_path_no_longer_exposes_legacy_root_service():
+    assert not hasattr(macro_engine_module, "get_macro_snapshot")
     decision = MacroEngine.from_reader(FakeMacroReader(_snapshot())).evaluate(date(2024, 1, 3))
 
     assert decision.regime == "risk_off"
-

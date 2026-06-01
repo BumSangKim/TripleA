@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 
+from api.data.strategy_data_readers import SqliteMacroSnapshotReader
 from api.features.market_data.trade_data_service import SqliteTradeSnapshotReader
 from api.strategy.triplea_allocator import TripleAAllocator
 
@@ -30,6 +31,34 @@ def test_triplea_allocator_changes_weights_by_risk_profile():
 
     assert aggressive.bucket_weights["AGGRESSIVE_ALPHA"] > defensive.bucket_weights["AGGRESSIVE_ALPHA"]
     assert defensive.bucket_weights["DEFENSIVE_CORE"] > aggressive.bucket_weights["DEFENSIVE_CORE"]
+
+
+def test_triplea_allocator_uses_injected_macro_reader_point_in_time_data():
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    conn.executescript(
+        """
+        CREATE TABLE indicators (
+            indicator TEXT,
+            value REAL,
+            unit TEXT,
+            date TEXT,
+            source TEXT
+        );
+        INSERT INTO indicators VALUES ('VIXCLS', 40.0, 'pt', '2024-01-02', 'test');
+        INSERT INTO indicators VALUES ('VIXCLS', 12.0, 'pt', '2024-01-10', 'test');
+        """
+    )
+
+    decision = TripleAAllocator(
+        conn,
+        risk_profile="balanced",
+        macro_snapshot_reader=SqliteMacroSnapshotReader(conn),
+    ).allocate(date(2024, 1, 3))
+
+    assert decision.macro_regime == "risk_off"
+    assert decision.macro_score <= 25
+    assert decision.bucket_weights["AGGRESSIVE_ALPHA"] < 0.45
 
 
 def test_triplea_allocator_applies_active_bottleneck_sector_tilt(tmp_path, monkeypatch):

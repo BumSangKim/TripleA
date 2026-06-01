@@ -1,6 +1,7 @@
 import sqlite3
 from datetime import date
 
+from api.data.strategy_data_readers import SqliteMacroSnapshotReader
 from api.strategy.macro_engine import MacroEngine
 
 
@@ -32,7 +33,7 @@ def test_macro_engine_marks_high_vix_as_risk_off():
         ("ISM_PMI", 44.0, "pt", "2024-01-02"),
     ])
 
-    decision = MacroEngine(conn).evaluate(date(2024, 1, 3))
+    decision = MacroEngine.from_reader(SqliteMacroSnapshotReader(conn)).evaluate(date(2024, 1, 3))
 
     assert decision.regime == "risk_off"
     assert decision.score <= 25
@@ -45,7 +46,7 @@ def test_macro_engine_ignores_future_indicator_rows():
         ("VIXCLS", 40.0, "pt", "2024-01-10"),
     ])
 
-    decision = MacroEngine(conn).evaluate(date(2024, 1, 5))
+    decision = MacroEngine.from_reader(SqliteMacroSnapshotReader(conn)).evaluate(date(2024, 1, 5))
 
     assert decision.regime in {"neutral", "risk_on"}
     assert decision.indicators["VIXCLS"] == 15.0
@@ -59,7 +60,11 @@ def test_allocator_reduces_aggressive_bucket_in_risk_off_macro():
 
     from api.strategy.triplea_allocator import TripleAAllocator
 
-    decision = TripleAAllocator(conn, risk_profile="balanced").allocate(date(2024, 1, 3))
+    decision = TripleAAllocator(
+        conn,
+        risk_profile="balanced",
+        macro_snapshot_reader=SqliteMacroSnapshotReader(conn),
+    ).allocate(date(2024, 1, 3))
 
     assert decision.macro_regime == "risk_off"
     assert decision.bucket_weights["AGGRESSIVE_ALPHA"] < 0.45

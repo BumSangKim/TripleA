@@ -8,6 +8,7 @@ from api.bottleneck_data_service import get_sector_asset_mappings
 from api.strategy_config import load_investment_universe, load_strategy_profile
 
 from .bottleneck_sector_engine import BottleneckSectorEngine
+from .data_ports import MacroSnapshotReader
 from .macro_engine import MacroEngine, MacroRegimeDecision
 from .risk_budget_engine import RiskBudgetEngine, policy_from_profile
 from .sector_tilt_engine import SectorTiltEngine
@@ -25,12 +26,14 @@ class TripleAAllocator:
         risk_profile: str = "balanced",
         universe_id: str = "default_global",
         strategy_mode: str = "triplea_dynamic",
+        macro_snapshot_reader: MacroSnapshotReader | None = None,
         trade_snapshot_reader: TradeSnapshotReader | None = None,
     ):
         self.conn = conn
         self.risk_profile = risk_profile
         self.universe_id = universe_id
         self.strategy_mode = strategy_mode
+        self.macro_snapshot_reader = macro_snapshot_reader
         self.trade_snapshot_reader = trade_snapshot_reader
 
     @classmethod
@@ -41,6 +44,7 @@ class TripleAAllocator:
         risk_profile: str,
         universe_id: str,
         strategy_mode: str = "triplea_dynamic",
+        macro_snapshot_reader: MacroSnapshotReader | None = None,
         trade_snapshot_reader: TradeSnapshotReader | None = None,
     ) -> "TripleAAllocator":
         return cls(
@@ -48,6 +52,7 @@ class TripleAAllocator:
             risk_profile=risk_profile,
             universe_id=universe_id,
             strategy_mode=strategy_mode,
+            macro_snapshot_reader=macro_snapshot_reader,
             trade_snapshot_reader=trade_snapshot_reader,
         )
 
@@ -65,7 +70,11 @@ class TripleAAllocator:
         *,
         previous_weights: dict[str, float] | None = None,
     ) -> AllocationDecision:
-        macro = MacroEngine(self.conn).evaluate(as_of_date)
+        macro = (
+            MacroEngine.from_reader(self.macro_snapshot_reader).evaluate(as_of_date)
+            if self.macro_snapshot_reader is not None
+            else MacroEngine().evaluate(as_of_date)
+        )
         final_weights, bucket_weights, profile_reasons, bottleneck_scores, sector_scores = self._profile_weights(
             as_of_date,
             macro,

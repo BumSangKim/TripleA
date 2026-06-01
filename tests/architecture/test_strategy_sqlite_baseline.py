@@ -9,7 +9,6 @@ STRATEGY_ROOT = ROOT / "api" / "strategy"
 SQLITE_IMPORT_BASELINE = {
     "api/strategy/common_sector_scoring_engine.py",
     "api/strategy/decision_logger.py",
-    "api/strategy/macro_engine.py",
     "api/strategy/score_layer.py",
     "api/strategy/triplea_allocator.py",
 }
