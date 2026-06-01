@@ -35,6 +35,15 @@
 ### strategy 고립 규칙
 - `api/strategy/` → FastAPI, HTTPException import 금지
 - `api/strategy/` → `api/features/` import 금지
+- `api/strategy/` → `sqlite3`, `api.db`, root data services import 금지
+- Strategy engines receive data through Protocol ports from
+  `api/strategy/data_ports.py` or explicit domain inputs.
+- DB-backed strategy readers live outside strategy, currently under
+  `api/data/strategy_data_readers.py`.
+- Strategy audit persistence lives outside strategy, currently under
+  `api/reporting/strategy_decision_log_repository.py`.
+- Score persistence lives outside strategy, currently under
+  `api/score_pipeline/score_store.py`.
 
 ### service 규칙
 - `api/features/*/service.py` → `sqlite3`, `get_conn`, SQL, FastAPI, HTTPException import 금지

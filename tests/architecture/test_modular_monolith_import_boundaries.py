@@ -69,6 +69,24 @@ def test_strategy_does_not_import_transport_or_feature_layers():
     assert not violations
 
 
+def test_strategy_does_not_import_db_or_root_data_services():
+    violations = _imports_with_forbidden_prefixes(
+        API_ROOT / "strategy",
+        (
+            "sqlite3",
+            "api.db",
+            "api.macro_data_service",
+            "api.bottleneck_data_service",
+            "api.market_data_service",
+            "api.market_data_collector",
+            "api.macro_indicator_collector",
+            "api.features",
+        ),
+    )
+
+    assert not violations
+
+
 def test_strategy_does_not_import_root_trade_data_service():
     violations = _imports_with_forbidden_prefixes(
         API_ROOT / "strategy",
