@@ -9,7 +9,9 @@ from api.features.backtests.dependencies import (
     get_sector_component_config,
     get_sector_component_portfolios,
 )
+from api.features.backtests.ai_capex_token_diagnostic import build_ai_capex_token_backtest_diagnostic
 from api.features.backtests.schemas import (
+    AICapexTokenDiagnosticResponse,
     BacktestDecision,
     BacktestPosition,
     BacktestRunRequest,
@@ -71,6 +73,11 @@ def sector_component_run(
         return _sector_component_run_response(result)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/api/backtests/ai-capex-token/diagnostic/run", response_model=AICapexTokenDiagnosticResponse)
+def ai_capex_token_diagnostic_run():
+    return build_ai_capex_token_backtest_diagnostic()
 
 
 @router.get("/api/backtests/runs/{run_id}", response_model=BacktestRunResponse)

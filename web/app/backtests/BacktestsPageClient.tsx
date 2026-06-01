@@ -7,6 +7,7 @@ import type { BacktestDecision, BacktestPoint, BacktestPosition, BacktestTrade, 
 import Card from "@/components/ui/Card";
 import { cn, formatKRW } from "@/lib/utils";
 import SectorComponentDiagnosticPanel from "./SectorComponentDiagnosticPanel";
+import AICapexTokenDiagnosticPanel from "./AICapexTokenDiagnosticPanel";
 
 type Frequency = BacktestRunRequest["rebalanceFrequency"];
 
@@ -284,6 +285,7 @@ export default function BacktestsPageClient() {
             </div>
           </Card>
           <SectorComponentDiagnosticPanel />
+          <AICapexTokenDiagnosticPanel />
         </div>
 
         <div className="space-y-4">

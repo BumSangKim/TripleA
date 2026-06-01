@@ -187,3 +187,45 @@ class SectorComponentUiMetadataResponse(BaseModel):
     sectorOptions: List[SectorComponentSectorOptionResponse] = Field(default_factory=list)
     warnings: List[Dict[str, Any]] = Field(default_factory=list)
     reasonCodes: List[str] = Field(default_factory=list)
+
+
+class AICapexTokenProductionGateResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+    productionEnabled: bool
+    approved: bool
+    requiresBacktestPass: bool
+    requiresWalkForwardPass: bool
+
+
+class AICapexTokenDiagnosticRowResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    fixtureId: str
+    snapshotId: str
+    intendedScenario: Optional[str] = None
+    dominantScenario: Optional[str] = None
+    status: str
+    componentCount: int = 0
+    maxConfidence: float = 0.0
+    minDataQuality: float = 0.0
+    reasonCodes: List[str] = Field(default_factory=list)
+    excludedMetricKeys: List[str] = Field(default_factory=list)
+    components: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class AICapexTokenDiagnosticResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ok: bool
+    status: str
+    diagnosticOnly: bool
+    productionReady: bool
+    parameterVersion: str
+    modelVersion: str
+    dataSnapshotId: str
+    productionGate: AICapexTokenProductionGateResponse
+    scenarioRows: List[AICapexTokenDiagnosticRowResponse] = Field(default_factory=list)
+    warnings: List[Dict[str, Any]] = Field(default_factory=list)
+    reasonCodes: List[str] = Field(default_factory=list)

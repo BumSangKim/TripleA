@@ -309,6 +309,42 @@ export interface SectorComponentRunResponse {
   reasonCodes: string[];
 }
 
+export interface AICapexTokenProductionGate {
+  enabled: boolean;
+  productionEnabled: boolean;
+  approved: boolean;
+  requiresBacktestPass: boolean;
+  requiresWalkForwardPass: boolean;
+}
+
+export interface AICapexTokenDiagnosticRow {
+  fixtureId: string;
+  snapshotId: string;
+  intendedScenario?: string | null;
+  dominantScenario?: string | null;
+  status: string;
+  componentCount: number;
+  maxConfidence: number;
+  minDataQuality: number;
+  reasonCodes: string[];
+  excludedMetricKeys: string[];
+  components?: Record<string, unknown>[];
+}
+
+export interface AICapexTokenDiagnosticResponse {
+  ok: boolean;
+  status: string;
+  diagnosticOnly: boolean;
+  productionReady: boolean;
+  parameterVersion: string;
+  modelVersion: string;
+  dataSnapshotId: string;
+  productionGate: AICapexTokenProductionGate;
+  scenarioRows: AICapexTokenDiagnosticRow[];
+  warnings: SectorComponentWarning[];
+  reasonCodes: string[];
+}
+
 export interface APIErrorDetail {
   code?: string;
   message?: string;

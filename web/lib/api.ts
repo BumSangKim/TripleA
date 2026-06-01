@@ -3,6 +3,7 @@ import type {
   AccountPolicyItem,
   AccountSnapshotCreate,
   AccountSnapshotItem,
+  AICapexTokenDiagnosticResponse,
   BacktestRunRequest,
   BacktestRunResponse,
   CalendarEvent,
@@ -112,6 +113,11 @@ export const api = {
     fetchJSON<SectorComponentRunResponse>("/api/backtests/sector-components/run", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+
+  runAICapexTokenDiagnostic: (): Promise<AICapexTokenDiagnosticResponse> =>
+    fetchJSON<AICapexTokenDiagnosticResponse>("/api/backtests/ai-capex-token/diagnostic/run", {
+      method: "POST",
     }),
 
   getMacroSummary: (): Promise<MacroIndicator[]> =>
