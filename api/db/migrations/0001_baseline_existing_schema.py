@@ -60,6 +60,21 @@ _SQL = """
         updated_at TEXT DEFAULT (datetime('now','localtime'))
     );
 
+    CREATE TABLE IF NOT EXISTS indicators (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        indicator TEXT NOT NULL,
+        value     REAL,
+        unit      TEXT,
+        date      TEXT NOT NULL,
+        source    TEXT,
+        frequency TEXT,
+        updated   TEXT DEFAULT (datetime('now','localtime')),
+        UNIQUE(indicator, date, source)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_indicators_indicator_date
+    ON indicators(indicator, date);
+
     CREATE TABLE IF NOT EXISTS account_policies (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         account_type TEXT NOT NULL UNIQUE,

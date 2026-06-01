@@ -22,8 +22,34 @@ def _add_column_if_missing(conn: sqlite3.Connection, table: str, column: str, de
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
 
 
+def _ensure_indicators_table(conn: sqlite3.Connection) -> None:
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS indicators (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            indicator TEXT NOT NULL,
+            value     REAL,
+            unit      TEXT,
+            date      TEXT NOT NULL,
+            source    TEXT,
+            frequency TEXT,
+            updated   TEXT DEFAULT (datetime('now','localtime')),
+            UNIQUE(indicator, date, source)
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_indicators_indicator_date
+        ON indicators(indicator, date)
+    """)
+
+
 def migrate_existing_schema(conn: sqlite3.Connection) -> None:
     """Apply ADD COLUMN migrations for existing databases that predate the baseline migration."""
+    _ensure_indicators_table(conn)
+    _add_column_if_missing(conn, "indicators", "unit", "TEXT")
+    _add_column_if_missing(conn, "indicators", "source", "TEXT")
+    _add_column_if_missing(conn, "indicators", "frequency", "TEXT")
+    _add_column_if_missing(conn, "indicators", "updated", "TEXT")
+
     _add_column_if_missing(conn, "accounts", "initial_value", "REAL DEFAULT 0")
     _add_column_if_missing(conn, "accounts", "account_type", "TEXT DEFAULT 'GENERAL'")
     _add_column_if_missing(conn, "accounts", "connection_status", "TEXT DEFAULT 'UNLINKED'")

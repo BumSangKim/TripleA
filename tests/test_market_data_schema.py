@@ -16,6 +16,7 @@ def test_market_data_schema_and_seed_assets_are_created(tmp_path, monkeypatch):
     }
     assert {
         "asset_universe",
+        "indicators",
         "market_prices",
         "fx_rates",
         "data_collection_runs",
@@ -35,6 +36,7 @@ def test_market_data_schema_and_seed_assets_are_created(tmp_path, monkeypatch):
     }
     assert {
         "idx_market_prices_asset_date",
+        "idx_indicators_indicator_date",
         "idx_fx_rates_pair_date",
         "idx_data_collection_runs_type_started",
         "idx_trade_series_release",
