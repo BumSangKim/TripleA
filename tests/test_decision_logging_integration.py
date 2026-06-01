@@ -2,8 +2,8 @@ import json
 import sqlite3
 from datetime import date
 
+from api.score_pipeline.score_store import store_score
 from api.strategy.decision_logger import log_strategy_decision
-from api.strategy.score_store_service import store_score
 
 
 def test_decision_logging_and_score_store_round_trip():

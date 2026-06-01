@@ -78,6 +78,20 @@ def test_strategy_does_not_import_root_trade_data_service():
     assert not violations
 
 
+def test_strategy_score_store_service_has_been_relocated():
+    assert not (API_ROOT / "strategy" / "score_store_service.py").exists()
+
+
+def test_repository_does_not_import_legacy_strategy_score_store():
+    legacy_import = "api.strategy." + "score_store_service"
+    violations = [
+        *_imports_with_forbidden_prefixes(API_ROOT, (legacy_import,)),
+        *_imports_with_forbidden_prefixes(ROOT / "tests", (legacy_import,)),
+    ]
+
+    assert not violations
+
+
 def test_bottleneck_sector_engine_does_not_import_db_or_data_adapters():
     imports = _collect_imports(API_ROOT / "strategy" / "bottleneck_sector_engine.py")
     forbidden = [

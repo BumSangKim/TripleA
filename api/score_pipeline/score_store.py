@@ -29,6 +29,15 @@ def store_score(
             data_quality=excluded.data_quality,
             reason_codes_json=excluded.reason_codes_json
         """,
-        (snapshot_id, entity_type, entity_id, score_name, score_value, confidence, data_quality, json.dumps(reason_codes or [], sort_keys=True)),
+        (
+            snapshot_id,
+            entity_type,
+            entity_id,
+            score_name,
+            score_value,
+            confidence,
+            data_quality,
+            json.dumps(reason_codes or [], sort_keys=True),
+        ),
     )
     conn.commit()

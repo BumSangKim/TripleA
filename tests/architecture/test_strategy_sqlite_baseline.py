@@ -11,7 +11,6 @@ SQLITE_IMPORT_BASELINE = {
     "api/strategy/decision_logger.py",
     "api/strategy/macro_engine.py",
     "api/strategy/score_layer.py",
-    "api/strategy/score_store_service.py",
     "api/strategy/triplea_allocator.py",
 }
 

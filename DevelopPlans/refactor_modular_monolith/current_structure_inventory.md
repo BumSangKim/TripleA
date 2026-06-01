@@ -141,7 +141,6 @@ api/strategy/regime_response_engine.py
 api/strategy/risk_budget_engine.py
 api/strategy/score_contract.py
 api/strategy/score_layer.py
-api/strategy/score_store_service.py
 api/strategy/sector_allocation_pressure.py
 api/strategy/sector_score_aggregator.py
 api/strategy/sector_tilt_engine.py
@@ -184,7 +183,6 @@ No owner is finalized here. Files marked `owner_unresolved` require a later task
 
 | File | Evidence | Classification |
 |---|---|---|
-| `api/strategy/score_store_service.py` | imports `sqlite3`; writes to `score_store` with upsert SQL | persistence candidate |
 | `api/strategy/score_layer.py` | imports `sqlite3`; contains storage class creating `score_runs` and `score_values` tables | persistence candidate |
 | `api/strategy/decision_logger.py` | imports `sqlite3`; writes `strategy_decision_logs` | persistence candidate |
 | `api/strategy/macro_engine.py` | imports `sqlite3`; reads macro data through a connection | DB-coupled strategy read path, not classified as persistence |
