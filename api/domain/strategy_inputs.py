@@ -62,6 +62,8 @@ class PriceHistoryPointInput:
     asset_code: str
     price_date: date
     price: float
+    source: str | None = None
+    as_of_date: date | None = None
 
 
 @dataclass(frozen=True)
@@ -73,4 +75,3 @@ class StrategyDecisionLogInput:
     snapshot_id: str | None = None
     reason_codes: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
-

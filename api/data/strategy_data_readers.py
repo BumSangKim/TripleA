@@ -106,9 +106,10 @@ class SqlitePriceHistoryReader:
     ) -> list[PriceHistoryPointInput]:
         if not _table_exists(self.conn, "market_prices"):
             return []
+        source_expr = "source" if _column_exists(self.conn, "market_prices", "source") else "NULL AS source"
         rows = self.conn.execute(
-            """
-            SELECT asset_code, price_date, COALESCE(adj_close, close) AS price
+            f"""
+            SELECT asset_code, price_date, COALESCE(adj_close, close) AS price, {source_expr}
             FROM market_prices
             WHERE asset_code=?
               AND price_date BETWEEN ? AND ?
@@ -121,6 +122,8 @@ class SqlitePriceHistoryReader:
                 asset_code=row["asset_code"],
                 price_date=date.fromisoformat(row["price_date"][:10]),
                 price=float(row["price"]),
+                source=row["source"],
+                as_of_date=end_date,
             )
             for row in rows
             if row["price"] is not None
@@ -134,3 +137,7 @@ def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
     ).fetchone()
     return bool(row)
 
+
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    return any((row["name"] if hasattr(row, "keys") else row[1]) == column for row in rows)
