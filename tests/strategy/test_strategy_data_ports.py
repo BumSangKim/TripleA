@@ -54,8 +54,14 @@ class FakePriceReader:
 
 
 class FakeDecisionWriter:
-    def write_decision_log(self, payload: StrategyDecisionLogInput) -> None:
+    def write_decision_log(
+        self,
+        payload: StrategyDecisionLogInput,
+        *,
+        enabled: bool = True,
+    ) -> bool:
         self.payload = payload
+        return enabled
 
 
 class FakeScoreStore:
@@ -119,4 +125,3 @@ def test_strategy_data_ports_do_not_import_forbidden_modules():
             imports.add(node.module)
 
     assert imports.isdisjoint(forbidden_modules)
-

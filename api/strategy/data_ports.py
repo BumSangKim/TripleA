@@ -52,7 +52,12 @@ class PriceHistoryReader(Protocol):
 
 @runtime_checkable
 class StrategyDecisionLogWriter(Protocol):
-    def write_decision_log(self, payload: StrategyDecisionLogInput) -> None:
+    def write_decision_log(
+        self,
+        payload: StrategyDecisionLogInput,
+        *,
+        enabled: bool = True,
+    ) -> bool:
         ...
 
 
@@ -85,4 +90,3 @@ class StrategyScoreStore(Protocol):
 
     def values_for_run(self, run_id: str) -> list[dict[str, Any]]:
         ...
-
