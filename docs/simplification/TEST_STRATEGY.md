@@ -8,10 +8,10 @@ simplified architecture contract in `docs/simplification/SIMPLIFIED_ARCHITECTURE
 
 - Backtest tests: deterministic simulations that validate portfolio state,
   historical data ordering, metrics, conservative fallback behavior, and
-  reportable results.
+  reportable results. The current repository directory is `tests/backtest`.
 - Unit and code contract tests: pure code tests for loaders, validators,
   domain models, score-flow contracts, account constraints, and reporting
-  contracts.
+  contracts. Simplification-specific code checks live in `tests/code`.
 - Architecture and import-boundary tests: static or import-safe tests that
   prevent broker, KIS, live account, and live execution dependencies from
   returning to active code paths.
@@ -28,6 +28,8 @@ simplified architecture contract in `docs/simplification/SIMPLIFIED_ARCHITECTURE
 - Browser or UI end-to-end tests that depend on external services or real
   account state.
 - Tests that validate actual order submission or real-account mutation.
+- Tests marked as `live_price`; this marker is unsupported in the simplified
+  suite.
 
 ## Required Data-To-Output Shape
 
@@ -67,6 +69,7 @@ should converge on supported commands such as:
 git diff --check
 pytest -q --collect-only
 pytest tests/backtest -q
+pytest tests/code -q
 pytest tests/unit tests/integration -q
 pytest tests/architecture -q
 ```
