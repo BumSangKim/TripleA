@@ -1,0 +1,24 @@
+mode:
+  production_enabled: false
+  diagnostic_only: true
+  shadow_candidate_only: true
+
+baseline_report: reports/backtest/ai_capex_token_adaptive/baseline_report.json
+parameter_config: config/parameters/ai_capex_token_adaptive_tuning.yaml
+
+diagnostic:
+  contribution_to_allocation: 0.0
+  compare_future_outcomes: analysis_only
+  use_future_outcomes_for_signal: false
+  required_fields:
+    - adaptive_normalized_features
+    - scenario_distribution
+    - dominant_scenario
+    - sector_component_diagnostics
+    - market_state_dampeners
+    - score_turnover
+    - scenario_turnover
+    - reason_code_frequency
+    - data_quality_by_period
+    - memory_cycle_phase
+    - calibration_window_metadata

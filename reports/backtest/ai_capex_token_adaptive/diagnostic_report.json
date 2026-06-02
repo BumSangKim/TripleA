@@ -1,0 +1,263 @@
+{
+  "baseline_reference": {
+    "cost_adjusted_return": 0.0,
+    "final_value": 100000.0
+  },
+  "diagnostic_result": {
+    "allocation_contribution": 0.0,
+    "cost_adjusted_return": 0.0,
+    "final_allocation_changed": false,
+    "final_value": 100000.0
+  },
+  "future_outcome_comparison": {
+    "analysis_only": true,
+    "fields": [
+      "future_sector_return",
+      "future_drawdown"
+    ],
+    "not_used_for_signal_calculation": true
+  },
+  "mode": {
+    "diagnostic_only": true,
+    "production_enabled": false,
+    "shadow_candidate_only": true
+  },
+  "periods": [
+    {
+      "adaptive_normalized_features": {
+        "capex_acceleration": 0.82,
+        "token_delta": 0.86
+      },
+      "as_of_date": "2026-02-10",
+      "calibration_window_metadata": {
+        "available_at_cutoff": "2026-02-10",
+        "method": "rolling_percentile",
+        "min_observations": 24,
+        "observation_count": 24
+      },
+      "data_quality_by_period": 0.95,
+      "dominant_scenario": "S1",
+      "dominant_scenario_explanation_only": true,
+      "future_outcome_comparison": {
+        "analysis_only": true,
+        "future_drawdown": -0.01,
+        "future_sector_return": 0.03,
+        "not_used_for_signal_calculation": true
+      },
+      "market_state_dampeners": {
+        "confidence": 0.82,
+        "data_quality": 0.95,
+        "macro_stress_dampener": 0.82,
+        "turnover_dampener": 1.0,
+        "valuation_dampener": 0.82
+      },
+      "memory_cycle_phase": "recovery",
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "period_id": "2026-02-s1",
+      "reason_codes": [
+        "ADAPTIVE_DIAGNOSTIC_ONLY",
+        "S1_EXPLANATION_ONLY"
+      ],
+      "scenario_distribution": {
+        "S1": 0.8,
+        "S2": 0.025,
+        "S3": 0.025,
+        "S4": 0.025,
+        "S5": 0.025,
+        "S6": 0.025,
+        "S7": 0.025,
+        "S8": 0.025,
+        "S9": 0.025
+      },
+      "scenario_turnover": 0.0,
+      "score_turnover": 0.0,
+      "sector_component_diagnostics": {
+        "bigtech_platform": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "cash_short_duration": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "inverse_hedge_diagnostic": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true,
+          "user_review_required": true
+        },
+        "power_equipment": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "semiconductor_hbm": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        }
+      },
+      "warnings": []
+    },
+    {
+      "adaptive_normalized_features": {
+        "capex_acceleration": 0.18,
+        "token_delta": 0.84
+      },
+      "as_of_date": "2026-03-10",
+      "calibration_window_metadata": {
+        "available_at_cutoff": "2026-03-10",
+        "method": "rolling_percentile",
+        "min_observations": 24,
+        "observation_count": 24
+      },
+      "data_quality_by_period": 0.9,
+      "dominant_scenario": "S3",
+      "dominant_scenario_explanation_only": true,
+      "future_outcome_comparison": {
+        "analysis_only": true,
+        "future_drawdown": -0.02,
+        "future_sector_return": 0.01,
+        "not_used_for_signal_calculation": true
+      },
+      "market_state_dampeners": {
+        "confidence": 0.82,
+        "data_quality": 0.9,
+        "macro_stress_dampener": 0.82,
+        "turnover_dampener": 1.0,
+        "valuation_dampener": 0.82
+      },
+      "memory_cycle_phase": "normalization",
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "period_id": "2026-03-s3",
+      "reason_codes": [
+        "ADAPTIVE_DIAGNOSTIC_ONLY",
+        "S3_EXPLANATION_ONLY"
+      ],
+      "scenario_distribution": {
+        "S1": 0.025,
+        "S2": 0.025,
+        "S3": 0.8,
+        "S4": 0.025,
+        "S5": 0.025,
+        "S6": 0.025,
+        "S7": 0.025,
+        "S8": 0.025,
+        "S9": 0.025
+      },
+      "scenario_turnover": 0.0,
+      "score_turnover": 0.0,
+      "sector_component_diagnostics": {
+        "bigtech_platform": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "cash_short_duration": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "inverse_hedge_diagnostic": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true,
+          "user_review_required": true
+        },
+        "power_equipment": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "semiconductor_hbm": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        }
+      },
+      "warnings": []
+    },
+    {
+      "adaptive_normalized_features": {
+        "capex_acceleration": 0.83,
+        "token_delta": 0.14
+      },
+      "as_of_date": "2026-04-10",
+      "calibration_window_metadata": {
+        "available_at_cutoff": "2026-04-10",
+        "method": "rolling_percentile",
+        "min_observations": 24,
+        "observation_count": 24
+      },
+      "data_quality_by_period": 0.72,
+      "dominant_scenario": "S7",
+      "dominant_scenario_explanation_only": true,
+      "future_outcome_comparison": {
+        "analysis_only": true,
+        "future_drawdown": -0.05,
+        "future_sector_return": -0.02,
+        "not_used_for_signal_calculation": true
+      },
+      "market_state_dampeners": {
+        "confidence": 0.62,
+        "data_quality": 0.72,
+        "macro_stress_dampener": 0.62,
+        "turnover_dampener": 1.0,
+        "valuation_dampener": 0.62
+      },
+      "memory_cycle_phase": "stress",
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "period_id": "2026-04-s7",
+      "reason_codes": [
+        "ADAPTIVE_DIAGNOSTIC_ONLY",
+        "S7_EXPLANATION_ONLY"
+      ],
+      "scenario_distribution": {
+        "S1": 0.025,
+        "S2": 0.025,
+        "S3": 0.025,
+        "S4": 0.025,
+        "S5": 0.025,
+        "S6": 0.025,
+        "S7": 0.8,
+        "S8": 0.025,
+        "S9": 0.025
+      },
+      "scenario_turnover": 0.0,
+      "score_turnover": 0.0,
+      "sector_component_diagnostics": {
+        "bigtech_platform": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "cash_short_duration": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "inverse_hedge_diagnostic": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true,
+          "user_review_required": true
+        },
+        "power_equipment": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        },
+        "semiconductor_hbm": {
+          "component_contribution": 0.0,
+          "diagnostic_only": true
+        }
+      },
+      "warnings": [
+        "LOW_DATA_QUALITY_REVIEW_REQUIRED"
+      ]
+    }
+  ],
+  "reason_code_frequency": {
+    "ADAPTIVE_DIAGNOSTIC_ONLY": 3,
+    "S1_EXPLANATION_ONLY": 1,
+    "S3_EXPLANATION_ONLY": 1,
+    "S7_EXPLANATION_ONLY": 1
+  },
+  "report_version": "ai_capex_token_adaptive_diagnostic_v1",
+  "warnings": [
+    "dominant_scenario is explanation-only and is not used for allocation",
+    "future outcome comparison is analysis-only",
+    "adaptive AI Capex-Token contribution remains zero"
+  ]
+}
