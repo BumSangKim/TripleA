@@ -6,13 +6,8 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from api.score_pipeline.adaptive import (
-    AdaptiveCalibrationReport,
-    AdaptiveCalibrationWindow,
-    AdaptiveNormalizationConfig,
-    AdaptiveNormalizationMethod,
-    AdaptiveNormalizedValue,
-)
+from api.score_pipeline.adaptive import AdaptiveNormalizationConfig, AdaptiveNormalizationMethod, AdaptiveNormalizedValue
+from api.score_pipeline.adaptive_normalization import AdaptiveNormalizationObservation, normalize_adaptive_feature
 from api.score_pipeline.backtest import PipelineBacktestConfig, PipelineBacktestRunner, PortfolioState
 from api.score_pipeline.contracts import DecisionLogRecord, ReasonCode
 from api.score_pipeline.data_quality import HistoricalSnapshot, RawDataPoint, SnapshotBuilder
@@ -69,7 +64,7 @@ def test_fixture_source_to_adaptive_score_and_backtest_output_path():
     memory_report = _memory_report(fixture)
     backtest_result = _backtest(historical_snapshot)
 
-    assert adaptive_value.normalized_value == 0.62
+    assert 0.0 <= adaptive_value.normalized_value <= 1.0
     assert adaptive_value.calibration_report.is_usable is True
     assert distribution.dominant_scenario_explanation_only is True
     assert diagnostic.applied_to_sector_engine is False
@@ -167,26 +162,27 @@ def _adaptive_value(raw_value: float, decision_date: date) -> AdaptiveNormalized
         parameter_version="ai_capex_token_adaptive_tuning_v0",
         model_version="ai_capex_token_adaptive_shadow_v0",
     )
-    window = AdaptiveCalibrationWindow(
-        fit_start_date=date(2023, 2, 28),
-        fit_end_date=decision_date,
-        decision_date=decision_date,
-        observation_count=36,
-        available_at_cutoff=datetime.combine(decision_date, datetime.max.time()),
-        parameter_version=config.parameter_version,
-        model_version=config.model_version,
-    )
-    report = AdaptiveCalibrationReport.from_window(config, window)
-    return AdaptiveNormalizedValue(
+    observations = []
+    for index in range(24):
+        year = 2024 + index // 12
+        month = index % 12 + 1
+        observed_on = date(year, month, 28)
+        observations.append(
+            AdaptiveNormalizationObservation(
+                feature_name="token_delta",
+                observed_on=observed_on,
+                value=-0.03 + index * 0.01,
+                available_at=datetime(year, month, 28, 0, 0, 0),
+            )
+        )
+    return normalize_adaptive_feature(
+        feature_name="token_delta",
         raw_value=raw_value,
-        normalized_value=0.62,
-        method=config.method,
-        calibration_report=report,
+        observations=observations,
+        decision_date=decision_date,
+        config=config,
         confidence=0.8,
         data_quality=0.95,
-        parameter_version=config.parameter_version,
-        model_version=config.model_version,
-        reason_codes=("ADAPTIVE_NORMALIZATION_DIAGNOSTIC",),
     )
 
 
