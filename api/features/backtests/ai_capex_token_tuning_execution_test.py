@@ -21,7 +21,8 @@ def run_ai_capex_token_tuning_execution_test(
 ) -> dict[str, Any]:
     candidates = _load_candidates(candidate_grid)
     coverage = validate_two_memory_cycle_coverage(snapshots)
-    results = tuple(_evaluate_candidate(candidate, snapshots) for candidate in candidates)
+    raw_results = tuple(_evaluate_candidate(candidate, snapshots) for candidate in candidates)
+    results = _apply_rejection_rules(raw_results)
     selected = _select_candidate_id(results)
     validation = TuningExecutionValidationResult.from_candidate_results(
         candidates=results,
@@ -197,6 +198,29 @@ def _select_candidate_id(results: Sequence[TuningCandidateResult]) -> str | None
     if not available:
         return None
     return max(available, key=lambda result: (result.objective_score, result.candidate.candidate_id)).candidate.candidate_id
+
+
+def _apply_rejection_rules(results: Sequence[TuningCandidateResult]) -> tuple[TuningCandidateResult, ...]:
+    if not results:
+        return ()
+    baseline = next((result for result in results if result.candidate.candidate_id == "baseline"), results[0])
+    rejected: list[TuningCandidateResult] = []
+    for result in results:
+        if result.candidate.candidate_id != baseline.candidate.candidate_id and result.objective_score < baseline.objective_score:
+            rejected.append(
+                TuningCandidateResult(
+                    candidate=result.candidate,
+                    metrics=result.metrics,
+                    output_signature=result.output_signature,
+                    metric_signature=result.metric_signature,
+                    objective_score=result.objective_score,
+                    rejected=True,
+                    reject_reasons=("OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED",),
+                )
+            )
+        else:
+            rejected.append(result)
+    return tuple(rejected)
 
 
 def _leakage_check_passed(results: Sequence[TuningCandidateResult]) -> bool:
