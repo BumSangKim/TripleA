@@ -1,0 +1,174 @@
+{
+  "baselines": [
+    {
+      "allocation_contribution": 0.0,
+      "diagnostic_only": true,
+      "final_allocation_changed": false,
+      "final_value": 100000.0,
+      "metrics": {
+        "annualized_volatility": 0.0,
+        "cagr": 0.0,
+        "calmar": null,
+        "cost_adjusted_return": 0.0,
+        "drawdown_duration": null,
+        "mdd": 0.0,
+        "memory_cycle_phase_performance": null,
+        "model_version_coverage": "ai_capex_token_adaptive_shadow_v0",
+        "parameter_version_coverage": "ai_capex_token_adaptive_tuning_v0",
+        "sharpe": null,
+        "sortino": null,
+        "stress_period_performance": null,
+        "turnover": 0.0,
+        "worst_1m": null,
+        "worst_3m": null,
+        "worst_6m": null
+      },
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "name": "score_pipeline_without_ai_capex_token",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "reason_codes": [
+        "BASELINE_DIAGNOSTIC_ONLY",
+        "ZERO_ALLOCATION_CONTRIBUTION"
+      ]
+    },
+    {
+      "allocation_contribution": 0.0,
+      "diagnostic_only": true,
+      "final_allocation_changed": false,
+      "final_value": 100000.0,
+      "metrics": {
+        "annualized_volatility": 0.0,
+        "cagr": 0.0,
+        "calmar": null,
+        "cost_adjusted_return": 0.0,
+        "drawdown_duration": null,
+        "mdd": 0.0,
+        "memory_cycle_phase_performance": null,
+        "model_version_coverage": "ai_capex_token_adaptive_shadow_v0",
+        "parameter_version_coverage": "ai_capex_token_adaptive_tuning_v0",
+        "sharpe": null,
+        "sortino": null,
+        "stress_period_performance": null,
+        "turnover": 0.0,
+        "worst_1m": null,
+        "worst_3m": null,
+        "worst_6m": null
+      },
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "name": "legacy_ai_capex_cycle_diagnostic",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "reason_codes": [
+        "BASELINE_DIAGNOSTIC_ONLY",
+        "ZERO_ALLOCATION_CONTRIBUTION"
+      ]
+    },
+    {
+      "allocation_contribution": 0.0,
+      "diagnostic_only": true,
+      "final_allocation_changed": false,
+      "final_value": 100000.0,
+      "metrics": {
+        "annualized_volatility": 0.0,
+        "cagr": 0.0,
+        "calmar": null,
+        "cost_adjusted_return": 0.0,
+        "drawdown_duration": null,
+        "mdd": 0.0,
+        "memory_cycle_phase_performance": null,
+        "model_version_coverage": "ai_capex_token_adaptive_shadow_v0",
+        "parameter_version_coverage": "ai_capex_token_adaptive_tuning_v0",
+        "sharpe": null,
+        "sortino": null,
+        "stress_period_performance": null,
+        "turnover": 0.0,
+        "worst_1m": null,
+        "worst_3m": null,
+        "worst_6m": null
+      },
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "name": "adaptive_ai_capex_token_zero_contribution",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "reason_codes": [
+        "BASELINE_DIAGNOSTIC_ONLY",
+        "ZERO_ALLOCATION_CONTRIBUTION"
+      ]
+    },
+    {
+      "allocation_contribution": 0.0,
+      "diagnostic_only": true,
+      "final_allocation_changed": false,
+      "final_value": 100000.0,
+      "metrics": {
+        "annualized_volatility": 0.0,
+        "cagr": 0.0,
+        "calmar": null,
+        "cost_adjusted_return": 0.0,
+        "drawdown_duration": null,
+        "mdd": 0.0,
+        "memory_cycle_phase_performance": null,
+        "model_version_coverage": "ai_capex_token_adaptive_shadow_v0",
+        "parameter_version_coverage": "ai_capex_token_adaptive_tuning_v0",
+        "sharpe": null,
+        "sortino": null,
+        "stress_period_performance": null,
+        "turnover": 0.0,
+        "worst_1m": null,
+        "worst_3m": null,
+        "worst_6m": null
+      },
+      "model_version": "ai_capex_token_adaptive_shadow_v0",
+      "name": "conservative_fallback_poor_missing_data",
+      "parameter_version": "ai_capex_token_adaptive_tuning_v0",
+      "reason_codes": [
+        "BASELINE_DIAGNOSTIC_ONLY",
+        "ZERO_ALLOCATION_CONTRIBUTION"
+      ]
+    }
+  ],
+  "generated_from_fixture": "tests/fixtures/ai_capex_token/adaptive_input_to_score_path.json",
+  "leakage_guard": {
+    "active": true,
+    "available_at_required": true,
+    "future_proxy_points_excluded": true
+  },
+  "memory_cycle_coverage": {
+    "complete_cycle_count": 2,
+    "cycle_boundaries": [
+      {
+        "end_date": "2024-03-31",
+        "middle_date": "2024-02-29",
+        "pattern": "peak_trough_recovery",
+        "proxy_name": "dram_asp_index",
+        "start_date": "2024-01-31"
+      },
+      {
+        "end_date": "2024-05-31",
+        "middle_date": "2024-04-30",
+        "pattern": "peak_trough_recovery",
+        "proxy_name": "dram_asp_index",
+        "start_date": "2024-03-31"
+      }
+    ],
+    "proxy_names_used": [
+      "dram_asp_index"
+    ],
+    "reason_codes": [
+      "FUTURE_PROXY_POINTS_EXCLUDED"
+    ],
+    "status": "PASS_TWO_OR_MORE_CYCLES",
+    "warnings": [
+      "future available_at proxy points were excluded from memory cycle proof"
+    ]
+  },
+  "mode": {
+    "diagnostic_only": true,
+    "production_enabled": false,
+    "shadow_candidate_only": true
+  },
+  "report_version": "ai_capex_token_adaptive_baseline_v1",
+  "warnings": [
+    "tax modeling is unavailable in the current score_pipeline backtest engine; tax-adjusted validity is not claimed",
+    "drawdown duration and worst-window metrics are unsupported by the current baseline fixture and remain null",
+    "adaptive AI Capex-Token contribution is zero and diagnostic-only"
+  ]
+}
