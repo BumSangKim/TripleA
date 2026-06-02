@@ -31,6 +31,12 @@ def build_normalization_smoothing_tuning_report(
     rejected_negative_control = _memory_cycle_negative_control(parameter_config, diagnostic)
     return {
         "report_version": REPORT_VERSION,
+        "data_lineage": {
+            "parameter_config": str(parameter_config_path),
+            "baseline_report": str(baseline_path),
+            "diagnostic_report": str(diagnostic_path),
+        },
+        "reason_codes": ["NORMALIZATION_SMOOTHING_TUNING_DIAGNOSTIC"],
         "mode": {
             "production_enabled": False,
             "diagnostic_only": True,

@@ -46,6 +46,11 @@ def build_ai_capex_token_baseline_report(
     return {
         "report_version": "ai_capex_token_adaptive_baseline_v1",
         "generated_from_fixture": str(fixture_path),
+        "data_lineage": {
+            "fixture": str(fixture_path),
+            "memory_cycle_proxy_source": "fixture.memory_cycle_proxy_series",
+        },
+        "reason_codes": ["BASELINE_DIAGNOSTIC_ZERO_CONTRIBUTION", *list(memory_report.reason_codes)],
         "mode": {
             "production_enabled": False,
             "diagnostic_only": True,

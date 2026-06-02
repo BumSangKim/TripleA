@@ -35,6 +35,13 @@ def build_walk_forward_sensitivity_stress_report(
     }
     return {
         "report_version": REPORT_VERSION,
+        "data_lineage": {
+            "baseline_report": str(baseline_path),
+            "normalization_report": str(normalization_path),
+            "sector_report": str(sector_path),
+            "penalty_report": str(penalty_path),
+        },
+        "reason_codes": ["WALK_FORWARD_SENSITIVITY_STRESS_DIAGNOSTIC"],
         "mode": {"production_enabled": False, "diagnostic_only": True, "shadow_candidate_only": True},
         "parameter_version": PARAMETER_VERSION,
         "model_version": MODEL_VERSION,

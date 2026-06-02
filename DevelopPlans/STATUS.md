@@ -2,7 +2,7 @@
 
 ## Current State
 
-- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, post-legacy gap resolution checkpoint, and layered score-flow feedback contract checkpoint are complete.
+- Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, post-legacy gap resolution checkpoint, layered score-flow feedback contract checkpoint, and AI Capex-Token adaptive shadow tuning checkpoint are complete.
 - Current task: none.
 - Default execution posture: read-only analysis, backtest, score generation, review-only order candidates.
 - Out of scope unless explicitly approved: live broker order submission, real-account mutation, automatic execution.
@@ -29,6 +29,8 @@ Area-specific references:
   `DevelopPlans/layered_score_flow_feedback/target_architecture_contract.md`
 - Layered score-flow feedback completion handoff:
   `DevelopPlans/layered_score_flow_feedback/completion.md`
+- AI Capex-Token adaptive final validation summary:
+  `reports/backtest/ai_capex_token_adaptive/final_validation_summary.md`
 
 ## Active Architecture Baseline
 
@@ -127,6 +129,30 @@ Area-specific references:
     behavior;
   - no `docs/` recreation.
 
+## AI Capex-Token Adaptive Shadow Tuning Checkpoint
+
+- Status: complete for tasks `001` through `016` from the adaptive backtest
+  tuning task pack.
+- Completed artifacts:
+  - current adaptiveness assessment;
+  - adaptive scoring, normalization, memory-cycle, scenario distribution,
+    sector diagnostic, penalty/turnover, and shadow-candidate contracts;
+  - deterministic reports under `reports/backtest/ai_capex_token_adaptive/`;
+  - selected shadow candidate config at
+    `config/parameters/ai_capex_token_adaptive_selected_candidate.yaml`;
+  - final validation summary at
+    `reports/backtest/ai_capex_token_adaptive/final_validation_summary.md`.
+- Final posture:
+  - production remains disabled;
+  - candidate is diagnostic/shadow only;
+  - allocation contribution remains `0.0`;
+  - no broker, live account, notification, or automatic trading behavior was
+    added.
+- Validation result:
+  - full test suite: 1430 passed, 1 xfailed;
+  - architecture: 70 passed, 1 xfailed;
+  - backtest: 62 passed.
+
 ## Current Product Baseline
 
 - Score pipeline foundations are implemented.
@@ -163,19 +189,27 @@ Area-specific references:
 ## Last Verified Commands
 
 ```bash
+git diff --check
+.venv/bin/python -m pytest -q --collect-only
 .venv/bin/python -m pytest tests/architecture -q
-.venv/bin/python -m pytest tests/integration/pipeline -q
-.venv/bin/python -m pytest tests/unit tests/integration -q
+.venv/bin/python -m pytest tests/code -q
+.venv/bin/python -m pytest tests/unit -q
+.venv/bin/python -m pytest tests/integration -q
+.venv/bin/python -m pytest tests/backtest -q
+.venv/bin/python -m pytest tests -q
 ```
 
-Last recorded result: architecture 65 passed and 1 xfailed; pipeline
-integration 25 passed; unit/integration 180 passed and 1 warning.
+Last recorded result: collect-only 1431 tests collected; architecture
+70 passed and 1 xfailed; code 9 passed; unit 245 passed; integration
+45 passed; backtest 62 passed; full suite 1430 passed and 1 xfailed.
 
 ## Next Recommended Task
 
 Run one explicit execution unit only, after owner confirmation:
 
-- `SFG-TASK-002` Fixed Bucket Shift Replacement Plan as design and
-  characterization only; do not activate allocation behavior.
-- Alternative next adapter-only task: `SFG-TASK-003` Allocation Target Range
-  Compatibility, with no default route/backtest wiring.
+- AI Capex-Token shadow observation expansion: add larger deterministic
+  fixture coverage and independent validation windows while keeping production
+  disabled and allocation contribution at `0.0`.
+- Alternative score-flow task: `SFG-TASK-002` Fixed Bucket Shift Replacement
+  Plan as design and characterization only; do not activate allocation
+  behavior.

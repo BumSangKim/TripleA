@@ -24,6 +24,7 @@ def build_shadow_candidate_report(
     selected_candidate = _selected_candidate(validation) if candidate_selected else None
     return {
         "report_version": REPORT_VERSION,
+        "reason_codes": ["FINAL_SHADOW_CANDIDATE_DIAGNOSTIC"],
         "mode": {
             "production_enabled": False,
             "diagnostic_only": True,

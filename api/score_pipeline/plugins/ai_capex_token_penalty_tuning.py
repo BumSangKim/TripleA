@@ -43,6 +43,11 @@ def build_penalty_overlay_turnover_tuning_report(
     }
     return {
         "report_version": REPORT_VERSION,
+        "data_lineage": {
+            "parameter_config": str(parameter_config_path),
+            "sector_report": str(sector_report_path),
+        },
+        "reason_codes": ["PENALTY_OVERLAY_TURNOVER_TUNING_DIAGNOSTIC"],
         "mode": {"production_enabled": False, "diagnostic_only": True, "shadow_candidate_only": True},
         "selected_candidate_id": selected["candidate_id"],
         "selected_candidate": selected,

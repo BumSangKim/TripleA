@@ -60,6 +60,11 @@ def build_sector_component_tuning_report(
     }
     return {
         "report_version": REPORT_VERSION,
+        "data_lineage": {
+            "parameter_config": str(parameter_config_path),
+            "normalization_report": str(normalization_report_path),
+        },
+        "reason_codes": ["SECTOR_COMPONENT_TUNING_DIAGNOSTIC"],
         "mode": {
             "production_enabled": False,
             "diagnostic_only": True,
@@ -114,6 +119,10 @@ def _rejection_report(config: Mapping[str, Any], normalization_report: Mapping[s
     del config
     return {
         "report_version": REPORT_VERSION,
+        "data_lineage": {
+            "normalization_report_version": normalization_report["report_version"],
+        },
+        "reason_codes": ["SECTOR_COMPONENT_TUNING_REJECTED"],
         "mode": {"production_enabled": False, "diagnostic_only": True, "shadow_candidate_only": True},
         "selected_candidate_id": None,
         "selected_candidate": None,

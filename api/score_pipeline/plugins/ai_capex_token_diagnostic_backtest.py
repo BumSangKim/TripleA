@@ -51,6 +51,11 @@ def build_ai_capex_token_diagnostic_report(
     periods = [_diagnostic_period(item) for item in PERIODS]
     return {
         "report_version": "ai_capex_token_adaptive_diagnostic_v1",
+        "data_lineage": {
+            "baseline_report": str(baseline_path),
+            "diagnostic_period_source": "api.score_pipeline.plugins.ai_capex_token_diagnostic_backtest.PERIODS",
+        },
+        "reason_codes": ["AI_CAPEX_TOKEN_ADAPTIVE_DIAGNOSTIC_REPORT"],
         "mode": {
             "production_enabled": False,
             "diagnostic_only": True,
