@@ -153,6 +153,8 @@ class AICapexTokenScenarioDistribution:
     fallback_state: AICapexTokenFallbackState | None = None
     reason_codes: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
+    parameter_version: str = "unapproved"
+    model_version: str = "ai_capex_token_scenario_distribution_v1"
 
     def __post_init__(self) -> None:
         if self.as_of_date is None:
@@ -166,6 +168,8 @@ class AICapexTokenScenarioDistribution:
         _require_ratio(self.confidence, "confidence")
         if self.fallback_state is not None:
             validate_fallback_state(self.fallback_state.value)
+        _require_text(self.parameter_version, "parameter_version")
+        _require_text(self.model_version, "model_version")
 
 
 @dataclass(frozen=True)
