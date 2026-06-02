@@ -1,0 +1,62 @@
+approved: false
+diagnostic_only: true
+fixed_value_audit:
+  direct_action_mapping_found: false
+  fixed_value_penalty: 0.01
+  reason_codes:
+  - FIXED_VALUE_AUDIT_DIAGNOSTIC_PASSED_WITH_VERSIONED_PARAMETERS
+  static_values_are_versioned_parameters: true
+hard_gates:
+  memory_cycle_coverage:
+    passed: true
+    status: PASS_TWO_OR_MORE_CYCLES
+  production_disabled:
+    passed: true
+    status: PASS_DISABLED
+  sensitivity:
+    passed: true
+    status: PASS
+  stress:
+    passed: true
+    status: PASS
+  walk_forward_validation:
+    passed: true
+    status: PASS_DIAGNOSTIC_ONLY
+parameter_metadata:
+  approval_required_before_allocation_contribution: true
+  model_version: ai_capex_token_adaptive_shadow_v0
+  parameter_version: ai_capex_token_adaptive_tuning_v0
+  source_report: reports/backtest/ai_capex_token_adaptive/final_shadow_candidate_report.json
+production_enabled: false
+recommended_next_mode: shadow
+selected_candidate:
+  allocation_contribution: 0.0
+  approved: false
+  candidate_id: ai_capex_token_adaptive_shadow_v0
+  candidate_quality_components:
+    complexity_penalty: 0.03
+    cost_tax_penalty: 0.03
+    explainability_score: 0.16
+    fixed_value_penalty: 0.01
+    leakage_penalty: 0.0
+    mdd_improvement_score: 0.12
+    memory_cycle_robustness_score: 0.18
+    overfit_penalty: 0.02
+    parameter_robustness_score: 0.14
+    regime_stability_score: 0.14
+    risk_adjusted_return_score: 0.04
+    turnover_efficiency_score: 0.12
+  candidate_quality_score: 0.81
+  diagnostic_only: true
+  model_version: ai_capex_token_adaptive_shadow_v0
+  parameter_version: ai_capex_token_adaptive_tuning_v0
+  production_enabled: false
+  recommended_next_mode: shadow
+  selected_inputs:
+    normalization_smoothing: hybrid_percentile_zscore_lb48_min18_win0.0_exponential_0.25
+    penalty_overlay_turnover: penalty_overlay_turnover_controls_midgrid_v1
+    sector_components: sector_components_midgrid_penalty_preserving_v1
+  selection_reason: Selected for shadow-only diagnostics because hard gates passed
+    and drawdown control, robustness, and interpretability are prioritized over CAGR.
+  why_alternatives_rejected: Alternatives failed memory-cycle, penalty bypass, sensitivity,
+    inverse dominance, drawdown, turnover, or stress-control checks.
