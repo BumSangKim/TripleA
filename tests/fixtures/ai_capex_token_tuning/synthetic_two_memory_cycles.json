@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "fixture_id": "ai_capex_token_synthetic_two_memory_cycles_v1",
+    "diagnostic_only": true,
+    "production_enabled": false,
+    "approved": false,
+    "description": "Synthetic two explicit memory cycle fixture for tuning execution verification."
+  },
+  "snapshots": [
+    {
+      "decision_date": "2025-01-31",
+      "snapshot_id": "synthetic-cycle-a-s1",
+      "metadata": {
+        "memory_cycle_id": "cycle_a",
+        "intended_scenario": "S1",
+        "description": "Token expansion with capex acceleration."
+      },
+      "token_sources_current": [
+        {
+          "metric_key": "tokens.aggregate.synthetic",
+          "period_role": "current",
+          "value": 130.0,
+          "as_of_date": "2025-01-15",
+          "available_at": "2025-01-20T00:00:00",
+          "updated_at": "2025-01-20T00:00:00",
+          "revision_id": "cycle-a-s1-token-current",
+          "source": "synthetic_tuning_fixture",
+          "quality_score": 0.95,
+          "missing_ratio": 0.0,
+          "is_stale": false
+        }
+      ],
+      "token_sources_previous": [
+        {
+          "metric_key": "tokens.aggregate.synthetic",
+          "period_role": "previous",
+          "value": 100.0,
+          "as_of_date": "2024-12-15",
+          "available_at": "2024-12-20T00:00:00",
+          "updated_at": "2024-12-20T00:00:00",
+          "revision_id": "cycle-a-s1-token-previous",
+          "source": "synthetic_tuning_fixture",
+          "quality_score": 0.95,
+          "missing_ratio": 0.0,
+          "is_stale": false
+        }
+      ],
+      "capex_series": [
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 150.0, "as_of_date": "2025-01-15", "available_at": "2025-01-20T00:00:00", "updated_at": "2025-01-20T00:00:00", "revision_id": "cycle-a-s1-capex-t", "source": "synthetic_tuning_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 118.0, "as_of_date": "2024-12-15", "available_at": "2024-12-20T00:00:00", "updated_at": "2024-12-20T00:00:00", "revision_id": "cycle-a-s1-capex-t1", "source": "synthetic_tuning_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 100.0, "as_of_date": "2024-11-15", "available_at": "2024-11-20T00:00:00", "updated_at": "2024-11-20T00:00:00", "revision_id": "cycle-a-s1-capex-t2", "source": "synthetic_tuning_fixture", "quality_score": 0.95, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "sector_metrics": {
+        "bigtech_platform": {"ai_monetization_score": 0.62, "fcf_margin_improvement_score": 0.52, "capex_burden_score": 0.38, "valuation_burden_score": 0.40},
+        "power_equipment": {"backlog_growth_score": 0.78, "backlog_slowdown_score": 0.12, "asp_growth_score": 0.66, "asp_slowdown_score": 0.10, "valuation_burden_score": 0.35},
+        "semiconductor_hbm": {"hbm_asp_growth_score": 0.76, "hbm_supply_growth_score": 0.55, "hbm_inventory_risk_score": 0.18, "valuation_burden_score": 0.42}
+      },
+      "macro_overlay_metrics": {"real_rate_shock_score": 0.20, "credit_spread_stress_score": 0.10, "liquidity_stress_score": 0.20, "fx_stress_score": 0.10, "volatility_stress_score": 0.20}
+    },
+    {
+      "decision_date": "2025-04-30",
+      "snapshot_id": "synthetic-cycle-a-s3",
+      "metadata": {
+        "memory_cycle_id": "cycle_a",
+        "intended_scenario": "S3",
+        "description": "Token expansion with capex deceleration."
+      },
+      "token_sources_current": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "current", "value": 150.0, "as_of_date": "2025-04-15", "available_at": "2025-04-20T00:00:00", "updated_at": "2025-04-20T00:00:00", "revision_id": "cycle-a-s3-token-current", "source": "synthetic_tuning_fixture", "quality_score": 0.90, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "token_sources_previous": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 120.0, "as_of_date": "2025-03-15", "available_at": "2025-03-20T00:00:00", "updated_at": "2025-03-20T00:00:00", "revision_id": "cycle-a-s3-token-previous", "source": "synthetic_tuning_fixture", "quality_score": 0.90, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "capex_series": [
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 136.0, "as_of_date": "2025-04-15", "available_at": "2025-04-20T00:00:00", "updated_at": "2025-04-20T00:00:00", "revision_id": "cycle-a-s3-capex-t", "source": "synthetic_tuning_fixture", "quality_score": 0.90, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 130.0, "as_of_date": "2025-03-15", "available_at": "2025-03-20T00:00:00", "updated_at": "2025-03-20T00:00:00", "revision_id": "cycle-a-s3-capex-t1", "source": "synthetic_tuning_fixture", "quality_score": 0.90, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 100.0, "as_of_date": "2025-02-15", "available_at": "2025-02-20T00:00:00", "updated_at": "2025-02-20T00:00:00", "revision_id": "cycle-a-s3-capex-t2", "source": "synthetic_tuning_fixture", "quality_score": 0.90, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "sector_metrics": {
+        "bigtech_platform": {"ai_monetization_score": 0.72, "fcf_margin_improvement_score": 0.66, "capex_burden_score": 0.25, "valuation_burden_score": 0.50},
+        "power_equipment": {"backlog_growth_score": 0.45, "backlog_slowdown_score": 0.40, "asp_growth_score": 0.42, "asp_slowdown_score": 0.35, "valuation_burden_score": 0.55},
+        "semiconductor_hbm": {"hbm_asp_growth_score": 0.58, "hbm_supply_growth_score": 0.50, "hbm_inventory_risk_score": 0.35, "valuation_burden_score": 0.52}
+      },
+      "macro_overlay_metrics": {"real_rate_shock_score": 0.25, "credit_spread_stress_score": 0.20, "liquidity_stress_score": 0.20, "fx_stress_score": 0.15, "volatility_stress_score": 0.25}
+    },
+    {
+      "decision_date": "2025-07-31",
+      "snapshot_id": "synthetic-cycle-b-s7",
+      "metadata": {
+        "memory_cycle_id": "cycle_b",
+        "intended_scenario": "S7",
+        "description": "Token contraction with capex acceleration and stress."
+      },
+      "token_sources_current": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "current", "value": 90.0, "as_of_date": "2025-07-15", "available_at": "2025-07-20T00:00:00", "updated_at": "2025-07-20T00:00:00", "revision_id": "cycle-b-s7-token-current", "source": "synthetic_tuning_fixture", "quality_score": 0.78, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "token_sources_previous": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 120.0, "as_of_date": "2025-06-15", "available_at": "2025-06-20T00:00:00", "updated_at": "2025-06-20T00:00:00", "revision_id": "cycle-b-s7-token-previous", "source": "synthetic_tuning_fixture", "quality_score": 0.78, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "capex_series": [
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 170.0, "as_of_date": "2025-07-15", "available_at": "2025-07-20T00:00:00", "updated_at": "2025-07-20T00:00:00", "revision_id": "cycle-b-s7-capex-t", "source": "synthetic_tuning_fixture", "quality_score": 0.78, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 130.0, "as_of_date": "2025-06-15", "available_at": "2025-06-20T00:00:00", "updated_at": "2025-06-20T00:00:00", "revision_id": "cycle-b-s7-capex-t1", "source": "synthetic_tuning_fixture", "quality_score": 0.78, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 100.0, "as_of_date": "2025-05-15", "available_at": "2025-05-20T00:00:00", "updated_at": "2025-05-20T00:00:00", "revision_id": "cycle-b-s7-capex-t2", "source": "synthetic_tuning_fixture", "quality_score": 0.78, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "future.leakage_probe", "period_role": "t", "value": 999.0, "as_of_date": "2025-08-15", "available_at": "2025-08-20T00:00:00", "updated_at": "2025-08-20T00:00:00", "revision_id": "cycle-b-future-probe", "source": "synthetic_tuning_fixture", "quality_score": 1.0, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "sector_metrics": {
+        "bigtech_platform": {"ai_monetization_score": 0.40, "fcf_margin_improvement_score": 0.35, "capex_burden_score": 0.70, "valuation_burden_score": 0.65},
+        "power_equipment": {"backlog_growth_score": 0.74, "backlog_slowdown_score": 0.18, "asp_growth_score": 0.68, "asp_slowdown_score": 0.18, "valuation_burden_score": 0.62},
+        "semiconductor_hbm": {"hbm_asp_growth_score": 0.70, "hbm_supply_growth_score": 0.40, "hbm_inventory_risk_score": 0.58, "valuation_burden_score": 0.60}
+      },
+      "macro_overlay_metrics": {"real_rate_shock_score": 0.55, "credit_spread_stress_score": 0.65, "liquidity_stress_score": 0.60, "fx_stress_score": 0.45, "volatility_stress_score": 0.70}
+    },
+    {
+      "decision_date": "2025-10-31",
+      "snapshot_id": "synthetic-cycle-b-s1",
+      "metadata": {
+        "memory_cycle_id": "cycle_b",
+        "intended_scenario": "S1",
+        "description": "Second-cycle recovery probe."
+      },
+      "token_sources_current": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "current", "value": 125.0, "as_of_date": "2025-10-15", "available_at": "2025-10-20T00:00:00", "updated_at": "2025-10-20T00:00:00", "revision_id": "cycle-b-s1-token-current", "source": "synthetic_tuning_fixture", "quality_score": 0.88, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "token_sources_previous": [
+        {"metric_key": "tokens.aggregate.synthetic", "period_role": "previous", "value": 95.0, "as_of_date": "2025-09-15", "available_at": "2025-09-20T00:00:00", "updated_at": "2025-09-20T00:00:00", "revision_id": "cycle-b-s1-token-previous", "source": "synthetic_tuning_fixture", "quality_score": 0.88, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "capex_series": [
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t", "value": 155.0, "as_of_date": "2025-10-15", "available_at": "2025-10-20T00:00:00", "updated_at": "2025-10-20T00:00:00", "revision_id": "cycle-b-s1-capex-t", "source": "synthetic_tuning_fixture", "quality_score": 0.88, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_1", "value": 120.0, "as_of_date": "2025-09-15", "available_at": "2025-09-20T00:00:00", "updated_at": "2025-09-20T00:00:00", "revision_id": "cycle-b-s1-capex-t1", "source": "synthetic_tuning_fixture", "quality_score": 0.88, "missing_ratio": 0.0, "is_stale": false},
+        {"metric_key": "capex.bigtech_ai_total", "period_role": "t_minus_2", "value": 105.0, "as_of_date": "2025-08-15", "available_at": "2025-08-20T00:00:00", "updated_at": "2025-08-20T00:00:00", "revision_id": "cycle-b-s1-capex-t2", "source": "synthetic_tuning_fixture", "quality_score": 0.88, "missing_ratio": 0.0, "is_stale": false}
+      ],
+      "sector_metrics": {
+        "bigtech_platform": {"ai_monetization_score": 0.60, "fcf_margin_improvement_score": 0.56, "capex_burden_score": 0.42, "valuation_burden_score": 0.45},
+        "power_equipment": {"backlog_growth_score": 0.76, "backlog_slowdown_score": 0.16, "asp_growth_score": 0.64, "asp_slowdown_score": 0.18, "valuation_burden_score": 0.42},
+        "semiconductor_hbm": {"hbm_asp_growth_score": 0.72, "hbm_supply_growth_score": 0.52, "hbm_inventory_risk_score": 0.25, "valuation_burden_score": 0.48}
+      },
+      "macro_overlay_metrics": {"real_rate_shock_score": 0.30, "credit_spread_stress_score": 0.25, "liquidity_stress_score": 0.25, "fx_stress_score": 0.20, "volatility_stress_score": 0.30}
+    }
+  ]
+}

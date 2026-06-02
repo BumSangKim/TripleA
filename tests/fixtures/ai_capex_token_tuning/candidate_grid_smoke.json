@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "fixture_id": "ai_capex_token_candidate_grid_smoke_v1",
+    "diagnostic_only": true,
+    "production_enabled": false,
+    "approved": false,
+    "description": "Baseline plus three tuning candidates for non-no-op execution verification."
+  },
+  "candidates": [
+    {
+      "candidate_id": "baseline",
+      "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+      "diagnostic_only": true,
+      "parameters": {
+        "normalization_strength": 0.50,
+        "scenario_smoothing_alpha": 0.50,
+        "sector_component_scale": 0.50,
+        "turnover_penalty": 0.20
+      }
+    },
+    {
+      "candidate_id": "candidate_low_smoothing",
+      "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+      "diagnostic_only": true,
+      "parameters": {
+        "normalization_strength": 0.35,
+        "scenario_smoothing_alpha": 0.25,
+        "sector_component_scale": 0.45,
+        "turnover_penalty": 0.30
+      }
+    },
+    {
+      "candidate_id": "candidate_balanced",
+      "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+      "diagnostic_only": true,
+      "parameters": {
+        "normalization_strength": 0.65,
+        "scenario_smoothing_alpha": 0.35,
+        "sector_component_scale": 0.55,
+        "turnover_penalty": 0.20
+      }
+    },
+    {
+      "candidate_id": "candidate_sensitive",
+      "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+      "diagnostic_only": true,
+      "parameters": {
+        "normalization_strength": 0.80,
+        "scenario_smoothing_alpha": 0.60,
+        "sector_component_scale": 0.65,
+        "turnover_penalty": 0.10
+      }
+    }
+  ]
+}
