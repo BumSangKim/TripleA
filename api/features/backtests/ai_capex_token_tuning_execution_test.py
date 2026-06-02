@@ -50,6 +50,7 @@ def run_ai_capex_token_tuning_execution_test(
             "candidate_parameter_projection": {
                 "scenario_smoothing_alpha": "scenario_probability_parameters.membership_strength"
             },
+            "leakage_warnings": _leakage_warnings(results),
         }
     )
     return payload
@@ -79,7 +80,7 @@ def _evaluate_candidate(candidate: TuningCandidate, snapshots: Sequence[Mapping[
     metrics = _metrics(candidate, rows)
     return TuningCandidateResult.from_payloads(
         candidate=candidate,
-        output_payload={"rows": rows},
+        output_payload={"rows": _available_output_rows(rows)},
         metrics=metrics,
         objective_score=float(metrics["objective_score"]),
     )
@@ -158,7 +159,7 @@ def _metrics(candidate: TuningCandidate, rows: Sequence[Mapping[str, Any]]) -> d
     score_stability = max(0.0, 1.0 - pstdev(component_scores)) if len(component_scores) > 1 else 0.0
     turnover_penalty = _ratio(candidate.parameters.get("turnover_penalty", 1.0), default=1.0)
     turnover_efficiency = max(0.0, 1.0 - turnover_penalty)
-    reason_code_count = len({code for row in rows for code in row.get("reason_codes", ())})
+    reason_code_count = len(_objective_reason_codes(rows))
     excluded_metric_keys = sorted({key for row in rows for key in row.get("excluded_metric_keys", ())})
     explainability = min(1.0, reason_code_count / 10.0)
     penalties = {
@@ -235,6 +236,49 @@ def _leakage_check_passed(results: Sequence[TuningCandidateResult]) -> bool:
         "future.leakage_probe" in result.metrics.get("excluded_metric_keys", ())
         for result in results
     )
+
+
+def _leakage_warnings(results: Sequence[TuningCandidateResult]) -> list[dict[str, Any]]:
+    warnings: list[dict[str, Any]] = []
+    for result in results:
+        excluded = list(result.metrics.get("excluded_metric_keys", ()))
+        if excluded:
+            warnings.append(
+                {
+                    "candidate_id": result.candidate.candidate_id,
+                    "code": "FUTURE_INPUT_EXCLUDED",
+                    "excluded_metric_keys": excluded,
+                }
+            )
+    return warnings
+
+
+def _available_output_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    return [_available_output_row(row) for row in rows]
+
+
+def _available_output_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "snapshot_id": row.get("snapshot_id"),
+        "status": row.get("status"),
+        "diagnostic_only": row.get("diagnostic_only"),
+        "component_count": row.get("component_count"),
+        "component_scores": dict(row.get("component_scores") or {}),
+        "component_confidences": dict(row.get("component_confidences") or {}),
+        "dominant_scenario": row.get("dominant_scenario"),
+        "scenario_probabilities": dict(row.get("scenario_probabilities") or {}),
+        "macro_overlay": dict(row.get("macro_overlay") or {}),
+    }
+
+
+def _objective_reason_codes(rows: Sequence[Mapping[str, Any]]) -> set[str]:
+    leakage_audit_codes = {"FUTURE_INPUT_EXCLUDED"}
+    return {
+        code
+        for row in rows
+        for code in row.get("reason_codes", ())
+        if code not in leakage_audit_codes
+    }
 
 
 def _required_ratio(parameters: Mapping[str, Any], key: str) -> float:
