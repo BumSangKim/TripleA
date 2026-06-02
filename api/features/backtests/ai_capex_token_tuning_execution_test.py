@@ -164,6 +164,8 @@ def _metrics(candidate: TuningCandidate, rows: Sequence[Mapping[str, Any]]) -> d
     explainability = min(1.0, reason_code_count / 10.0)
     penalties = {
         "turnover_penalty": turnover_penalty,
+        "mdd_worsening_penalty": _ratio(candidate.parameters.get("diagnostic_mdd_worsening", 0.0), default=0.0),
+        "one_cycle_only_penalty": _one_cycle_only_penalty(candidate.parameters),
         "missing_output_penalty": 0.25 if not component_scores else 0.0,
         "cagr_only_penalty": 0.0,
     }
@@ -212,6 +214,10 @@ def _apply_rejection_rules(results: Sequence[TuningCandidateResult]) -> tuple[Tu
         if result.output_signature in seen_outputs:
             reject_reasons.append("NO_OUTPUT_VARIATION")
         seen_outputs.add(result.output_signature)
+        if _penalty_value(result, "mdd_worsening_penalty") > 0:
+            reject_reasons.append("MDD_WORSENING_DIAGNOSTIC_PENALTY")
+        if _penalty_value(result, "one_cycle_only_penalty") > 0:
+            reject_reasons.append("ONE_CYCLE_ONLY_DIAGNOSTIC_PENALTY")
         if result.candidate.candidate_id != baseline.candidate.candidate_id and result.objective_score < baseline.objective_score:
             reject_reasons.append("OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED")
         if reject_reasons:
@@ -236,6 +242,16 @@ def _leakage_check_passed(results: Sequence[TuningCandidateResult]) -> bool:
         "future.leakage_probe" in result.metrics.get("excluded_metric_keys", ())
         for result in results
     )
+
+
+def _penalty_value(result: TuningCandidateResult, key: str) -> float:
+    components = result.metrics.get("objective_components", {})
+    if not isinstance(components, Mapping):
+        return 0.0
+    penalties = components.get("penalties", {})
+    if not isinstance(penalties, Mapping):
+        return 0.0
+    return _ratio(penalties.get(key, 0.0), default=0.0)
 
 
 def _leakage_warnings(results: Sequence[TuningCandidateResult]) -> list[dict[str, Any]]:
@@ -296,6 +312,16 @@ def _ratio(value: Any, *, default: float) -> float:
     except (TypeError, ValueError):
         return default
     return max(0.0, min(1.0, result))
+
+
+def _one_cycle_only_penalty(parameters: Mapping[str, Any]) -> float:
+    active_cycle_count = parameters.get("diagnostic_active_cycle_count")
+    if active_cycle_count is None:
+        return 0.0
+    try:
+        return 0.5 if int(active_cycle_count) < 2 else 0.0
+    except (TypeError, ValueError):
+        return 0.5
 
 
 def _unique(values: Sequence[str]) -> list[str]:
