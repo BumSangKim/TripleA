@@ -1,0 +1,149 @@
+{
+  "decision_date": "2026-02-10",
+  "snapshot_id": "ai-capex-token-adaptive-e2e-fixture",
+  "raw_points": [
+    {
+      "key": "token.current",
+      "value": 120.0,
+      "source": "synthetic_fixture",
+      "as_of_date": "2026-01-31",
+      "available_at": "2026-02-05T00:00:00",
+      "updated_at": "2026-02-05T00:00:00",
+      "revision_id": "token-current-r1"
+    },
+    {
+      "key": "token.previous",
+      "value": 100.0,
+      "source": "synthetic_fixture",
+      "as_of_date": "2025-12-31",
+      "available_at": "2026-01-05T00:00:00",
+      "updated_at": "2026-01-05T00:00:00",
+      "revision_id": "token-previous-r1"
+    },
+    {
+      "key": "future.probe",
+      "value": 999.0,
+      "source": "synthetic_fixture",
+      "as_of_date": "2026-02-28",
+      "available_at": "2026-03-01T00:00:00",
+      "updated_at": "2026-03-01T00:00:00",
+      "revision_id": "future-r1"
+    }
+  ],
+  "ai_capex_token_payload": {
+    "decision_date": "2026-02-10",
+    "snapshot_id": "ai-capex-token-adaptive-e2e-fixture",
+    "metadata": {
+      "synthetic": true,
+      "revision_id": "adaptive-e2e-r1",
+      "description": "Synthetic adaptive input-to-score fixture for local deterministic tests only."
+    },
+    "token_sources_current": [
+      {
+        "metric_key": "tokens.aggregate.synthetic",
+        "period_role": "current",
+        "value": 120.0,
+        "as_of_date": "2026-01-31",
+        "available_at": "2026-02-05T00:00:00",
+        "updated_at": "2026-02-05T00:00:00",
+        "revision_id": "token-current-r1",
+        "source": "synthetic_fixture",
+        "quality_score": 0.95,
+        "missing_ratio": 0.0,
+        "is_stale": false
+      }
+    ],
+    "token_sources_previous": [
+      {
+        "metric_key": "tokens.aggregate.synthetic",
+        "period_role": "previous",
+        "value": 100.0,
+        "as_of_date": "2025-12-31",
+        "available_at": "2026-01-05T00:00:00",
+        "updated_at": "2026-01-05T00:00:00",
+        "revision_id": "token-previous-r1",
+        "source": "synthetic_fixture",
+        "quality_score": 0.95,
+        "missing_ratio": 0.0,
+        "is_stale": false
+      }
+    ],
+    "capex_series": [
+      {
+        "metric_key": "capex.bigtech_ai_total",
+        "period_role": "t",
+        "value": 145.0,
+        "as_of_date": "2026-01-31",
+        "available_at": "2026-02-05T00:00:00",
+        "updated_at": "2026-02-05T00:00:00",
+        "revision_id": "capex-t-r1",
+        "source": "synthetic_fixture",
+        "quality_score": 0.95,
+        "missing_ratio": 0.0,
+        "is_stale": false
+      },
+      {
+        "metric_key": "capex.bigtech_ai_total",
+        "period_role": "t_minus_1",
+        "value": 115.0,
+        "as_of_date": "2025-12-31",
+        "available_at": "2026-01-05T00:00:00",
+        "updated_at": "2026-01-05T00:00:00",
+        "revision_id": "capex-t-minus-1-r1",
+        "source": "synthetic_fixture",
+        "quality_score": 0.95,
+        "missing_ratio": 0.0,
+        "is_stale": false
+      },
+      {
+        "metric_key": "capex.bigtech_ai_total",
+        "period_role": "t_minus_2",
+        "value": 100.0,
+        "as_of_date": "2025-11-30",
+        "available_at": "2025-12-05T00:00:00",
+        "updated_at": "2025-12-05T00:00:00",
+        "revision_id": "capex-t-minus-2-r1",
+        "source": "synthetic_fixture",
+        "quality_score": 0.95,
+        "missing_ratio": 0.0,
+        "is_stale": false
+      }
+    ],
+    "sector_metrics": {
+      "power_equipment": {
+        "backlog_growth_score": 0.75,
+        "backlog_slowdown_score": 0.15,
+        "asp_growth_score": 0.65,
+        "asp_slowdown_score": 0.15,
+        "valuation_burden_score": 0.35
+      },
+      "semiconductor_hbm": {
+        "hbm_asp_growth_score": 0.70,
+        "hbm_supply_growth_score": 0.50,
+        "hbm_inventory_risk_score": 0.20,
+        "valuation_burden_score": 0.40
+      },
+      "bigtech_platform": {
+        "ai_monetization_score": 0.65,
+        "fcf_margin_improvement_score": 0.55,
+        "capex_burden_score": 0.35,
+        "valuation_burden_score": 0.40
+      }
+    },
+    "macro_overlay_metrics": {
+      "real_rate_shock_score": 0.20,
+      "credit_spread_stress_score": 0.10,
+      "liquidity_stress_score": 0.20,
+      "fx_stress_score": 0.10,
+      "volatility_stress_score": 0.20
+    }
+  },
+  "memory_cycle_proxy_series": [
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-01-31", "value": 100.0, "available_at": "2024-01-31T00:00:00"},
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-02-29", "value": 70.0, "available_at": "2024-02-29T00:00:00"},
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-03-31", "value": 102.0, "available_at": "2024-03-31T00:00:00"},
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-04-30", "value": 68.0, "available_at": "2024-04-30T00:00:00"},
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-05-31", "value": 105.0, "available_at": "2024-05-31T00:00:00"},
+    {"proxy_name": "dram_asp_index", "observed_on": "2024-06-30", "value": 60.0, "available_at": "2026-03-01T00:00:00"}
+  ]
+}
