@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import asdict
+from pathlib import Path
 from statistics import pstdev
 from typing import Any, Mapping, Sequence
 
@@ -54,6 +56,92 @@ def run_ai_capex_token_tuning_execution_test(
         }
     )
     return payload
+
+
+def write_ai_capex_token_tuning_execution_validation_report(
+    *,
+    candidate_grid: Mapping[str, Any],
+    snapshots: Sequence[Mapping[str, Any]],
+    json_path: str | Path,
+    markdown_path: str | Path,
+) -> dict[str, Any]:
+    report = run_ai_capex_token_tuning_execution_test(candidate_grid=candidate_grid, snapshots=snapshots)
+    json_target = Path(json_path)
+    markdown_target = Path(markdown_path)
+    json_target.parent.mkdir(parents=True, exist_ok=True)
+    markdown_target.parent.mkdir(parents=True, exist_ok=True)
+    json_target.write_text(json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    markdown_target.write_text(render_ai_capex_token_tuning_execution_markdown(report), encoding="utf-8")
+    return report
+
+
+def render_ai_capex_token_tuning_execution_markdown(report: Mapping[str, Any]) -> str:
+    coverage = report.get("memory_cycle_coverage", {})
+    lines = [
+        "# AI Capex-Token Tuning Execution Validation Report",
+        "",
+        f"- status: `{report.get('status')}`",
+        f"- diagnostic_only: `{report.get('diagnostic_only')}`",
+        f"- production_ready: `{report.get('production_ready')}`",
+        f"- candidate_count: `{report.get('candidate_count')}`",
+        f"- selected_candidate_id: `{report.get('selected_candidate_id')}`",
+        f"- no_op_tuning_detected: `{report.get('no_op_tuning_detected')}`",
+        f"- leakage_check_passed: `{report.get('leakage_check_passed')}`",
+        "",
+        "## Memory Cycle Coverage",
+        "",
+        f"- status: `{coverage.get('status')}`",
+        f"- distinct_cycle_count: `{coverage.get('distinct_cycle_count')}`",
+        f"- cycle_ids: `{', '.join(coverage.get('cycle_ids', []))}`",
+        f"- historical_tuning_allowed: `{coverage.get('historical_tuning_allowed')}`",
+        "",
+        "## Candidate Summary",
+        "",
+        "| candidate_id | objective_score | output_signature | metric_signature | rejected |",
+        "|---|---:|---|---|---|",
+    ]
+    for result in report.get("candidates", ()):
+        candidate = result["candidate"]
+        lines.append(
+            "| {candidate_id} | {objective_score:.6f} | `{output}` | `{metric}` | `{rejected}` |".format(
+                candidate_id=candidate["candidate_id"],
+                objective_score=float(result["objective_score"]),
+                output=str(result["output_signature"])[:12],
+                metric=str(result["metric_signature"])[:12],
+                rejected=result["rejected"],
+            )
+        )
+    lines.extend(["", "## Rejected Candidates", ""])
+    rejected = report.get("rejected_candidates") or []
+    if rejected:
+        for item in rejected:
+            lines.append(f"- `{item['candidate_id']}`: {', '.join(item['reject_reasons'])}")
+    else:
+        lines.append("- none")
+    lines.extend(["", "## Objective Breakdown", ""])
+    for candidate_id, breakdown in report.get("objective_breakdown", {}).items():
+        penalties = breakdown.get("penalties", {})
+        lines.extend(
+            [
+                f"### {candidate_id}",
+                "",
+                f"- risk_adjusted_return: `{breakdown.get('risk_adjusted_return')}`",
+                f"- turnover_efficiency: `{breakdown.get('turnover_efficiency')}`",
+                f"- cycle_stability: `{breakdown.get('cycle_stability')}`",
+                f"- parameter_robustness: `{breakdown.get('parameter_robustness')}`",
+                f"- explainability: `{breakdown.get('explainability')}`",
+                f"- penalties: `{json.dumps(penalties, sort_keys=True)}`",
+                "",
+            ]
+        )
+    lines.extend(["## Leakage / No-Op Checks", ""])
+    lines.append(f"- unique_parameter_hash_count: `{report.get('unique_parameter_hash_count')}`")
+    lines.append(f"- unique_output_signature_count: `{report.get('unique_output_signature_count')}`")
+    lines.append(f"- unique_metric_signature_count: `{report.get('unique_metric_signature_count')}`")
+    for warning in report.get("leakage_warnings", ()):
+        lines.append(f"- leakage warning `{warning['code']}`: {', '.join(warning['excluded_metric_keys'])}")
+    lines.append("")
+    return "\n".join(lines)
 
 
 def _load_candidates(candidate_grid: Mapping[str, Any]) -> tuple[TuningCandidate, ...]:

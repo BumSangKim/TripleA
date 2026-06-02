@@ -1,0 +1,313 @@
+{
+  "baseline_candidate_id": "baseline",
+  "candidate_count": 4,
+  "candidate_parameter_projection": {
+    "scenario_smoothing_alpha": "scenario_probability_parameters.membership_strength"
+  },
+  "candidates": [
+    {
+      "candidate": {
+        "candidate_id": "baseline",
+        "diagnostic_only": true,
+        "parameter_hash": "0053861caa172fd019b03a5190c0b48a88c1e5a372de09a7865b5860ad9bcefe",
+        "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+        "parameters": {
+          "normalization_strength": 0.5,
+          "scenario_smoothing_alpha": 0.5,
+          "sector_component_scale": 0.5,
+          "turnover_penalty": 0.2
+        }
+      },
+      "metric_signature": "2490e6c8df407f244b08ec79db9e3fd893f24e5e7c4e09fe78914fb29d5fa9b0",
+      "metrics": {
+        "average_component_score": 0.3699879166666667,
+        "average_confidence": 0.42374999999999996,
+        "component_score_stability": 0.8242947114577897,
+        "excluded_metric_keys": [
+          "future.leakage_probe"
+        ],
+        "objective_components": {
+          "cycle_stability": 0.8242947114577897,
+          "explainability": 0.7,
+          "mdd_improvement": null,
+          "parameter_robustness": 1.0,
+          "penalties": {
+            "cagr_only_penalty": 0.0,
+            "mdd_worsening_penalty": 0.0,
+            "missing_output_penalty": 0.0,
+            "one_cycle_only_penalty": 0.0,
+            "turnover_penalty": 0.2
+          },
+          "risk_adjusted_return": 0.1567823796875,
+          "turnover_efficiency": 0.8
+        },
+        "objective_score": 3.2810770911452893
+      },
+      "objective_score": 3.2810770911452893,
+      "output_signature": "b03f04389558293b1ccad748f4bba30a36b0718f9f9df9283eea2927683fe129",
+      "reject_reasons": [],
+      "rejected": false
+    },
+    {
+      "candidate": {
+        "candidate_id": "candidate_low_smoothing",
+        "diagnostic_only": true,
+        "parameter_hash": "988762feee09cec6cd2f47ddb14ffc0c38312d1668df5e569f5367e8bf5e1401",
+        "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+        "parameters": {
+          "normalization_strength": 0.35,
+          "scenario_smoothing_alpha": 0.25,
+          "sector_component_scale": 0.45,
+          "turnover_penalty": 0.3
+        }
+      },
+      "metric_signature": "3abb1bf2ce8ba21a5879b2eb7f247f158050e137c8a3b011be8984ee35353695",
+      "metrics": {
+        "average_component_score": 0.3471103125,
+        "average_confidence": 0.21187499999999998,
+        "component_score_stability": 0.8335711307375755,
+        "excluded_metric_keys": [
+          "future.leakage_probe"
+        ],
+        "objective_components": {
+          "cycle_stability": 0.8335711307375755,
+          "explainability": 0.7,
+          "mdd_improvement": null,
+          "parameter_robustness": 1.0,
+          "penalties": {
+            "cagr_only_penalty": 0.0,
+            "mdd_worsening_penalty": 0.0,
+            "missing_output_penalty": 0.0,
+            "one_cycle_only_penalty": 0.0,
+            "turnover_penalty": 0.3
+          },
+          "risk_adjusted_return": 0.0735439974609375,
+          "turnover_efficiency": 0.7
+        },
+        "objective_score": 3.007115128198513
+      },
+      "objective_score": 3.007115128198513,
+      "output_signature": "3b7500bd205c90760261d33a846fc9e2d1da39818720bbf0ac5431cd5245e33e",
+      "reject_reasons": [
+        "OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED"
+      ],
+      "rejected": true
+    },
+    {
+      "candidate": {
+        "candidate_id": "candidate_balanced",
+        "diagnostic_only": true,
+        "parameter_hash": "5c6c6db5997d35eebd4975a75c6d68fa60bd787c256b9b016c220f83febdb901",
+        "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+        "parameters": {
+          "normalization_strength": 0.65,
+          "scenario_smoothing_alpha": 0.35,
+          "sector_component_scale": 0.55,
+          "turnover_penalty": 0.2
+        }
+      },
+      "metric_signature": "90efe4891749164c1b52f95a834fca876e9fe83686146dbc05a5aa9cea97f2e3",
+      "metrics": {
+        "average_component_score": 0.3559332291666667,
+        "average_confidence": 0.296625,
+        "component_score_stability": 0.8327105869622725,
+        "excluded_metric_keys": [
+          "future.leakage_probe"
+        ],
+        "objective_components": {
+          "cycle_stability": 0.8327105869622725,
+          "explainability": 0.7,
+          "mdd_improvement": null,
+          "parameter_robustness": 1.0,
+          "penalties": {
+            "cagr_only_penalty": 0.0,
+            "mdd_worsening_penalty": 0.0,
+            "missing_output_penalty": 0.0,
+            "one_cycle_only_penalty": 0.0,
+            "turnover_penalty": 0.2
+          },
+          "risk_adjusted_return": 0.10557869410156252,
+          "turnover_efficiency": 0.8
+        },
+        "objective_score": 3.238289281063835
+      },
+      "objective_score": 3.238289281063835,
+      "output_signature": "033d2cc1e4e9d221619f0690e2c98484c2f63d1945da81248ac5855fa95b294b",
+      "reject_reasons": [
+        "OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED"
+      ],
+      "rejected": true
+    },
+    {
+      "candidate": {
+        "candidate_id": "candidate_sensitive",
+        "diagnostic_only": true,
+        "parameter_hash": "1a53f55f49c497a02b6dee64bb5efbfab652a928165b0b321c4ffc33721350fa",
+        "parameter_version": "ai_capex_token_tuning_execution_smoke_v1",
+        "parameters": {
+          "normalization_strength": 0.8,
+          "scenario_smoothing_alpha": 0.6,
+          "sector_component_scale": 0.65,
+          "turnover_penalty": 0.1
+        }
+      },
+      "metric_signature": "02704b1cadb9f99596bfde7e9c1b04864406273543355309c21711f207856938",
+      "metrics": {
+        "average_component_score": 0.3799045833333333,
+        "average_confidence": 0.5085,
+        "component_score_stability": 0.8123221580171113,
+        "excluded_metric_keys": [
+          "future.leakage_probe"
+        ],
+        "objective_components": {
+          "cycle_stability": 0.8123221580171113,
+          "explainability": 0.7,
+          "mdd_improvement": null,
+          "parameter_robustness": 1.0,
+          "penalties": {
+            "cagr_only_penalty": 0.0,
+            "mdd_worsening_penalty": 0.0,
+            "missing_output_penalty": 0.0,
+            "one_cycle_only_penalty": 0.0,
+            "turnover_penalty": 0.1
+          },
+          "risk_adjusted_return": 0.19318148062499998,
+          "turnover_efficiency": 0.9
+        },
+        "objective_score": 3.5055036386421112
+      },
+      "objective_score": 3.5055036386421112,
+      "output_signature": "e912efb2906caa46d45ed2d1330bbe3f6055fea7d6eef6701d67916033f25c11",
+      "reject_reasons": [],
+      "rejected": false
+    }
+  ],
+  "diagnostic_only": true,
+  "leakage_check_passed": true,
+  "leakage_warnings": [
+    {
+      "candidate_id": "baseline",
+      "code": "FUTURE_INPUT_EXCLUDED",
+      "excluded_metric_keys": [
+        "future.leakage_probe"
+      ]
+    },
+    {
+      "candidate_id": "candidate_low_smoothing",
+      "code": "FUTURE_INPUT_EXCLUDED",
+      "excluded_metric_keys": [
+        "future.leakage_probe"
+      ]
+    },
+    {
+      "candidate_id": "candidate_balanced",
+      "code": "FUTURE_INPUT_EXCLUDED",
+      "excluded_metric_keys": [
+        "future.leakage_probe"
+      ]
+    },
+    {
+      "candidate_id": "candidate_sensitive",
+      "code": "FUTURE_INPUT_EXCLUDED",
+      "excluded_metric_keys": [
+        "future.leakage_probe"
+      ]
+    }
+  ],
+  "memory_cycle_coverage": {
+    "cycle_ids": [
+      "cycle_a",
+      "cycle_b"
+    ],
+    "distinct_cycle_count": 2,
+    "historical_tuning_allowed": true,
+    "reason_codes": [
+      "TWO_MEMORY_CYCLE_COVERAGE_PASSED"
+    ],
+    "status": "PASS_TWO_MEMORY_CYCLES",
+    "warnings": []
+  },
+  "no_op_tuning_detected": false,
+  "objective_breakdown": {
+    "baseline": {
+      "cycle_stability": 0.8242947114577897,
+      "explainability": 0.7,
+      "mdd_improvement": null,
+      "parameter_robustness": 1.0,
+      "penalties": {
+        "cagr_only_penalty": 0.0,
+        "mdd_worsening_penalty": 0.0,
+        "missing_output_penalty": 0.0,
+        "one_cycle_only_penalty": 0.0,
+        "turnover_penalty": 0.2
+      },
+      "risk_adjusted_return": 0.1567823796875,
+      "turnover_efficiency": 0.8
+    },
+    "candidate_balanced": {
+      "cycle_stability": 0.8327105869622725,
+      "explainability": 0.7,
+      "mdd_improvement": null,
+      "parameter_robustness": 1.0,
+      "penalties": {
+        "cagr_only_penalty": 0.0,
+        "mdd_worsening_penalty": 0.0,
+        "missing_output_penalty": 0.0,
+        "one_cycle_only_penalty": 0.0,
+        "turnover_penalty": 0.2
+      },
+      "risk_adjusted_return": 0.10557869410156252,
+      "turnover_efficiency": 0.8
+    },
+    "candidate_low_smoothing": {
+      "cycle_stability": 0.8335711307375755,
+      "explainability": 0.7,
+      "mdd_improvement": null,
+      "parameter_robustness": 1.0,
+      "penalties": {
+        "cagr_only_penalty": 0.0,
+        "mdd_worsening_penalty": 0.0,
+        "missing_output_penalty": 0.0,
+        "one_cycle_only_penalty": 0.0,
+        "turnover_penalty": 0.3
+      },
+      "risk_adjusted_return": 0.0735439974609375,
+      "turnover_efficiency": 0.7
+    },
+    "candidate_sensitive": {
+      "cycle_stability": 0.8123221580171113,
+      "explainability": 0.7,
+      "mdd_improvement": null,
+      "parameter_robustness": 1.0,
+      "penalties": {
+        "cagr_only_penalty": 0.0,
+        "mdd_worsening_penalty": 0.0,
+        "missing_output_penalty": 0.0,
+        "one_cycle_only_penalty": 0.0,
+        "turnover_penalty": 0.1
+      },
+      "risk_adjusted_return": 0.19318148062499998,
+      "turnover_efficiency": 0.9
+    }
+  },
+  "production_ready": false,
+  "rejected_candidates": [
+    {
+      "candidate_id": "candidate_low_smoothing",
+      "reject_reasons": [
+        "OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED"
+      ]
+    },
+    {
+      "candidate_id": "candidate_balanced",
+      "reject_reasons": [
+        "OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED"
+      ]
+    }
+  ],
+  "selected_candidate_id": "candidate_sensitive",
+  "status": "PASS_SYNTHETIC_ONLY",
+  "unique_metric_signature_count": 4,
+  "unique_output_signature_count": 4,
+  "unique_parameter_hash_count": 4
+}
