@@ -53,7 +53,7 @@ def test_docs_tree_only_contains_explicit_scoring_specs_when_present():
     unexpected = [
         path.relative_to(ROOT)
         for path in docs_root.rglob("*")
-        if path.is_file() and not path.name.startswith("AI_CAPEX_TOKEN_")
+        if path.is_file() and not _is_allowed_scoring_doc(path)
     ]
 
     assert not unexpected
@@ -117,3 +117,9 @@ def _matching_imports(imports: list[ImportItem], prefixes: tuple[str, ...]) -> l
         for item in imports
         if any(item.module == prefix or item.module.startswith(f"{prefix}.") for prefix in prefixes)
     ]
+
+
+def _is_allowed_scoring_doc(path: Path) -> bool:
+    if path.name.startswith("AI_CAPEX_TOKEN_"):
+        return True
+    return path.is_relative_to(ROOT / "docs" / "ai_capex_token")

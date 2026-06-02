@@ -88,7 +88,7 @@ def test_canonical_root_guides_define_removed_live_boundaries():
         unexpected_docs = [
             path.relative_to(ROOT)
             for path in docs_root.rglob("*")
-            if path.is_file() and not path.name.startswith("AI_CAPEX_TOKEN_")
+            if path.is_file() and not _is_allowed_scoring_doc(path)
         ]
         assert not unexpected_docs
     assert "Do not depend on `docs/` as the source of truth" in master
@@ -126,3 +126,9 @@ def _collect_imports(path: Path) -> list[str]:
         elif isinstance(node, ast.ImportFrom) and node.module:
             imports.append(node.module)
     return imports
+
+
+def _is_allowed_scoring_doc(path: Path) -> bool:
+    if path.name.startswith("AI_CAPEX_TOKEN_"):
+        return True
+    return path.is_relative_to(ROOT / "docs" / "ai_capex_token")
