@@ -1,0 +1,26 @@
+mode:
+  production_enabled: false
+  diagnostic_only: true
+  approved: false
+
+parameter_config: config/parameters/ai_capex_token_adaptive_tuning.yaml
+fallback_policy: REVIEW_REQUIRED
+
+memory_cycle_gate:
+  required: true
+  minimum_complete_cycles: 2
+  allowed_proxy_names:
+    - dram_asp_index
+    - nand_asp_index
+    - memory_inventory_index
+    - memory_revenue_growth
+    - memory_margin_proxy
+    - memory_capex_growth
+    - semiconductor_memory_index
+    - hbm_asp_proxy
+  fail_status: INSUFFICIENT_MEMORY_CYCLE_COVERAGE
+
+output:
+  shadow_candidate_only: true
+  automatic_production_promotion_allowed: false
+  order_generation_allowed: false

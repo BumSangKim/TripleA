@@ -11,7 +11,9 @@ from api.score_pipeline.contracts import ConservativeAction, PipelineContractErr
 class AdaptiveNormalizationMethod(str, Enum):
     ROLLING_Z_SCORE = "rolling_z_score"
     ROLLING_PERCENTILE = "rolling_percentile"
+    ROBUST_ZSCORE = "robust_zscore"
     ROBUST_PERCENTILE = "robust_percentile"
+    HYBRID_PERCENTILE_ZSCORE = "hybrid_percentile_zscore"
 
 
 RISK_INCREASING_ACTION_TERMS = frozenset(

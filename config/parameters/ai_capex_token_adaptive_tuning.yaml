@@ -1,0 +1,79 @@
+fallback_policy: REVIEW_REQUIRED
+
+mode:
+  production_enabled: false
+  diagnostic_only: true
+  approved: false
+  requires_two_memory_cycles: true
+  requires_backtest_pass: true
+  requires_walk_forward_pass: true
+
+parameter_metadata:
+  parameter_version: ai_capex_token_adaptive_tuning_v0
+  model_version: ai_capex_token_adaptive_shadow_v0
+  source: AI Capex-Token adaptive backtest tuning package
+  reason: Adaptive diagnostic tuning before any production score contribution.
+  approved: false
+  valid_from: null
+  valid_to: null
+  backtest_result: null
+  walk_forward_result: null
+  rollback_condition: Disable component if leakage, excessive turnover, drawdown worsening, unstable parameters, or poor explainability appears.
+
+adaptive_normalization_grid:
+  metadata:
+    approved: false
+    diagnostic_only: true
+    fallback_policy: REVIEW_REQUIRED
+    purpose: Leakage-safe historical calibration candidates only.
+  method: [rolling_percentile, robust_zscore, hybrid_percentile_zscore]
+  lookback_months: [24, 36, 48, 60, 84]
+  min_observations: [12, 18, 24]
+  winsorization_pct: [0.00, 0.01, 0.05]
+
+scenario_smoothing_grid:
+  metadata:
+    approved: false
+    diagnostic_only: true
+    fallback_policy: REVIEW_REQUIRED
+    purpose: Smooth scenario probability distributions without converting labels to actions.
+  method: [none, rolling_mean, exponential]
+  window_quarters: [1, 2, 4]
+  ewma_alpha: [0.25, 0.35, 0.50]
+
+sector_component_weight_grid:
+  metadata:
+    approved: false
+    diagnostic_only: true
+    fallback_policy: REVIEW_REQUIRED
+    purpose: Diagnostic component contribution candidates, not target allocation weights.
+  bigtech_platform:
+    token_delta: [0.25, 0.35, 0.45]
+    capex_deceleration_benefit: [0.15, 0.25, 0.35]
+    fcf_margin: [0.25, 0.35, 0.45]
+    valuation_penalty: [0.15, 0.25, 0.35]
+  power_equipment:
+    capex_acceleration: [0.25, 0.35, 0.45]
+    backlog: [0.20, 0.30, 0.40]
+    asp: [0.15, 0.25, 0.35]
+    valuation_penalty: [0.25, 0.35, 0.45]
+  semiconductor_hbm:
+    token_delta: [0.20, 0.30, 0.40]
+    hbm_asp: [0.25, 0.35, 0.45]
+    supply_shortage: [0.20, 0.30, 0.40]
+    inventory_penalty: [0.20, 0.30, 0.40]
+    valuation_penalty: [0.20, 0.30, 0.40]
+
+market_state_dampening_grid:
+  metadata:
+    approved: false
+    diagnostic_only: true
+    fallback_policy: REVIEW_REQUIRED
+    purpose: Damp risk when data quality, macro stress, valuation burden, or turnover fragility appears.
+  data_quality_penalty: [0.25, 0.50, 0.75]
+  stale_data_penalty: [0.25, 0.50]
+  macro_stress_attenuation: [0.25, 0.50, 0.75]
+  valuation_burden_penalty: [0.20, 0.30, 0.40]
+  turnover_penalty: [0.10, 0.20, 0.30]
+  max_component_contribution: [0.03, 0.05, 0.08]
+  max_score_change_per_period: [0.03, 0.05, 0.10]
