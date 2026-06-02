@@ -79,7 +79,7 @@ def _evaluate_candidate(candidate: TuningCandidate, snapshots: Sequence[Mapping[
     metrics = _metrics(candidate, rows)
     return TuningCandidateResult.from_payloads(
         candidate=candidate,
-        output_payload={"candidate_id": candidate.candidate_id, "rows": rows},
+        output_payload={"rows": rows},
         metrics=metrics,
         objective_score=float(metrics["objective_score"]),
     )
@@ -205,8 +205,15 @@ def _apply_rejection_rules(results: Sequence[TuningCandidateResult]) -> tuple[Tu
         return ()
     baseline = next((result for result in results if result.candidate.candidate_id == "baseline"), results[0])
     rejected: list[TuningCandidateResult] = []
+    seen_outputs: set[str] = set()
     for result in results:
+        reject_reasons: list[str] = []
+        if result.output_signature in seen_outputs:
+            reject_reasons.append("NO_OUTPUT_VARIATION")
+        seen_outputs.add(result.output_signature)
         if result.candidate.candidate_id != baseline.candidate.candidate_id and result.objective_score < baseline.objective_score:
+            reject_reasons.append("OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED")
+        if reject_reasons:
             rejected.append(
                 TuningCandidateResult(
                     candidate=result.candidate,
@@ -215,7 +222,7 @@ def _apply_rejection_rules(results: Sequence[TuningCandidateResult]) -> tuple[Tu
                     metric_signature=result.metric_signature,
                     objective_score=result.objective_score,
                     rejected=True,
-                    reject_reasons=("OBJECTIVE_BELOW_BASELINE_DIAGNOSTIC_REJECTED",),
+                    reject_reasons=tuple(reject_reasons),
                 )
             )
         else:
