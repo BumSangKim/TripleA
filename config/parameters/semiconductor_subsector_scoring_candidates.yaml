@@ -1,0 +1,9 @@
+parameter_metadata: {parameter_version: semiconductor_subsector_candidate_v1, model_version: semiconductor_subsector_candidate_v1, approved: false, diagnostic_only: true}
+subsectors:
+  memory: {components: {demand: 0.5, supply: 0.5}}
+  ai_fabless: {components: {demand: 0.5, market: 0.5}}
+  foundry: {components: {demand: 0.5, supply: 0.5}}
+  semiconductor_equipment: {components: {equipment: 0.5, demand: 0.5}}
+  analog_mcu: {components: {demand: 0.5, market: 0.5}}
+  advanced_packaging: {components: {equipment: 0.5, supply: 0.5}}
+  broad_semiconductor_etf: {components: {market: 0.5, macro: 0.5}}

@@ -1,0 +1,2 @@
+from tests.unit.score_pipeline.test_semiconductor_subsector_scoring import test_unapproved_candidate_cannot_activate_or_increase_risk
+def test_candidate_pipeline_remains_review_only():test_unapproved_candidate_cannot_activate_or_increase_risk()
