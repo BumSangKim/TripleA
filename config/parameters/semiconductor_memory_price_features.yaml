@@ -1,0 +1,39 @@
+fallback_policy: REVIEW_REQUIRED
+
+parameter_metadata:
+  parameter_version: semiconductor_memory_price_features_v1
+  model_version: semiconductor_memory_price_features_v1
+  approved: false
+  diagnostic_only: true
+
+series:
+  - id: semiconductor.memory.dram.spot.monthly
+    product: dram
+    price_type: spot
+    frequency: monthly
+    optional: false
+  - id: semiconductor.memory.dram.contract.monthly
+    product: dram
+    price_type: contract
+    frequency: monthly
+    optional: false
+  - id: semiconductor.memory.nand.spot.monthly
+    product: nand
+    price_type: spot
+    frequency: monthly
+    optional: false
+  - id: semiconductor.memory.nand.contract.monthly
+    product: nand
+    price_type: contract
+    frequency: monthly
+    optional: false
+  - id: semiconductor.memory.server.contract.monthly
+    product: server_memory
+    price_type: contract
+    frequency: monthly
+    optional: false
+  - id: semiconductor.memory.hbm.contract.monthly
+    product: hbm
+    price_type: contract
+    frequency: monthly
+    optional: true
