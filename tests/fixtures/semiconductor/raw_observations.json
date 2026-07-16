@@ -1,0 +1,61 @@
+{
+  "fixture_id": "semiconductor_raw_observations_v1",
+  "observations": [
+    {
+      "canonical_series_id": "semiconductor.memory.dram_spot_price_index",
+      "value": "100.0",
+      "observation_date": "2026-01-31",
+      "released_at": "2026-02-05T09:00:00+00:00",
+      "available_at": "2026-02-05T09:00:00+00:00",
+      "updated_at": "2026-02-05T09:00:00+00:00",
+      "source": "fixture_semiconductor",
+      "revision_id": "dram-2026-01-initial",
+      "vintage": "2026-02-05",
+      "frequency": "monthly",
+      "unit": "index",
+      "quality": {"quality_score": 0.9, "missing": false, "stale": false, "reason_codes": []}
+    },
+    {
+      "canonical_series_id": "semiconductor.memory.dram_spot_price_index",
+      "value": "104.0",
+      "observation_date": "2026-01-31",
+      "released_at": "2026-02-20T09:00:00+00:00",
+      "available_at": "2026-02-20T09:00:00+00:00",
+      "updated_at": "2026-02-20T09:00:00+00:00",
+      "source": "fixture_semiconductor",
+      "revision_id": "dram-2026-01-revision-1",
+      "vintage": "2026-02-20",
+      "frequency": "monthly",
+      "unit": "index",
+      "quality": {"quality_score": 0.95, "missing": false, "stale": false, "reason_codes": []}
+    },
+    {
+      "canonical_series_id": "semiconductor.global.wafer_shipments_index",
+      "value": "120.0",
+      "observation_date": "2026-02-28",
+      "released_at": "2026-03-10T09:00:00+00:00",
+      "available_at": "2026-03-10T09:00:00+00:00",
+      "updated_at": "2026-03-10T09:00:00+00:00",
+      "source": "fixture_semiconductor",
+      "revision_id": "wafer-2026-02-initial",
+      "vintage": "2026-03-10",
+      "frequency": "monthly",
+      "unit": "index",
+      "quality": {"quality_score": 0.8, "missing": false, "stale": false, "reason_codes": []}
+    },
+    {
+      "canonical_series_id": "semiconductor.inventory.channel_days",
+      "value": null,
+      "observation_date": "2026-01-31",
+      "released_at": "2026-02-08T09:00:00+00:00",
+      "available_at": "2026-02-08T09:00:00+00:00",
+      "updated_at": "2026-02-08T09:00:00+00:00",
+      "source": "fixture_semiconductor",
+      "revision_id": "inventory-2026-01-missing",
+      "vintage": "2026-02-08",
+      "frequency": "monthly",
+      "unit": "days",
+      "quality": {"quality_score": 0.0, "missing": true, "stale": false, "reason_codes": ["SOURCE_NOT_REPORTED"]}
+    }
+  ]
+}
