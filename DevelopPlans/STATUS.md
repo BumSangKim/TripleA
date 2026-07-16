@@ -3,7 +3,7 @@
 ## Current State
 
 - Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, post-legacy gap resolution checkpoint, layered score-flow feedback contract checkpoint, and AI Capex-Token adaptive shadow tuning checkpoint are complete.
-- Current task: none.
+- Current task: Semiconductor vertical-slice task pack paused at `SEM-011`.
 - Default execution posture: read-only analysis, backtest, score generation, review-only order candidates.
 - Out of scope unless explicitly approved: live broker order submission, real-account mutation, automatic execution.
 
@@ -161,6 +161,23 @@ Area-specific references:
 - Intraday monitoring exists as display/alert-ready persistence only.
 - KIS/broker connectivity must remain read-only unless a future task explicitly approves execution behavior.
 
+## Semiconductor Vertical Slice Checkpoint
+
+- Status: `SEM-001` through `SEM-010` completed as fixture-only, diagnostic
+  feature contracts.
+- Completed scope: universe identity, point-in-time raw observations,
+  normalization primitives, demand, memory-price, inventory/supply,
+  equipment/capacity, and earnings-quality feature snapshots; no score,
+  allocation, rebalancing, execution, or broker behavior was activated.
+- Blocker at `SEM-011` (market features): the current price-history boundary
+  does not expose an explicit decision-time availability contract for price and
+  FX rows, and no owner is defined for cross-currency conversion. The task
+  forbids automatic currency assumptions, so relative-return/FX features must
+  not be implemented until that boundary is owner-approved.
+- Required owner decision: define the read-only point-in-time market/FX input
+  contract, including currency conversion ownership and the conservative
+  fallback when a required FX row is unavailable.
+
 ## Remaining Work
 
 - Strategy SQLite/root data service extraction and macro/bottleneck legacy
@@ -205,7 +222,10 @@ Last recorded result: collect-only 1431 tests collected; architecture
 
 ## Next Recommended Task
 
-Run one explicit execution unit only, after owner confirmation:
+Resolve the `SEM-011` market/FX boundary owner decision before continuing
+`SEM-012` through `SEM-020` of the Semiconductor vertical-slice task pack.
+
+Alternative work after owner confirmation:
 
 - AI Capex-Token shadow observation expansion: add larger deterministic
   fixture coverage and independent validation windows while keeping production
