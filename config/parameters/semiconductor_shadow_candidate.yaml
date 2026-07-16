@@ -1,0 +1,6 @@
+approved: false
+production_enabled: false
+diagnostic_only: true
+allocation_contribution: 0.0
+parameter_version: semiconductor_shadow_tilt_v1
+model_version: semiconductor_shadow_handoff_v1

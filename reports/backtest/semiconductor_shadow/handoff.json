@@ -1,0 +1,12 @@
+{
+  "allocation_contribution": 0.0,
+  "approved": false,
+  "evidence": "synthetic_fixture_validation_only",
+  "model_version": "semiconductor_shadow_handoff_v1",
+  "parameter_version": "semiconductor_shadow_tilt_v1",
+  "production_enabled": false,
+  "reason_codes": ["SEMICONDUCTOR_SHADOW_ONLY", "REAL_HISTORICAL_EVIDENCE_REQUIRED"],
+  "report_version": "semiconductor_shadow_handoff_v1",
+  "validation": {"rejection_reasons": []},
+  "warnings": ["No production approval or factual outperformance claim."]
+}
