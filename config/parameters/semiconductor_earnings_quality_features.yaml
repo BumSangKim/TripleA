@@ -1,0 +1,3 @@
+parameter_metadata: {parameter_version: semiconductor_earnings_quality_features_v1, model_version: semiconductor_earnings_quality_features_v1, diagnostic_only: true}
+companies: [US_NVDA, KRX_005930]
+metrics: [eps_estimate, revenue_estimate, margin, fcf_margin, roic, balance_sheet_quality, earnings]
