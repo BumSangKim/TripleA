@@ -1,0 +1,16 @@
+fallback_policy: REVIEW_REQUIRED
+parameter_metadata:
+  parameter_version: semiconductor_inventory_supply_features_v1
+  model_version: semiconductor_inventory_supply_features_v1
+  approved: false
+  diagnostic_only: true
+inputs:
+  companies: [company_a, company_b]
+  end_demand_series_id: semiconductor.end_demand.global.quarterly
+  metrics:
+    inventory_days: semiconductor.company.{company}.inventory_days.quarterly
+    revenue: semiconductor.company.{company}.revenue.quarterly
+    utilization: semiconductor.company.{company}.utilization.quarterly
+    capacity: semiconductor.company.{company}.capacity.quarterly
+    bit_growth: semiconductor.company.{company}.bit_output.quarterly
+    capex: semiconductor.company.{company}.capex.quarterly
