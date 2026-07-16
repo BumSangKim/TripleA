@@ -1,0 +1,2 @@
+parameter_metadata: {parameter_version: semiconductor_shadow_tilt_v1, model_version: semiconductor_shadow_tilt_v1, approved: false, diagnostic_only: true, production_enabled: false}
+tilt: {min: 0.0, base: 0.05, max: 0.15}
