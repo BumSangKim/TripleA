@@ -1,0 +1,2 @@
+from tests.unit.score_pipeline.test_semiconductor_validation import test_validation_rejects_known_failure_modes_and_stays_disabled
+def test_validation_backtest_gate():test_validation_rejects_known_failure_modes_and_stays_disabled()

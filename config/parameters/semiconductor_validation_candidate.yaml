@@ -1,0 +1,4 @@
+parameter_version: semiconductor_validation_candidate_v1
+approved_for_production: false
+diagnostic_only: true
+objective_priority: [drawdown_control, robustness, explainability, risk_adjusted_return, cagr]
