@@ -1,0 +1,26 @@
+fallback_policy: REVIEW_REQUIRED
+
+parameter_metadata:
+  parameter_version: semiconductor_normalization_v1
+  model_version: semiconductor_normalization_diagnostic_v1
+  approved: false
+  diagnostic_only: true
+  source: Semiconductor vertical-slice contract
+  reason: Reusable normalization and smoothing controls. No allocation or action mapping.
+
+normalization:
+  min_observations: 5
+  robust_z_clip: 3.0
+  hybrid_percentile_weight: 0.5
+
+smoothing:
+  ewma_alpha_by_frequency:
+    daily: 0.2
+    weekly: 0.3
+    monthly: 0.4
+    quarterly: 0.5
+    annual: 0.6
+
+level_change_composition:
+  level_weight: 0.7
+  change_weight: 0.3
