@@ -1,0 +1,4 @@
+parameter_version: semiconductor_shadow_rebalance_v1
+per_rebalance_change_cap: 0.05
+monthly_change_cap: 0.10
+diagnostic_only: true

@@ -1,0 +1,3 @@
+from api.score_pipeline.semiconductor_shadow_rebalance import review_rebalance
+def test_constraints_override_and_new_cash_is_preferred_without_orders():
+ blocked=review_rebalance(drift=.2,conviction_change=.2,risk_pressure=0,confidence=1,new_cash=1,cost_efficiency=1,turnover_penalty=0,hard_constraint_passed=False,per_cap=.05,monthly_cap=.1);ok=review_rebalance(drift=.2,conviction_change=.2,risk_pressure=0,confidence=1,new_cash=1,cost_efficiency=1,turnover_penalty=0,hard_constraint_passed=True,per_cap=.05,monthly_cap=.1);assert blocked.action=="REVIEW_REQUIRED" and ok.new_cash_first and ok.intensity==.05
