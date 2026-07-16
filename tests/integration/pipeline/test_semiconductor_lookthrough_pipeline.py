@@ -1,0 +1,2 @@
+from tests.unit.score_pipeline.test_semiconductor_lookthrough import test_historical_constituents_reconcile_direct_and_indirect_exposure
+def test_fixture_lookthrough_pipeline():test_historical_constituents_reconcile_direct_and_indirect_exposure()
