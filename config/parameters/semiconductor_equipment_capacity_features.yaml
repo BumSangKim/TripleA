@@ -1,0 +1,18 @@
+parameter_metadata:
+  parameter_version: semiconductor_equipment_capacity_features_v1
+  model_version: semiconductor_equipment_capacity_features_v1
+  diagnostic_only: true
+subsector_applicability:
+  semiconductor_equipment: [customer_capex, equipment_sales, orders, backlog, utilization]
+  advanced_packaging: [customer_capex, advanced_packaging_capacity, lead_time_proxy, utilization]
+  foundry: [customer_capex, utilization, capacity_growth, oversupply_risk_input]
+series:
+  customer_capex: semiconductor.equipment.customer_capex.quarterly
+  equipment_sales: semiconductor.equipment.sales.quarterly
+  orders: semiconductor.equipment.orders.quarterly
+  backlog: semiconductor.equipment.backlog.quarterly
+  utilization: semiconductor.equipment.utilization.quarterly
+  advanced_packaging_capacity: semiconductor.packaging.capacity.quarterly
+  lead_time_proxy: semiconductor.packaging.lead_time.quarterly
+  capacity_growth: semiconductor.fabrication.capacity.quarterly
+  oversupply_risk_input: semiconductor.fabrication.oversupply_input.quarterly
