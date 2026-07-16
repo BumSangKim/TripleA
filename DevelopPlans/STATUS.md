@@ -3,7 +3,7 @@
 ## Current State
 
 - Current phase: pre-execution score-flow foundation, modular monolith refactor checkpoint, strategy engine decoupling, legacy root data-service cleanup, post-legacy gap resolution checkpoint, layered score-flow feedback contract checkpoint, and AI Capex-Token adaptive shadow tuning checkpoint are complete.
-- Current task: Semiconductor vertical-slice task pack paused at `SEM-011`.
+- Current task: none.
 - Default execution posture: read-only analysis, backtest, score generation, review-only order candidates.
 - Out of scope unless explicitly approved: live broker order submission, real-account mutation, automatic execution.
 
@@ -163,20 +163,15 @@ Area-specific references:
 
 ## Semiconductor Vertical Slice Checkpoint
 
-- Status: `SEM-001` through `SEM-010` completed as fixture-only, diagnostic
-  feature contracts.
-- Completed scope: universe identity, point-in-time raw observations,
-  normalization primitives, demand, memory-price, inventory/supply,
-  equipment/capacity, and earnings-quality feature snapshots; no score,
-  allocation, rebalancing, execution, or broker behavior was activated.
-- Blocker at `SEM-011` (market features): the current price-history boundary
-  does not expose an explicit decision-time availability contract for price and
-  FX rows, and no owner is defined for cross-currency conversion. The task
-  forbids automatic currency assumptions, so relative-return/FX features must
-  not be implemented until that boundary is owner-approved.
-- Required owner decision: define the read-only point-in-time market/FX input
-  contract, including currency conversion ownership and the conservative
-  fallback when a required FX row is unavailable.
+- Status: complete for `SEM-001` through `SEM-020` and `SEM-999`.
+- The read-only `api/data` market snapshot boundary owns point-in-time asset
+  price, currency, and FX input contracts. Missing eligible FX makes the
+  base-currency feature unavailable with `REVIEW_REQUIRED`; no substitute rate
+  or silent local-currency result is allowed.
+- The completed slice is fixture-only and diagnostic/shadow-only. All score,
+  tilt, rebalance, validation, and audit candidates remain non-activating;
+  production is false and allocation contribution is `0.0`.
+- Completion handoff: `DevelopPlans/semiconductor_vertical_slice/completion.md`.
 
 ## Remaining Work
 
@@ -216,14 +211,15 @@ git diff --check
 .venv/bin/python -m pytest tests -q
 ```
 
-Last recorded result: collect-only 1431 tests collected; architecture
-70 passed and 1 xfailed; code 9 passed; unit 245 passed; integration
-45 passed; backtest 62 passed; full suite 1430 passed and 1 xfailed.
+Last recorded result: collect-only 1527 tests collected; architecture
+72 passed and 1 xfailed; code 9 passed; unit 300 passed; integration
+79 passed; backtest 65 passed; full suite 1526 passed and 1 xfailed.
 
 ## Next Recommended Task
 
-Resolve the `SEM-011` market/FX boundary owner decision before continuing
-`SEM-012` through `SEM-020` of the Semiconductor vertical-slice task pack.
+Add a read-only, environment-gated market/FX snapshot adapter with independent
+historical fixture reconciliation, while preserving the Semiconductor slice's
+shadow-only, no-execution posture.
 
 Alternative work after owner confirmation:
 
