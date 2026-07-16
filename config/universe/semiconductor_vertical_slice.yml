@@ -1,0 +1,37 @@
+version: "semiconductor_vertical_slice_v1"
+as_of_date: "2026-07-17"
+
+benchmark:
+  benchmark_id: "MSCI_WORLD"
+  role: "core_benchmark"
+  tradeable: false
+  asset_master_asset_id: null
+  activation_state: "review_only"
+
+active_overlay:
+  overlay_id: "SEMICONDUCTOR_ACTIVE_OVERLAY"
+  role: "active_overlay"
+  activation_state: "review_only"
+
+subsectors:
+  - subsector_id: "memory"
+    candidate_asset_ids: ["KRX_005930", "KRX_000660"]
+    activation_state: "review_only"
+  - subsector_id: "ai_fabless"
+    candidate_asset_ids: ["US_NVDA"]
+    activation_state: "review_only"
+  - subsector_id: "foundry"
+    candidate_asset_ids: []
+    activation_state: "review_required"
+  - subsector_id: "semiconductor_equipment"
+    candidate_asset_ids: []
+    activation_state: "review_required"
+  - subsector_id: "analog_mcu"
+    candidate_asset_ids: []
+    activation_state: "review_required"
+  - subsector_id: "advanced_packaging"
+    candidate_asset_ids: []
+    activation_state: "review_required"
+  - subsector_id: "broad_semiconductor_etf"
+    candidate_asset_ids: ["KRX_396500", "KRX_381180"]
+    activation_state: "review_only"
