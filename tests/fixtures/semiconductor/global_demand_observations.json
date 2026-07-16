@@ -1,0 +1,7 @@
+[
+  {"canonical_series_id": "semiconductor.sales.global.monthly", "values": [100,101,102,103,104,105,106,107,108,109,110,111,112,114,117]},
+  {"canonical_series_id": "semiconductor.sales.regional.region_a.monthly", "values": [80,81,82,83,84,85,86,87,88,89,90,91,92,94,97]},
+  {"canonical_series_id": "semiconductor.sales.regional.region_b.monthly", "values": [90,89,88,87,86,85,84,83,82,81,80,79,78,77,76]},
+  {"canonical_series_id": "semiconductor.sales.product.category_a.monthly", "values": [70,71,72,73,74,75,76,77,78,79,80,81,82,84,87]},
+  {"canonical_series_id": "semiconductor.sales.product.category_b.monthly", "values": [60,61,62,63,64,65,66,67,68,69,70,71]}
+]

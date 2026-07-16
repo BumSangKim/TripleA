@@ -37,6 +37,25 @@ class FixtureSemiconductorObservationRepository:
             ),
         )
 
+    def select_available_series(self, canonical_series_id: str, *, decision_time: datetime) -> tuple[SemiconductorObservation, ...]:
+        """Return the latest point-in-time vintage for every available observation date."""
+        latest_by_date: dict[object, SemiconductorObservation] = {}
+        for observation in self._observations:
+            if observation.canonical_series_id != canonical_series_id or not observation.is_available_at(decision_time):
+                continue
+            current = latest_by_date.get(observation.observation_date)
+            if current is None or (
+                observation.available_at,
+                observation.updated_at,
+                observation.revision_id,
+            ) > (
+                current.available_at,
+                current.updated_at,
+                current.revision_id,
+            ):
+                latest_by_date[observation.observation_date] = observation
+        return tuple(latest_by_date[key] for key in sorted(latest_by_date))
+
     def build_snapshot(
         self,
         *,

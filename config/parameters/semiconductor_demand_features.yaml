@@ -1,0 +1,43 @@
+fallback_policy: REVIEW_REQUIRED
+
+parameter_metadata:
+  parameter_version: semiconductor_demand_features_v1
+  model_version: semiconductor_demand_feature_model_v1
+  feature_version: semiconductor_demand_features_v1
+  approved: false
+  diagnostic_only: true
+  source: Semiconductor vertical-slice fixture contract
+  reason: Feature definitions only. No score, allocation, or action interpretation.
+
+inputs:
+  global_sales_series_id: semiconductor.sales.global.monthly
+  # Generic configured categories remain placeholders until an owner approves real classifications.
+  regional_series_ids:
+    - semiconductor.sales.regional.region_a.monthly
+    - semiconductor.sales.regional.region_b.monthly
+  product_category_series_ids:
+    - semiconductor.sales.product.category_a.monthly
+    - semiconductor.sales.product.category_b.monthly
+
+feature_definitions:
+  semiconductor.demand.monthly_sales_yoy:
+    unit: ratio
+    sign: positive indicates sales growth versus the comparable month.
+  semiconductor.demand.three_month_average_yoy:
+    unit: ratio
+    sign: positive indicates three-month average sales growth versus the comparable period.
+  semiconductor.demand.three_month_annualized_momentum:
+    unit: ratio
+    sign: positive indicates annualized three-month sales momentum.
+  semiconductor.demand.growth_acceleration:
+    unit: ratio
+    sign: positive indicates current YoY growth above recent YoY history.
+  semiconductor.demand.long_trend_deviation:
+    unit: ratio
+    sign: positive indicates current YoY growth above available long-trend history.
+  semiconductor.demand.regional_breadth:
+    unit: fraction
+    sign: descriptive share of configured regional series with positive YoY growth.
+  semiconductor.demand.product_category_breadth:
+    unit: fraction
+    sign: descriptive share of configured product-category series with positive YoY growth.
